@@ -1273,7 +1273,7 @@
 
 @media (max-width: 760px) {
   .page-shell {
-    padding: 16px;
+    padding: 12px;
   }
 
   .top-nav,
@@ -1291,8 +1291,8 @@
   .fan-hero,
   .studio-header,
   .studio-panel {
-    padding: 20px;
-    border-radius: 24px;
+    padding: 18px;
+    border-radius: 22px;
   }
 
   .top-nav,
@@ -1306,6 +1306,26 @@
   .inline-actions,
   .fan-actions {
     width: 100%;
+  }
+
+  .nav-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    justify-content: flex-start;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+
+  .nav-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nav-tab {
+    flex: 0 0 auto;
+    min-height: 38px;
+    padding: 0 12px;
+    white-space: nowrap;
+    font-size: 0.86rem;
   }
 
   .stat-grid,
@@ -1323,6 +1343,7 @@
   .inline-actions,
   .fan-actions {
     flex-direction: column;
+    margin-top: 20px;
   }
 
   .primary-action,
@@ -1330,5 +1351,237 @@
   .tiny-action,
   .sidebar-link {
     width: 100%;
+  }
+
+  .brand-badge {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+  }
+
+  .brand-text strong {
+    font-size: 0.92rem;
+  }
+
+  .brand-text span {
+    font-size: 0.72rem;
+  }
+
+  .hero-copy h1 {
+    font-size: clamp(2.25rem, 13vw, 3.4rem);
+    line-height: 0.95;
+    letter-spacing: -0.06em;
+    max-width: 8ch;
+  }
+
+  .hero-description,
+  .scene-copy p,
+  .studio-header p,
+  .workflow-copy p {
+    margin-top: 16px;
+    font-size: 0.95rem;
+    line-height: 1.58;
+  }
+
+  .eyebrow-row {
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .eyebrow-note {
+    font-size: 0.72rem;
+  }
+
+  .eyebrow-pill,
+  .status-badge,
+  .section-label,
+  .mini-label,
+  .card-kicker {
+    letter-spacing: 0.05em;
+  }
+
+  .stat-card,
+  .journey-card,
+  .detail-card,
+  .metric-card,
+  .mini-board,
+  .tool-card,
+  .feature-select-card,
+  .activity-card,
+  .fan-moment-card,
+  .timeline-row,
+  .board-card,
+  .catalog-card,
+  .composer-card,
+  .drop-hero,
+  .calendar-card {
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .stat-card strong,
+  .metric-card strong {
+    font-size: 1.55rem;
+  }
+
+  .signup-card h2,
+  .scene-panel.light h2,
+  .workflow-copy h2,
+  .scene-copy h2,
+  .dashboard-sidebar h2,
+  .studio-header h2 {
+    font-size: clamp(1.7rem, 8vw, 2.4rem);
+    line-height: 1.02;
+  }
+
+  .room-main h3,
+  .timeline-panel h3,
+  .summary-panel h3,
+  .fan-feed h3,
+  .studio-panel h3 {
+    font-size: 1.35rem;
+  }
+
+  .journey-card {
+    gap: 12px;
+  }
+
+  .journey-card span {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+  }
+
+  .journey-card strong,
+  .feature-select-card strong,
+  .tool-card strong {
+    font-size: 0.92rem;
+  }
+
+  .social-button {
+    min-height: 58px;
+    padding: 12px 14px;
+  }
+
+  .primary-action,
+  .secondary-action {
+    min-height: 50px;
+    border-radius: 16px;
+    font-size: 0.92rem;
+  }
+
+  .fan-tab-row {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+
+  .fan-tab-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .fan-tab {
+    flex: 0 0 auto;
+    min-height: 40px;
+    font-size: 0.88rem;
+    white-space: nowrap;
+  }
+
+  .timeline-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .timeline-time {
+    font-size: 0.78rem;
+  }
+
+  .chip-row,
+  .platform-tags {
+    gap: 6px;
+    margin-top: 16px;
+  }
+
+  .info-chip,
+  .board-label,
+  .platform-tags span {
+    min-height: 30px;
+    padding: 0 10px;
+    font-size: 0.7rem;
+  }
+
+  .workflow-panel {
+    padding: 20px 18px;
+  }
+
+  .step-card p,
+  .tool-card p,
+  .feature-select-card p,
+  .activity-card p,
+  .fan-moment-card p,
+  .board-card p,
+  .catalog-card p,
+  .composer-card p,
+  .drop-hero p {
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+}
+
+@media (max-width: 420px) {
+  .page-shell {
+    padding: 10px;
+  }
+
+  .top-nav,
+  .hero-copy,
+  .signup-card,
+  .room-preview-card,
+  .workflow-panel,
+  .scene-copy,
+  .scene-card,
+  .dashboard-sidebar,
+  .timeline-panel,
+  .summary-panel,
+  .fan-feed,
+  .fan-side-panel,
+  .fan-hero,
+  .studio-header,
+  .studio-panel {
+    padding: 16px;
+    border-radius: 20px;
+  }
+
+  .hero-copy h1 {
+    font-size: clamp(2.05rem, 12.5vw, 2.8rem);
+    max-width: 7ch;
+  }
+
+  .eyebrow-note {
+    display: none;
+  }
+
+  .stat-card strong,
+  .metric-card strong {
+    font-size: 1.4rem;
+  }
+
+  .creator-chip {
+    gap: 10px;
+  }
+
+  .chip-avatar {
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+  }
+
+  .creator-chip strong {
+    font-size: 0.92rem;
+  }
+
+  .creator-chip span {
+    font-size: 0.76rem;
   }
 }
