@@ -1063,6 +1063,178 @@
   gap: 8px;
 }
 
+.integration-stack,
+.autopublish-list,
+.platform-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.integration-hero,
+.autopublish-card,
+.platform-card {
+  padding: 18px;
+  border-radius: 22px;
+}
+
+.integration-hero {
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.integration-hero strong,
+.autopublish-card strong,
+.platform-card strong {
+  display: block;
+  margin-top: 10px;
+  font: 900 1rem/1.3 "Arial Black", "AppleGothic", sans-serif;
+}
+
+.integration-hero strong {
+  color: #fff4d5;
+}
+
+.integration-hero p,
+.autopublish-card p,
+.platform-card p {
+  margin: 10px 0 0;
+  font: 500 0.95rem/1.6 "AppleGothic", "Arial", sans-serif;
+}
+
+.integration-hero p {
+  color: rgba(245, 241, 232, 0.72);
+}
+
+.credential-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.field.masked {
+  letter-spacing: 0.04em;
+}
+
+.compact-field {
+  min-height: auto;
+}
+
+.autopublish-list {
+  margin-top: 4px;
+}
+
+.autopublish-card {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  gap: 14px;
+  background: rgba(28, 36, 50, 0.05);
+  box-shadow: inset 0 0 0 1px rgba(28, 36, 50, 0.08);
+}
+
+.autopublish-index {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #ffd166, #ff7a45);
+  color: #111722;
+  font: 900 1rem/1 "Arial Black", "AppleGothic", sans-serif;
+}
+
+.platform-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 18px;
+}
+
+.platform-card {
+  background: rgba(28, 36, 50, 0.04);
+  box-shadow: inset 0 0 0 1px rgba(28, 36, 50, 0.08);
+}
+
+.platform-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font: 700 0.72rem/1 "Arial", "AppleGothic", sans-serif;
+}
+
+.platform-card.youtube {
+  background:
+    radial-gradient(circle at top right, rgba(255, 63, 85, 0.16), transparent 34%),
+    rgba(255, 244, 241, 0.98);
+}
+
+.platform-card.youtube .platform-status {
+  background: #ff4c5d;
+  color: #fff7f0;
+}
+
+.platform-card.instagram {
+  background:
+    radial-gradient(circle at top right, rgba(255, 122, 69, 0.22), transparent 34%),
+    rgba(255, 242, 231, 0.98);
+}
+
+.platform-card.instagram .platform-status {
+  background: #ff7a45;
+  color: #fff7f0;
+}
+
+.platform-card.facebook {
+  background: rgba(237, 244, 255, 0.98);
+}
+
+.platform-card.facebook .platform-status {
+  background: #1877f2;
+  color: #eff6ff;
+}
+
+.platform-card.dark {
+  background: linear-gradient(180deg, #19212f, #111722);
+}
+
+.platform-card.dark strong,
+.platform-card.dark p {
+  color: #f5f1e8;
+}
+
+.platform-card.dark .platform-status {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff4d5;
+}
+
+.platform-card.neutral {
+  background: rgba(240, 236, 228, 0.96);
+}
+
+.platform-card.neutral .platform-status {
+  background: #1c2432;
+  color: #f5f1e8;
+}
+
+.platform-card.light {
+  background: rgba(245, 246, 248, 0.98);
+}
+
+.platform-card.light .platform-status {
+  background: #dfe3e8;
+  color: #1c2432;
+}
+
+.platform-card.purple {
+  background:
+    radial-gradient(circle at top right, rgba(145, 70, 255, 0.18), transparent 34%),
+    rgba(243, 238, 255, 0.98);
+}
+
+.platform-card.purple .platform-status {
+  background: #9146ff;
+  color: #f5efff;
+}
+
 .chip-row {
   display: flex;
   gap: 8px;
@@ -1266,7 +1438,9 @@
   .step-list,
   .metrics-grid,
   .three-grid,
-  .tool-grid {
+  .tool-grid,
+  .platform-grid,
+  .credential-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -1335,7 +1509,9 @@
   .feature-grid,
   .metrics-grid,
   .tool-grid,
-  .three-grid {
+  .three-grid,
+  .platform-grid,
+  .credential-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1419,6 +1595,13 @@
     border-radius: 18px;
   }
 
+  .integration-hero,
+  .autopublish-card,
+  .platform-card {
+    padding: 16px;
+    border-radius: 18px;
+  }
+
   .stat-card strong,
   .metric-card strong {
     font-size: 1.55rem;
@@ -1491,6 +1674,17 @@
   .timeline-row {
     grid-template-columns: 1fr;
     gap: 8px;
+  }
+
+  .autopublish-card {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .autopublish-index {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
   }
 
   .timeline-time {

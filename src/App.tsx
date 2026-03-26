@@ -162,6 +162,78 @@ const contentTimeline = [
   },
 ]
 
+const platformCatalog = [
+  {
+    name: 'YouTube',
+    status: 'Connected',
+    detail: 'Data API + Upload API 키 등록 완료',
+    tone: 'youtube',
+  },
+  {
+    name: 'CHZZK',
+    status: 'Ready',
+    detail: '라이브 예고 공지와 팬방 연결 예정',
+    tone: 'neutral',
+  },
+  {
+    name: 'X',
+    status: 'Planned',
+    detail: '영상 공개 직후 짧은 알림 포스트 배포',
+    tone: 'dark',
+  },
+  {
+    name: 'Instagram',
+    status: 'Planned',
+    detail: '릴스/스토리용 짧은 티저 알림 배포',
+    tone: 'instagram',
+  },
+  {
+    name: 'Facebook',
+    status: 'Planned',
+    detail: '커뮤니티 링크 카드와 게시글 미러링',
+    tone: 'facebook',
+  },
+  {
+    name: 'TikTok',
+    status: 'Research',
+    detail: '클립형 숏폼 티저 업로드 자동화 검토',
+    tone: 'dark',
+  },
+  {
+    name: 'Threads',
+    status: 'Planned',
+    detail: '짧은 근황 알림과 공개 직후 반응 수집',
+    tone: 'light',
+  },
+  {
+    name: 'Discord',
+    status: 'Ready',
+    detail: 'Webhook 기반 커뮤니티 알림 채널 연동',
+    tone: 'neutral',
+  },
+  {
+    name: 'Twitch',
+    status: 'Idea',
+    detail: '라이브 전환 시 팬방 공지와 일정 동기화',
+    tone: 'purple',
+  },
+]
+
+const youtubeIntegrationSteps = [
+  {
+    title: '채널 API 키 등록',
+    body: 'Google Cloud에서 발급한 API key와 업로드 권한을 InfluenceHub에 등록합니다.',
+  },
+  {
+    title: '업로드 템플릿 저장',
+    body: '제목 규칙, 설명란, 기본 태그, 썸네일 규칙을 한 번 저장합니다.',
+  },
+  {
+    title: '한 번 업로드하면 자동 배포',
+    body: 'InfluenceHub에 파일을 올리면 YouTube 업로드, 팬방 공지, 푸시 발송까지 묶어서 실행합니다.',
+  },
+]
+
 const communityPosts = [
   {
     label: '공지',
@@ -765,7 +837,10 @@ function App() {
         <div>
           <span className="section-label">PUBLISHING STUDIO</span>
           <h2>콘텐츠 배포 센터</h2>
-          <p>영상 업로드, 팬방 공지, 플랫폼별 발행 순서를 한 타임라인에서 관리합니다.</p>
+          <p>
+            유튜브를 먼저 연결하고, 나중에 다른 플랫폼도 같은 업로드 흐름에
+            붙일 수 있게 설계한 멀티 배포 센터입니다.
+          </p>
         </div>
         <div className="inline-actions compact">
           <button className="primary-action" onClick={() => setCurrentView('dashboard')}>
@@ -781,7 +856,69 @@ function App() {
         <section className="studio-panel dark-surface">
           <div className="panel-head">
             <div>
-              <span className="card-kicker">업로드 에디터</span>
+              <span className="card-kicker">유튜브 우선 연동</span>
+              <h3>YouTube 채널 연결</h3>
+            </div>
+            <span className="status-badge">Connected</span>
+          </div>
+
+          <div className="integration-stack">
+            <article className="integration-hero">
+              <span className="mini-label">등록된 채널</span>
+              <strong>침착한개발자TV · @devtv</strong>
+              <p>
+                Google OAuth 연결과 YouTube Data API 설정이 끝난 상태입니다.
+                업로드용 권한과 공개 상태 기본값도 저장돼 있습니다.
+              </p>
+            </article>
+
+            <div className="credential-grid">
+              <div className="field-block">
+                <span className="mini-label">Client ID</span>
+                <div className="field masked">yt-client-8f3c••••••••••</div>
+              </div>
+              <div className="field-block">
+                <span className="mini-label">API Key</span>
+                <div className="field masked">AIzaSyD9••••••••••••••••</div>
+              </div>
+            </div>
+
+            <div className="chip-row">
+              <span className="info-chip">Upload API 연결</span>
+              <span className="info-chip">기본 공개값: 예약</span>
+              <span className="info-chip">팬방 공지 연동</span>
+              <span className="info-chip">푸시 발송 ON</span>
+            </div>
+          </div>
+        </section>
+
+        <section className="studio-panel">
+          <div className="panel-head">
+            <div>
+              <span className="card-kicker">업로드 한번으로 실행</span>
+              <h3>자동 배포 플로우</h3>
+            </div>
+          </div>
+
+          <div className="autopublish-list">
+            {youtubeIntegrationSteps.map((step, index) => (
+              <article className="autopublish-card" key={step.title}>
+                <span className="autopublish-index">0{index + 1}</span>
+                <div>
+                  <strong>{step.title}</strong>
+                  <p>{step.body}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      </div>
+
+      <div className="split-grid">
+        <section className="studio-panel">
+          <div className="panel-head">
+            <div>
+              <span className="card-kicker">인플루언스허브 업로드</span>
               <h3>오늘의 메인 영상</h3>
             </div>
             <span className="status-badge">Queued</span>
@@ -795,13 +932,24 @@ function App() {
             <div className="field-block">
               <span className="mini-label">설명란</span>
               <div className="field multiline">
-                본편 업로드 후 팬방에는 핵심 요약과 비하인드 Q&A 링크가 함께 올라갑니다.
+                인플루언스허브에 영상 파일을 올리면 유튜브 업로드, 팬방 공지,
+                공개 푸시가 순서대로 자동 실행됩니다.
+              </div>
+            </div>
+            <div className="field-block">
+              <span className="mini-label">배포 대상</span>
+              <div className="field multiline compact-field">
+                YouTube 본편 업로드
+                <br />
+                CHZZK 공지 생성
+                <br />
+                팬방 상단 공지 + 푸시 발송
               </div>
             </div>
             <div className="chip-row">
-              <span className="info-chip">YouTube 예약</span>
-              <span className="info-chip">CHZZK 공지 연동</span>
-              <span className="info-chip">팬 푸시 ON</span>
+              <span className="info-chip">업로드 파일 1개</span>
+              <span className="info-chip">썸네일 자동 첨부</span>
+              <span className="info-chip">공지 초안 자동 생성</span>
             </div>
           </div>
         </section>
@@ -827,6 +975,25 @@ function App() {
           </div>
         </section>
       </div>
+
+      <section className="studio-panel">
+        <div className="panel-head">
+          <div>
+            <span className="card-kicker">멀티 플랫폼 카탈로그</span>
+            <h3>확장 가능한 배포 채널</h3>
+          </div>
+        </div>
+
+        <div className="platform-grid">
+          {platformCatalog.map((platform) => (
+            <article className={`platform-card ${platform.tone}`} key={platform.name}>
+              <span className="platform-status">{platform.status}</span>
+              <strong>{platform.name}</strong>
+              <p>{platform.detail}</p>
+            </article>
+          ))}
+        </div>
+      </section>
     </section>
   )
 
