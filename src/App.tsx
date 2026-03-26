@@ -11,6 +11,8 @@ type View =
   | 'community'
   | 'events'
   | 'store'
+  | 'privacy'
+  | 'terms'
   | 'fan'
 
 type SocialTone = 'google' | 'youtube' | 'kakao'
@@ -368,6 +370,8 @@ function App() {
           ['room', '팬방 생성'],
           ['features', '기능 설정'],
           ['dashboard', '운영 대시보드'],
+          ['privacy', '개인정보'],
+          ['terms', '약관'],
           ['fan', '팬 화면'],
         ].map(([id, label]) => (
           <button
@@ -603,6 +607,18 @@ function App() {
             <strong>팬방 주소 자동 제안</strong>
             <p>선택된 로그인 채널명 기반으로 방 이름과 주소 후보를 미리 보여줍니다.</p>
           </article>
+        </div>
+
+        <div className="legal-note">
+          <span>계속 진행하면 아래 문서에 동의하는 것으로 간주됩니다.</span>
+          <div className="legal-link-row">
+            <button className="legal-link" onClick={() => setCurrentView('privacy')}>
+              개인정보처리방침
+            </button>
+            <button className="legal-link" onClick={() => setCurrentView('terms')}>
+              애플리케이션 서비스 약관
+            </button>
+          </div>
         </div>
       </div>
     </section>
@@ -1008,8 +1024,164 @@ function App() {
             </article>
           ))}
         </div>
+
+        <div className="integration-legal">
+          <span>
+            플랫폼 연동 전 심사 및 정책 고지를 위해 아래 법률 문서 링크를 함께 제공할 수 있습니다.
+          </span>
+          <div className="legal-link-row">
+            <button className="legal-link" onClick={() => setCurrentView('privacy')}>
+              개인정보처리방침 보기
+            </button>
+            <button className="legal-link" onClick={() => setCurrentView('terms')}>
+              서비스 약관 보기
+            </button>
+          </div>
+        </div>
       </section>
     </section>
+  )
+
+  const renderPrivacy = () => (
+    <section className="doc-shell">
+      <div className="doc-hero">
+        <span className="section-label">LEGAL</span>
+        <h2>개인정보처리방침</h2>
+        <p>
+          InfluenceHub는 크리에이터 팬 커뮤니티 운영 서비스를 제공하기 위해 필요한
+          최소한의 개인정보를 수집하고, 플랫폼 연동과 콘텐츠 배포 기능 제공 목적에
+          한해 이용합니다.
+        </p>
+      </div>
+
+      <div className="doc-card">
+        <article className="doc-section">
+          <h3>1. 수집 항목</h3>
+          <p>
+            회사는 회원가입 및 플랫폼 연동 과정에서 이메일, 닉네임, 프로필 이미지,
+            연결된 외부 플랫폼 채널 정보, 채널 설명, 업로드 및 배포 이력, 서비스 이용 기록,
+            접속 로그, 기기/브라우저 정보 등을 수집할 수 있습니다.
+          </p>
+        </article>
+        <article className="doc-section">
+          <h3>2. 이용 목적</h3>
+          <p>
+            회원 식별, 팬방 생성 및 운영, YouTube 등 외부 플랫폼 연동, 콘텐츠 자동 배포,
+            공지 생성, 고객 문의 대응, 서비스 품질 개선, 통계 분석 및 부정 이용 방지를 위해
+            개인정보를 이용합니다.
+          </p>
+        </article>
+        <article className="doc-section">
+          <h3>3. 보유 기간</h3>
+          <p>
+            회원 탈퇴 시 원칙적으로 지체 없이 삭제합니다. 다만 전자상거래, 소비자 보호,
+            세금계산, 분쟁 대응 등 관련 법령에 따라 일정 기간 보관이 필요한 정보는 해당 기간 동안
+            별도 분리 보관할 수 있습니다.
+          </p>
+        </article>
+        <article className="doc-section">
+          <h3>4. 제3자 제공 및 위탁</h3>
+          <p>
+            법령상 근거 또는 이용자 동의가 있는 경우를 제외하고 제3자에게 제공하지 않습니다.
+            다만 YouTube, CHZZK 등 외부 플랫폼 연동, 클라우드 인프라 운영, 알림 발송, 파일 저장 등
+            서비스 제공에 필요한 범위에서 처리 위탁 또는 API 호출이 발생할 수 있습니다.
+          </p>
+        </article>
+        <article className="doc-section">
+          <h3>5. 이용자 권리</h3>
+          <p>
+            이용자는 언제든지 개인정보 조회, 수정, 삭제, 처리 정지를 요청할 수 있으며,
+            회사는 관련 법령에 따라 이를 처리합니다.
+          </p>
+        </article>
+        <article className="doc-section">
+          <h3>6. 문의처</h3>
+          <p>
+            개인정보와 관련한 문의, 열람, 정정, 삭제 요청은 서비스 내 문의 채널 또는 운영자 이메일을
+            통해 접수할 수 있으며, 회사는 지체 없이 검토 후 답변합니다.
+          </p>
+        </article>
+      </div>
+    </section>
+  )
+
+  const renderTerms = () => (
+    <section className="doc-shell">
+      <div className="doc-hero">
+        <span className="section-label">LEGAL</span>
+        <h2>애플리케이션 서비스 약관</h2>
+        <p>
+          본 약관은 InfluenceHub가 제공하는 크리에이터 팬 커뮤니티 운영 서비스의 이용과
+          관련하여 회사와 이용자 간 권리, 의무 및 책임 사항을 규정합니다.
+        </p>
+      </div>
+
+      <div className="doc-card">
+        <article className="doc-section">
+          <h3>1. 서비스 제공 내용</h3>
+          <p>
+            팬방 생성, 플랫폼 연동, 콘텐츠 업로드, 자동 공지 생성, 이벤트 운영, 굿즈 운영 등
+            크리에이터 운영 도구를 제공합니다.
+          </p>
+        </article>
+        <article className="doc-section">
+          <h3>2. 계정 관리</h3>
+          <p>
+            이용자는 정확하고 최신의 정보를 제공해야 하며, 계정, 비밀번호, 연동된 외부 플랫폼 권한
+            관리 책임을 부담합니다.
+          </p>
+        </article>
+        <article className="doc-section">
+          <h3>3. 외부 플랫폼 정책 준수</h3>
+          <p>
+            YouTube, CHZZK, X, Instagram 등 외부 서비스 연동 시 각 플랫폼의 정책, API 이용
+            약관, 인증 절차를 함께 준수해야 합니다.
+          </p>
+        </article>
+        <article className="doc-section">
+          <h3>4. 금지 행위</h3>
+          <p>
+            불법 콘텐츠 업로드, 타인 권리 침해, 허위 정보 등록, 비정상 자동화, 외부 플랫폼 정책
+            위반 행위는 금지됩니다.
+          </p>
+        </article>
+        <article className="doc-section">
+          <h3>5. 서비스 변경 및 제한</h3>
+          <p>
+            운영상 필요, 외부 플랫폼 정책 변경, 기술적 장애 등의 사유로 서비스 일부가 변경되거나
+            제한될 수 있습니다.
+          </p>
+        </article>
+        <article className="doc-section">
+          <h3>6. 책임 제한</h3>
+          <p>
+            회사는 외부 플랫폼 정책 변경, API 제한, 이용자 귀책 사유, 불가항력으로 인한 서비스 중단이나
+            게시 실패에 대해 법령이 허용하는 범위 내에서 책임을 제한할 수 있습니다.
+          </p>
+        </article>
+        <article className="doc-section">
+          <h3>7. 약관의 개정</h3>
+          <p>
+            회사는 관련 법령을 위반하지 않는 범위에서 본 약관을 개정할 수 있으며, 중요한 변경이 있는 경우
+            서비스 내 공지 또는 개별 통지를 통해 사전에 안내합니다.
+          </p>
+        </article>
+      </div>
+    </section>
+  )
+
+  const renderFooter = () => (
+    <footer className="site-footer">
+      <span>InfluenceHub Legal</span>
+      <div className="legal-link-row">
+        <button className="legal-link" onClick={() => setCurrentView('privacy')}>
+          개인정보처리방침
+        </button>
+        <button className="legal-link" onClick={() => setCurrentView('terms')}>
+          애플리케이션 서비스 약관
+        </button>
+      </div>
+    </footer>
   )
 
   const renderCommunity = () => (
@@ -1289,7 +1461,10 @@ function App() {
       {currentView === 'community' && renderCommunity()}
       {currentView === 'events' && renderEvents()}
       {currentView === 'store' && renderStore()}
+      {currentView === 'privacy' && renderPrivacy()}
+      {currentView === 'terms' && renderTerms()}
       {currentView === 'fan' && renderFan()}
+      {renderFooter()}
     </main>
   )
 }
