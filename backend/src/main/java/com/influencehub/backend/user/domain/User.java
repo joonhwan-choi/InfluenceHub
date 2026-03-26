@@ -18,7 +18,7 @@ public class User extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 60)
+    @Column(nullable = false, unique = true, length = 60)
     private String email;
 
     @Column(nullable = false, length = 40)
@@ -32,7 +32,7 @@ public class User extends BaseTimeEntity {
     @Column(nullable = false, length = 20)
     private AuthProvider authProvider;
 
-    @Column(length = 120)
+    @Column(length = 500)
     private String profileImageUrl;
 
     protected User() {
@@ -67,5 +67,10 @@ public class User extends BaseTimeEntity {
 
     public String getProfileImageUrl() {
         return profileImageUrl;
+    }
+
+    public void updateProfile(String nickname, String profileImageUrl) {
+        this.nickname = nickname;
+        this.profileImageUrl = profileImageUrl;
     }
 }

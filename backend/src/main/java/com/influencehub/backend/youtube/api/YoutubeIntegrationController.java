@@ -2,6 +2,7 @@ package com.influencehub.backend.youtube.api;
 
 import com.influencehub.backend.youtube.dto.YoutubeAuthUrlResponse;
 import com.influencehub.backend.youtube.dto.YoutubeConnectionResponse;
+import com.influencehub.backend.youtube.dto.YoutubeConnectionSnapshotResponse;
 import com.influencehub.backend.youtube.dto.YoutubeOAuthExchangeRequest;
 import com.influencehub.backend.youtube.dto.YoutubeUploadResponse;
 import com.influencehub.backend.youtube.service.YoutubeIntegrationService;
@@ -41,12 +42,17 @@ public class YoutubeIntegrationController {
         return youtubeIntegrationService.exchangeCode(code);
     }
 
+    @GetMapping("/latest-connection")
+    public YoutubeConnectionSnapshotResponse latestConnection() {
+        return youtubeIntegrationService.latestConnection();
+    }
+
     @PostMapping(
         value = "/upload",
         consumes = MediaType.MULTIPART_FORM_DATA_VALUE
     )
     public YoutubeUploadResponse upload(
-        @RequestParam("accessToken") String accessToken,
+        @RequestParam(value = "accessToken", required = false) String accessToken,
         @RequestParam("title") String title,
         @RequestParam(value = "description", required = false) String description,
         @RequestParam(value = "privacyStatus", required = false) String privacyStatus,

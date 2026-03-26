@@ -82,4 +82,17 @@ public class PublishJob extends BaseTimeEntity {
     public LocalDateTime getScheduledAt() {
         return scheduledAt;
     }
+
+    public void markSuccess(String targetUrl) {
+        this.status = PublishStatus.SUCCESS;
+        this.targetUrl = targetUrl;
+    }
+
+    public void markFailed() {
+        this.status = PublishStatus.FAILED;
+    }
+
+    public void markProcessing() {
+        this.status = PublishStatus.PROCESSING;
+    }
 }

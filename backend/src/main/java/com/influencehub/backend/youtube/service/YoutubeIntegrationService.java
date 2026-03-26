@@ -3,14 +3,32 @@ package com.influencehub.backend.youtube.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.influencehub.backend.publish.domain.PlatformType;
+import com.influencehub.backend.publish.domain.PublishJob;
+import com.influencehub.backend.publish.domain.PublishStatus;
+import com.influencehub.backend.publish.repository.PublishJobRepository;
+import com.influencehub.backend.room.domain.CreatorRoom;
+import com.influencehub.backend.room.domain.RoomVisibility;
+import com.influencehub.backend.room.repository.CreatorRoomRepository;
+import com.influencehub.backend.user.domain.AuthProvider;
+import com.influencehub.backend.user.domain.User;
+import com.influencehub.backend.user.domain.UserRole;
+import com.influencehub.backend.user.repository.UserRepository;
 import com.influencehub.backend.youtube.dto.YoutubeAuthUrlResponse;
 import com.influencehub.backend.youtube.dto.YoutubeChannelProfileResponse;
 import com.influencehub.backend.youtube.dto.YoutubeConnectionResponse;
+import com.influencehub.backend.youtube.dto.YoutubeConnectionSnapshotResponse;
 import com.influencehub.backend.youtube.dto.YoutubeUploadResponse;
+import com.influencehub.backend.youtube.domain.YoutubeChannelConnection;
+import com.influencehub.backend.youtube.repository.YoutubeChannelConnectionRepository;
+import com.influencehub.backend.youtube.support.YoutubeOnboardingContext;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.util.Locale;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -36,6 +54,10 @@ public class YoutubeIntegrationService {
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    private final UserRepository userRepository;
+    private final CreatorRoomRepository creatorRoomRepository;
+    private final PublishJobRepository publishJobRepository;
+    private final YoutubeChannelConnectionRepository youtubeChannelConnectionRepository;
     private final String clientId;
     private final String clientSecret;
     private final String redirectUri;
@@ -43,12 +65,20 @@ public class YoutubeIntegrationService {
     public YoutubeIntegrationService(
         RestTemplate restTemplate,
         ObjectMapper objectMapper,
+        UserRepository userRepository,
+        CreatorRoomRepository creatorRoomRepository,
+        PublishJobRepository publishJobRepository,
+        YoutubeChannelConnectionRepository youtubeChannelConnectionRepository,
         @Value("${youtube.client-id:}") String clientId,
         @Value("${youtube.client-secret:}") String clientSecret,
         @Value("${youtube.redirect-uri:}") String redirectUri
     ) {
         this.restTemplate = restTemplate;
         this.objectMapper = objectMapper;
+        this.userRepository = userRepository;
+        this.creatorRoomRepository = creatorRoomRepository;
+        this.publishJobRepository = publishJobRepository;
+        this.youtubeChannelConnectionRepository = youtubeChannelConnectionRepository;
         this.clientId = clientId;
         this.clientSecret = clientSecret;
         this.redirectUri = redirectUri;
@@ -65,12 +95,14 @@ public class YoutubeIntegrationService {
             .queryParam("prompt", "consent")
             .queryParam("include_granted_scopes", "true")
             .queryParam("scope", AUTH_SCOPE)
-            .build(true)
+            .build()
+            .encode()
             .toUriString();
 
         return new YoutubeAuthUrlResponse(authUrl, redirectUri);
     }
 
+    @Transactional
     public YoutubeConnectionResponse exchangeCode(String code) {
         requireConfiguredCredentials();
 
@@ -95,6 +127,7 @@ public class YoutubeIntegrationService {
         String refreshToken = textOrEmpty(tokenJson, "refresh_token");
 
         YoutubeChannelProfileResponse channel = fetchMyChannel(accessToken);
+        persistConnection(channel, accessToken, refreshToken);
         return new YoutubeConnectionResponse(accessToken, refreshToken, channel);
     }
 
@@ -140,6 +173,7 @@ public class YoutubeIntegrationService {
         );
     }
 
+    @Transactional
     public YoutubeUploadResponse uploadVideo(
         String accessToken,
         String title,
@@ -151,42 +185,95 @@ public class YoutubeIntegrationService {
             throw new IllegalArgumentException("A video file is required.");
         }
 
+        String resolvedAccessToken = resolveAccessToken(accessToken);
+
         String resolvedPrivacyStatus = privacyStatus == null || privacyStatus.isBlank()
             ? "private"
             : privacyStatus;
-
-        String resumableUrl = initiateResumableUpload(
-            accessToken,
-            title,
-            description,
-            resolvedPrivacyStatus,
-            file.getContentType(),
-            file.getSize()
+        YoutubeChannelProfileResponse channel = fetchMyChannel(resolvedAccessToken);
+        YoutubeOnboardingContext context = provisionContext(channel);
+        PublishJob publishJob = publishJobRepository.save(
+            new PublishJob(
+                context.getRoom(),
+                PlatformType.YOUTUBE,
+                PublishStatus.READY,
+                title,
+                LocalDateTime.now()
+            )
         );
+        publishJob.markProcessing();
 
-        HttpHeaders uploadHeaders = new HttpHeaders();
-        uploadHeaders.setContentType(file.getContentType() == null
-            ? MediaType.APPLICATION_OCTET_STREAM
-            : MediaType.parseMediaType(file.getContentType()));
-        uploadHeaders.setContentLength(file.getSize());
+        try {
+            String resumableUrl = initiateResumableUpload(
+                resolvedAccessToken,
+                title,
+                description,
+                resolvedPrivacyStatus,
+                file.getContentType(),
+                file.getSize()
+            );
 
-        ResponseEntity<String> uploadResponse = restTemplate.exchange(
-            URI.create(resumableUrl),
-            HttpMethod.PUT,
-            new HttpEntity<>(file.getBytes(), uploadHeaders),
-            String.class
-        );
+            HttpHeaders uploadHeaders = new HttpHeaders();
+            uploadHeaders.setContentType(file.getContentType() == null
+                ? MediaType.APPLICATION_OCTET_STREAM
+                : MediaType.parseMediaType(file.getContentType()));
+            uploadHeaders.setContentLength(file.getSize());
 
-        JsonNode root = readJson(uploadResponse.getBody());
-        String videoId = textOrEmpty(root, "id");
-        String uploadedTitle = textOrEmpty(root.path("snippet"), "title");
-        String uploadedPrivacyStatus = textOrEmpty(root.path("status"), "privacyStatus");
+            ResponseEntity<String> uploadResponse = restTemplate.exchange(
+                URI.create(resumableUrl),
+                HttpMethod.PUT,
+                new HttpEntity<>(file.getBytes(), uploadHeaders),
+                String.class
+            );
 
-        return new YoutubeUploadResponse(
-            videoId,
-            uploadedTitle,
-            uploadedPrivacyStatus,
-            videoId.isBlank() ? "" : "https://www.youtube.com/watch?v=" + urlEncode(videoId)
+            JsonNode root = readJson(uploadResponse.getBody());
+            String videoId = textOrEmpty(root, "id");
+            String uploadedTitle = textOrEmpty(root.path("snippet"), "title");
+            String uploadedPrivacyStatus = textOrEmpty(root.path("status"), "privacyStatus");
+            String watchUrl = videoId.isBlank() ? "" : "https://www.youtube.com/watch?v=" + urlEncode(videoId);
+
+            publishJob.markSuccess(watchUrl);
+
+            return new YoutubeUploadResponse(
+                videoId,
+                uploadedTitle,
+                uploadedPrivacyStatus,
+                watchUrl
+            );
+        } catch (RuntimeException ex) {
+            publishJob.markFailed();
+            throw ex;
+        }
+    }
+
+    private String resolveAccessToken(String accessToken) {
+        if (accessToken != null && !accessToken.isBlank()) {
+            return accessToken;
+        }
+
+        YoutubeChannelConnection connection = youtubeChannelConnectionRepository.findTopByOrderByCreatedAtDesc()
+            .orElseThrow(() -> new IllegalStateException("No saved YouTube connection exists yet."));
+
+        if (connection.getAccessToken() == null || connection.getAccessToken().isBlank()) {
+            throw new IllegalStateException("The latest YouTube connection does not have a valid access token.");
+        }
+
+        return connection.getAccessToken();
+    }
+
+    @Transactional(readOnly = true)
+    public YoutubeConnectionSnapshotResponse latestConnection() {
+        YoutubeChannelConnection connection = youtubeChannelConnectionRepository.findTopByOrderByCreatedAtDesc()
+            .orElseThrow(() -> new IllegalStateException("No saved YouTube connection exists yet."));
+
+        return new YoutubeConnectionSnapshotResponse(
+            connection.getId(),
+            connection.getYoutubeChannelId(),
+            connection.getChannelTitle(),
+            connection.getChannelDescription(),
+            connection.getRoom().getRoomName(),
+            connection.getRoom().getSlug(),
+            connection.getSubscriberCount()
         );
     }
 
@@ -237,6 +324,88 @@ public class YoutubeIntegrationService {
         return headers;
     }
 
+    private void persistConnection(
+        YoutubeChannelProfileResponse channel,
+        String accessToken,
+        String refreshToken
+    ) {
+        YoutubeOnboardingContext context = provisionContext(channel);
+        youtubeChannelConnectionRepository.findByYoutubeChannelId(channel.getChannelId())
+            .ifPresentOrElse(
+                connection -> connection.updateChannelMetadata(
+                    channel.getTitle(),
+                    channel.getDescription(),
+                    channel.getCustomUrl(),
+                    channel.getThumbnailUrl(),
+                    channel.getSubscriberCount(),
+                    accessToken,
+                    refreshToken
+                ),
+                () -> youtubeChannelConnectionRepository.save(
+                    new YoutubeChannelConnection(
+                        context.getUser(),
+                        context.getRoom(),
+                        channel.getChannelId(),
+                        channel.getTitle(),
+                        channel.getDescription(),
+                        channel.getCustomUrl(),
+                        channel.getThumbnailUrl(),
+                        channel.getSubscriberCount(),
+                        accessToken,
+                        refreshToken
+                    )
+                )
+            );
+    }
+
+    private YoutubeOnboardingContext provisionContext(YoutubeChannelProfileResponse channel) {
+        String normalizedTitle = channel.getTitle().isBlank() ? "creator" : channel.getTitle();
+        String slug = slugify(channel.getCustomUrl().isBlank() ? normalizedTitle : channel.getCustomUrl());
+        String email = slug + "@youtube.influencehub.local";
+
+        User user = userRepository.findByEmail(email)
+            .map(existing -> {
+                existing.updateProfile(normalizedTitle, channel.getThumbnailUrl());
+                return existing;
+            })
+            .orElseGet(() -> userRepository.save(
+                new User(email, normalizedTitle, UserRole.CREATOR, AuthProvider.YOUTUBE)
+            ));
+
+        CreatorRoom room = creatorRoomRepository.findByOwner(user)
+            .map(existing -> {
+                existing.updateProfile(normalizedTitle, defaultDescription(channel));
+                return existing;
+            })
+            .orElseGet(() -> creatorRoomRepository.save(
+                new CreatorRoom(
+                    user,
+                    normalizedTitle,
+                    ensureUniqueSlug(slug),
+                    defaultDescription(channel),
+                    RoomVisibility.PUBLIC
+                )
+            ));
+
+        return new YoutubeOnboardingContext(user, room);
+    }
+
+    private String ensureUniqueSlug(String baseSlug) {
+        String candidate = baseSlug;
+        int suffix = 2;
+        while (creatorRoomRepository.existsBySlug(candidate)) {
+            candidate = baseSlug + "-" + suffix;
+            suffix++;
+        }
+        return candidate;
+    }
+
+    private String defaultDescription(YoutubeChannelProfileResponse channel) {
+        return channel.getDescription().isBlank()
+            ? channel.getTitle() + " 공식 팬방입니다."
+            : channel.getDescription();
+    }
+
     private void requireConfiguredCredentials() {
         if (clientId.isBlank() || clientSecret.isBlank() || redirectUri.isBlank()) {
             throw new IllegalStateException(
@@ -269,5 +438,12 @@ public class YoutubeIntegrationService {
 
     private String urlEncode(String value) {
         return URLEncoder.encode(value, StandardCharsets.UTF_8);
+    }
+
+    private String slugify(String value) {
+        String normalized = value.toLowerCase(Locale.ROOT)
+            .replaceAll("[^a-z0-9]+", "-")
+            .replaceAll("(^-+|-+$)", "");
+        return normalized.isBlank() ? "creator-room" : normalized;
     }
 }

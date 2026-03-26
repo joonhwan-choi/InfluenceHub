@@ -73,4 +73,9 @@ public class CreatorRoom extends BaseTimeEntity {
     public RoomVisibility getVisibility() {
         return visibility;
     }
+
+    public void updateProfile(String roomName, String description) {
+        this.roomName = roomName;
+        this.description = description;
+    }
 }

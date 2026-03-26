@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ChangeEvent } from 'react'
 import './App.css'
 
 type View =
@@ -17,6 +17,7 @@ type View =
 
 type SocialTone = 'google' | 'youtube' | 'kakao'
 type FanTab = 'feed' | 'calendar' | 'shop'
+type PrivacyStatus = 'private' | 'unlisted' | 'public'
 
 type SocialButton = {
   label: string
@@ -28,6 +29,23 @@ type FeatureModule = {
   name: string
   description: string
   liveMetric: string
+}
+
+type ChannelConnection = {
+  connection_id: number
+  channel_id: string
+  channel_title: string
+  channel_description: string
+  room_name: string
+  room_slug: string
+  subscriber_count: string
+}
+
+type UploadResult = {
+  video_id: string
+  title: string
+  privacy_status: string
+  watch_url: string
 }
 
 const statCards = [
@@ -325,6 +343,7 @@ const fanShopHighlights = [
 ]
 
 function App() {
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080'
   const [currentView, setCurrentView] = useState<View>('home')
   const [selectedSocial, setSelectedSocial] = useState<SocialTone>('youtube')
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>([
@@ -334,6 +353,18 @@ function App() {
     '굿즈 스토어',
   ])
   const [fanTab, setFanTab] = useState<FanTab>('feed')
+  const [connectedChannel, setConnectedChannel] = useState<ChannelConnection | null>(null)
+  const [uploadTitle, setUploadTitle] = useState('누나 서울구경')
+  const [uploadDescription, setUploadDescription] = useState(
+    'InfluenceHub에서 테스트 업로드한 영상입니다.',
+  )
+  const [privacyStatus, setPrivacyStatus] = useState<PrivacyStatus>('private')
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [uploadStatus, setUploadStatus] = useState('아직 업로드 전')
+  const [uploadError, setUploadError] = useState('')
+  const [isLoadingChannel, setIsLoadingChannel] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadResult, setUploadResult] = useState<UploadResult | null>(null)
 
   const selectedSocialDetail =
     socialButtons.find((button) => button.tone === selectedSocial) ?? socialButtons[0]
@@ -351,6 +382,82 @@ function App() {
       setSelectedFeatures(['팬 커뮤니티'])
     }
     setCurrentView('dashboard')
+  }
+
+  const loadLatestConnection = async () => {
+    setIsLoadingChannel(true)
+    setUploadError('')
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/youtube/latest-connection`)
+      if (!response.ok) {
+        throw new Error('채널 정보를 불러오지 못했습니다.')
+      }
+
+      const data = (await response.json()) as ChannelConnection
+      setConnectedChannel(data)
+      if (!uploadTitle.trim()) {
+        setUploadTitle(`${data.channel_title} 새 영상`)
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '채널 정보를 불러오지 못했습니다.'
+      setUploadError(message)
+    } finally {
+      setIsLoadingChannel(false)
+    }
+  }
+
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const nextFile = event.target.files?.[0] ?? null
+    setSelectedFile(nextFile)
+  }
+
+  const handleUpload = async () => {
+    if (!selectedFile) {
+      setUploadError('업로드할 mp4 파일을 먼저 선택하세요.')
+      return
+    }
+
+    if (!uploadTitle.trim()) {
+      setUploadError('영상 제목을 입력하세요.')
+      return
+    }
+
+    setIsUploading(true)
+    setUploadError('')
+    setUploadStatus('YouTube로 전송 중')
+    setUploadResult(null)
+
+    try {
+      const formData = new FormData()
+      formData.append('title', uploadTitle.trim())
+      formData.append('description', uploadDescription.trim())
+      formData.append('privacyStatus', privacyStatus)
+      formData.append('file', selectedFile)
+
+      const response = await fetch(`${apiBaseUrl}/api/v1/youtube/upload`, {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || '업로드에 실패했습니다.')
+      }
+
+      const data = (await response.json()) as UploadResult
+      setUploadResult(data)
+      setUploadStatus('업로드 완료')
+      if (!connectedChannel) {
+        void loadLatestConnection()
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '업로드에 실패했습니다.'
+      setUploadError(message)
+      setUploadStatus('업로드 실패')
+    } finally {
+      setIsUploading(false)
+    }
   }
 
   const renderHeader = () => (
@@ -897,10 +1004,22 @@ function App() {
 
             <article className="channel-import-card">
               <span className="mini-label">채널 불러오기 결과</span>
-              <strong>
-                {importedChannelPreview.title} <span>{importedChannelPreview.handle}</span>
-              </strong>
-              <p>{importedChannelPreview.description}</p>
+              {connectedChannel ? (
+                <>
+                  <strong>
+                    {connectedChannel.channel_title}{' '}
+                    <span>{connectedChannel.subscriber_count} subscribers</span>
+                  </strong>
+                  <p>{connectedChannel.channel_description || '채널 설명이 아직 비어 있습니다.'}</p>
+                </>
+              ) : (
+                <>
+                  <strong>
+                    {importedChannelPreview.title} <span>{importedChannelPreview.handle}</span>
+                  </strong>
+                  <p>{importedChannelPreview.description}</p>
+                </>
+              )}
             </article>
 
             <div className="credential-grid">
@@ -919,6 +1038,19 @@ function App() {
               <span className="info-chip">기본 공개값: 예약</span>
               <span className="info-chip">팬방 공지 연동</span>
               <span className="info-chip">푸시 발송 ON</span>
+            </div>
+
+            <div className="inline-actions">
+              <button className="secondary-action small" onClick={() => void loadLatestConnection()}>
+                {isLoadingChannel ? '채널 불러오는 중...' : '내 채널 다시 불러오기'}
+              </button>
+              {connectedChannel ? (
+                <span className="helper-copy">
+                  팬방 `{connectedChannel.room_name}`과 연결된 최신 채널을 기준으로 업로드합니다.
+                </span>
+              ) : (
+                <span className="helper-copy">아직 프론트에 채널 정보를 불러오지 않았습니다.</span>
+              )}
             </div>
           </div>
         </section>
@@ -958,23 +1090,47 @@ function App() {
           <div className="form-stack">
             <div className="field-block">
               <span className="mini-label">제목</span>
-              <div className="field">요즘 개발자들이 진짜 많이 놓치는 설계 포인트 7가지</div>
+              <input
+                className="text-input"
+                value={uploadTitle}
+                onChange={(event) => setUploadTitle(event.target.value)}
+                placeholder="영상 제목을 입력하세요"
+              />
             </div>
             <div className="field-block">
               <span className="mini-label">설명란</span>
-              <div className="field multiline">
-                인플루언스허브에 영상 파일을 올리면 유튜브 업로드, 팬방 공지,
-                공개 푸시가 순서대로 자동 실행됩니다.
-              </div>
+              <textarea
+                className="text-area"
+                value={uploadDescription}
+                onChange={(event) => setUploadDescription(event.target.value)}
+                placeholder="영상 설명을 입력하세요"
+              />
             </div>
             <div className="field-block">
-              <span className="mini-label">배포 대상</span>
-              <div className="field multiline compact-field">
-                YouTube 본편 업로드
-                <br />
-                CHZZK 공지 생성
-                <br />
-                팬방 상단 공지 + 푸시 발송
+              <span className="mini-label">영상 파일</span>
+              <label className="upload-dropzone">
+                <input accept="video/mp4" className="file-input" onChange={handleFileChange} type="file" />
+                <strong>{selectedFile ? selectedFile.name : 'mp4 파일 선택'}</strong>
+                <span>
+                  {selectedFile
+                    ? `${(selectedFile.size / 1024 / 1024).toFixed(1)}MB · 업로드 준비 완료`
+                    : '260MB 안팎 대용량 영상도 바로 전송할 수 있습니다.'}
+                </span>
+              </label>
+            </div>
+            <div className="field-block">
+              <span className="mini-label">공개 범위</span>
+              <div className="privacy-toggle-row">
+                {(['private', 'unlisted', 'public'] as PrivacyStatus[]).map((option) => (
+                  <button
+                    className={privacyStatus === option ? 'privacy-toggle active' : 'privacy-toggle'}
+                    key={option}
+                    onClick={() => setPrivacyStatus(option)}
+                    type="button"
+                  >
+                    {option}
+                  </button>
+                ))}
               </div>
             </div>
             <div className="chip-row">
@@ -982,6 +1138,23 @@ function App() {
               <span className="info-chip">썸네일 자동 첨부</span>
               <span className="info-chip">공지 초안 자동 생성</span>
             </div>
+            <div className="upload-action-row">
+              <button className="primary-action" onClick={() => void handleUpload()} type="button">
+                {isUploading ? '업로드 중...' : 'YouTube 업로드'}
+              </button>
+              <span className="helper-copy">{uploadStatus}</span>
+            </div>
+            {uploadError ? <p className="feedback-message error">{uploadError}</p> : null}
+            {uploadResult ? (
+              <article className="upload-result-card">
+                <span className="mini-label">업로드 결과</span>
+                <strong>{uploadResult.title}</strong>
+                <p>공개 상태: {uploadResult.privacy_status}</p>
+                <a className="result-link" href={uploadResult.watch_url} rel="noreferrer" target="_blank">
+                  유튜브에서 보기
+                </a>
+              </article>
+            ) : null}
           </div>
         </section>
 
