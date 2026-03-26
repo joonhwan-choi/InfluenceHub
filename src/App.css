@@ -1071,6 +1071,7 @@
 }
 
 .integration-hero,
+.channel-import-card,
 .autopublish-card,
 .platform-card {
   padding: 18px;
@@ -1095,6 +1096,7 @@
 }
 
 .integration-hero p,
+.channel-import-card p,
 .autopublish-card p,
 .platform-card p {
   margin: 10px 0 0;
@@ -1103,6 +1105,23 @@
 
 .integration-hero p {
   color: rgba(245, 241, 232, 0.72);
+}
+
+.channel-import-card {
+  background: rgba(28, 36, 50, 0.05);
+  box-shadow: inset 0 0 0 1px rgba(28, 36, 50, 0.08);
+}
+
+.channel-import-card strong {
+  display: block;
+  margin-top: 10px;
+  color: #1c2432;
+  font: 900 1rem/1.3 "Arial Black", "AppleGothic", sans-serif;
+}
+
+.channel-import-card strong span {
+  color: rgba(28, 36, 50, 0.56);
+  font-size: 0.85rem;
 }
 
 .credential-grid {

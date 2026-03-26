@@ -234,6 +234,13 @@ const youtubeIntegrationSteps = [
   },
 ]
 
+const importedChannelPreview = {
+  title: '침착한개발자TV',
+  handle: '@devtv',
+  description:
+    '개발과 제품을 쉽게 풀어 설명하는 채널입니다. 본편 업로드 후 팬방에서 Q&A와 비하인드 글을 함께 운영합니다.',
+}
+
 const communityPosts = [
   {
     label: '공지',
@@ -870,6 +877,14 @@ function App() {
                 Google OAuth 연결과 YouTube Data API 설정이 끝난 상태입니다.
                 업로드용 권한과 공개 상태 기본값도 저장돼 있습니다.
               </p>
+            </article>
+
+            <article className="channel-import-card">
+              <span className="mini-label">채널 불러오기 결과</span>
+              <strong>
+                {importedChannelPreview.title} <span>{importedChannelPreview.handle}</span>
+              </strong>
+              <p>{importedChannelPreview.description}</p>
             </article>
 
             <div className="credential-grid">
