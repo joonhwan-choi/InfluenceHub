@@ -25,7 +25,7 @@ type DashboardSection = 'overview' | 'content' | 'community' | 'events' | 'store
 type BannerStyle = 'focus' | 'soft' | 'broadcast'
 type ButtonStyle = 'rounded' | 'solid' | 'outlined'
 type CardDensity = 'compact' | 'comfortable' | 'airy'
-type RoomSettingsSection = 'theme' | 'platforms'
+type RoomSettingsSection = 'theme' | 'platforms' | 'modules'
 type RoomThemeId =
   | 'hub-classic'
   | 'sunset-sand'
@@ -880,19 +880,36 @@ function App() {
     setCurrentView('dashboard')
   }
 
+  const openRoomSettingsSection = (section: RoomSettingsSection) => {
+    setRoomSettingsSection(section)
+    setCurrentView('room')
+  }
+
   const openCreatorStart = () => {
     setCurrentView(isCreatorLoggedIn ? 'content' : isFanLoggedIn ? 'fan' : 'signup')
   }
 
   const openCreatorOnboardingStep = (index: number) => {
     if (isCreatorLoggedIn) {
-      setCurrentView(index === 0 ? 'content' : index === 1 ? 'dashboard' : 'features')
+      if (index === 0) {
+        setCurrentView('content')
+        return
+      }
+      if (index === 1) {
+        setCurrentView('dashboard')
+        return
+      }
+      openRoomSettingsSection('modules')
       return
     }
 
-    setCurrentView(
-      index === 0 ? 'signup' : index === 1 ? 'room' : index === 2 ? 'features' : 'dashboard',
-    )
+    if (index === 2) {
+      setCurrentView('room')
+      setRoomSettingsSection('modules')
+      return
+    }
+
+    setCurrentView(index === 0 ? 'signup' : index === 1 ? 'room' : 'dashboard')
   }
 
   const isFanLoggedIn = fanSession !== null
@@ -907,7 +924,6 @@ function App() {
         ['home', '홈'],
         ['content', '내 채널'],
         ['room', '설정'],
-        ['features', '기능 설정'],
         ['dashboard', '운영 대시보드'],
         ['fan', '팬 화면'],
       ]
@@ -2026,6 +2042,12 @@ function App() {
   }, [])
 
   useEffect(() => {
+    if (currentView === 'features') {
+      setRoomSettingsSection('modules')
+    }
+  }, [currentView])
+
+  useEffect(() => {
     localStorage.setItem(roomThemeStorageKey, selectedRoomTheme)
   }, [selectedRoomTheme])
 
@@ -2731,8 +2753,8 @@ function App() {
         </div>
 
         <div className="inline-actions">
-          <button className="primary-action" onClick={() => setCurrentView('features')}>
-            {isCreatorLoggedIn ? '기능 설정으로' : '기능 선택으로'}
+          <button className="primary-action" onClick={() => openRoomSettingsSection('modules')}>
+            {isCreatorLoggedIn ? '운영 구성으로' : '운영 구성 선택'}
           </button>
           <button className="secondary-action" onClick={() => setCurrentView('content')}>
             채널로 돌아가기
@@ -2755,6 +2777,14 @@ function App() {
           >
             <strong>플랫폼 설정</strong>
             <span>연결값 입력, 테스트, 활성화 관리</span>
+          </button>
+          <button
+            className={roomSettingsSection === 'modules' ? 'settings-nav-item active' : 'settings-nav-item'}
+            onClick={() => setRoomSettingsSection('modules')}
+            type="button"
+          >
+            <strong>운영 구성</strong>
+            <span>필요한 기능만 켜고 화면 구성을 정리</span>
           </button>
         </div>
       </div>
@@ -3043,59 +3073,75 @@ function App() {
         </div>
       </section>
       ) : null}
-    </section>
-  )
 
-  const renderFeatures = () => (
-    <section className={`scene-panel creator-workspace ${creatorExperienceClasses}`}>
-      <div className="scene-copy">
-        <span className="section-label">MODULE SETUP</span>
-        <h2>운영 방식에 맞는 기능 선택</h2>
-        <p>
-          필요한 기능만 남겨 대시보드와 팬 화면을 더 선명하게 구성합니다.
-        </p>
+      {roomSettingsSection === 'modules' ? (
+        <div className="scene-card dark-card">
+          <div className="dual-pane">
+            <section className="editor-card">
+              <span className="card-kicker">운영 구성</span>
+              <h3>운영 방식에 맞는 기능만 선택</h3>
+              <p className="settings-panel-copy">
+                팬방에서 실제로 쓸 기능만 남기면 대시보드와 팬 화면이 더 선명하게 정리됩니다.
+              </p>
 
-        <div className="selection-summary">
-          <span className="mini-label">현재 활성화</span>
-          <strong>{selectedFeatures.length}개 모듈 선택됨</strong>
-          <p>{selectedFeatures.join(' · ')}</p>
+              <div className="selection-summary settings-save-card">
+                <span className="mini-label">현재 활성화</span>
+                <strong>{selectedFeatures.length}개 모듈 선택됨</strong>
+                <p>{selectedFeatures.join(' · ')}</p>
+              </div>
+
+              <div className="feature-grid">
+                {featureCatalog.map((feature) => {
+                  const enabled = selectedFeatures.includes(feature.name)
+
+                  return (
+                    <button
+                      className={enabled ? 'feature-select-card enabled' : 'feature-select-card'}
+                      key={feature.name}
+                      onClick={() => toggleFeature(feature.name)}
+                    >
+                      <div className="feature-card-top">
+                        <span className="mini-label">{enabled ? '활성화됨' : '비활성'}</span>
+                        <span className={enabled ? 'toggle on' : 'toggle'}>{enabled ? 'ON' : 'OFF'}</span>
+                      </div>
+                      <strong>{feature.name}</strong>
+                      <p>{feature.description}</p>
+                      <span className="feature-metric">{feature.liveMetric}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </section>
+
+            <section className="editor-card accent">
+              <span className="card-kicker">적용 결과</span>
+              <div className="selected-module-list">
+                {selectedFeatures.map((feature) => (
+                  <div className="selected-module" key={feature}>
+                    <strong>{feature}</strong>
+                    <span>운영 중</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="notice-preview">
+                <span className="mini-label">운영 메모</span>
+                <strong>필요 없는 기능은 꺼두는 편이 더 깔끔합니다.</strong>
+                <p>팬 화면과 운영 대시보드에서 실제로 쓰는 카드만 남겨서 진입 흐름을 가볍게 유지합니다.</p>
+              </div>
+
+              <div className="inline-actions">
+                <button className="primary-action" onClick={goToDashboard}>
+                  대시보드 시작하기
+                </button>
+                <button className="secondary-action" onClick={() => setRoomSettingsSection('theme')}>
+                  테마로 돌아가기
+                </button>
+              </div>
+            </section>
+          </div>
         </div>
-
-        <div className="inline-actions">
-          <button className="primary-action" onClick={goToDashboard}>
-            대시보드 시작하기
-          </button>
-          <button className="secondary-action" onClick={() => setCurrentView('room')}>
-            팬방 설정으로
-          </button>
-        </div>
-      </div>
-
-      <div className="scene-card creator-control-card">
-        <div className="feature-grid">
-          {featureCatalog.map((feature) => {
-            const enabled = selectedFeatures.includes(feature.name)
-
-            return (
-              <button
-                className={enabled ? 'feature-select-card enabled' : 'feature-select-card'}
-                key={feature.name}
-                onClick={() => toggleFeature(feature.name)}
-              >
-                <div className="feature-card-top">
-                  <span className="mini-label">{enabled ? '활성화됨' : '비활성'}</span>
-                  <span className={enabled ? 'toggle on' : 'toggle'}>
-                    {enabled ? 'ON' : 'OFF'}
-                  </span>
-                </div>
-                <strong>{feature.name}</strong>
-                <p>{feature.description}</p>
-                <span className="feature-metric">{feature.liveMetric}</span>
-              </button>
-            )
-          })}
-        </div>
-      </div>
+      ) : null}
     </section>
   )
 
@@ -3140,8 +3186,8 @@ function App() {
                 <span className="card-kicker">실시간 운영 로그</span>
                 <h3>오늘 자동화된 흐름</h3>
               </div>
-              <button className="tiny-action" onClick={() => setCurrentView('features')}>
-                모듈 수정
+              <button className="tiny-action" onClick={() => openRoomSettingsSection('modules')}>
+                운영 구성 수정
               </button>
             </div>
 
@@ -4631,19 +4677,12 @@ function App() {
       {renderHeader()}
       {currentView === 'home' && renderHome()}
       {currentView === 'signup' && renderSignup()}
-      {currentView === 'room' &&
+      {(currentView === 'room' || currentView === 'features') &&
         (isCreatorLoggedIn
           ? renderRoom()
           : renderCreatorAccessGuard(
               '설정 화면은 인플루언서 전용입니다',
               '팬방 컬러, 채널 연결 정보, 운영 기본값은 실제 인플루언서 채널을 연결한 뒤에만 조정할 수 있습니다.',
-            ))}
-      {currentView === 'features' &&
-        (isCreatorLoggedIn
-          ? renderFeatures()
-          : renderCreatorAccessGuard(
-              '기능 설정은 크리에이터가 직접 정하는 영역입니다',
-              '팬 커뮤니티, 이벤트, 멀티 업로드, 굿즈 모듈은 운영자만 켜고 끌 수 있게 분리했습니다.',
             ))}
       {currentView === 'dashboard' &&
         (isCreatorLoggedIn
