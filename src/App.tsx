@@ -585,6 +585,7 @@ function App() {
   const activeRoomTheme =
     roomThemePresets.find((preset) => preset.id === selectedRoomTheme) ?? roomThemePresets[0]
   const useRoomThemeSurface = currentView === 'fan'
+  const isClassicRoomTheme = selectedRoomTheme === 'hub-classic'
 
   const displayedFanRooms =
     fanSession?.joined_rooms.map((room) => ({
@@ -3081,7 +3082,7 @@ function App() {
         </div>
       </section>
     ) : (
-      <section className="fan-scene">
+      <section className={isClassicRoomTheme ? 'fan-scene fan-scene-classic' : 'fan-scene'}>
       <div
         className="fan-hero"
         style={{

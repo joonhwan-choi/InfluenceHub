@@ -2074,6 +2074,70 @@
     0 16px 36px rgba(16, 21, 34, 0.08);
 }
 
+.fan-scene-classic .fan-room-switcher,
+.fan-scene-classic .fan-feed,
+.fan-scene-classic .fan-side-panel {
+  background:
+    linear-gradient(180deg, rgba(16, 27, 43, 0.96), rgba(11, 19, 33, 0.98));
+  color: #f5f1e8;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 22px 64px rgba(0, 0, 0, 0.22);
+}
+
+.fan-scene-classic .panel-head h3,
+.fan-scene-classic .fan-feed h3,
+.fan-scene-classic .fan-room-card strong,
+.fan-scene-classic .calendar-card strong,
+.fan-scene-classic .catalog-card strong,
+.fan-scene-classic .mini-board strong,
+.fan-scene-classic .fan-moment-card strong {
+  color: #fff4d5;
+}
+
+.fan-scene-classic .card-kicker,
+.fan-scene-classic .mini-label,
+.fan-scene-classic .calendar-card span,
+.fan-scene-classic .catalog-card span,
+.fan-scene-classic .fan-room-card p,
+.fan-scene-classic .fan-room-card .mini-label,
+.fan-scene-classic .fan-moment-card p,
+.fan-scene-classic .mini-board p,
+.fan-scene-classic .mini-board .mini-label {
+  color: rgba(245, 241, 232, 0.68);
+}
+
+.fan-scene-classic .fan-room-card,
+.fan-scene-classic .fan-moment-card,
+.fan-scene-classic .calendar-card,
+.fan-scene-classic .catalog-card {
+  background: rgba(255, 255, 255, 0.06);
+  color: #f5f1e8;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.fan-scene-classic .fan-room-card.active {
+  background:
+    radial-gradient(circle at top right, rgba(255, 122, 69, 0.2), transparent 28%),
+    rgba(28, 42, 66, 0.92);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 209, 102, 0.18),
+    0 16px 36px rgba(0, 0, 0, 0.22);
+}
+
+.fan-scene-classic .fan-tab {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(245, 241, 232, 0.82);
+}
+
+.fan-scene-classic .fan-tab.active {
+  background: rgba(255, 209, 102, 0.16);
+  color: #fff4d5;
+}
+
+.fan-scene-classic .mini-board.dark {
+  background: rgba(255, 255, 255, 0.08);
+}
+
 .doc-shell {
   display: grid;
   gap: 18px;
