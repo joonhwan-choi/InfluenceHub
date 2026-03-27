@@ -19,6 +19,7 @@ type View =
 type FanTab = 'feed' | 'calendar' | 'shop'
 type PrivacyStatus = 'private' | 'unlisted' | 'public'
 type AuthMode = 'influencer' | 'fan'
+type AuthMethod = 'social' | 'email'
 
 type FeatureModule = {
   name: string
@@ -455,6 +456,9 @@ function App() {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080'
   const [currentView, setCurrentView] = useState<View>('home')
   const [authMode, setAuthMode] = useState<AuthMode>('influencer')
+  const [authMethod, setAuthMethod] = useState<AuthMethod>('social')
+  const [loginEmail, setLoginEmail] = useState('')
+  const [loginPassword, setLoginPassword] = useState('')
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>([
     '팬 커뮤니티',
     '이벤트',
@@ -1017,6 +1021,15 @@ function App() {
       setFanError(message)
       setFanStatus('팬 모드 전환 실패')
     }
+  }
+
+  const handleEmailLogin = () => {
+    if (!loginEmail.trim() || !loginPassword.trim()) {
+      setAuthFeedback('이메일과 비밀번호를 입력하세요.')
+      return
+    }
+
+    setAuthFeedback('일반 로그인 연동은 다음 단계에서 붙일 예정입니다.')
   }
 
   const handleFanJoin = async () => {
@@ -1620,132 +1633,152 @@ function App() {
     )
 
   const renderSignup = () => (
-    <section className="scene-panel light">
-      <div className="scene-copy">
-        <span className="section-label dark">AUTH</span>
-        <h2>{isCreatorLoggedIn ? '연결된 인플루언서 계정' : 'SNS 로그인'}</h2>
-        <p>
-          {isCreatorLoggedIn
-            ? '이미 로그인된 상태이므로 다시 시작할 필요가 없습니다. 연결된 채널 정보와 운영 화면으로 바로 이동하면 됩니다.'
-            : pendingGoogleProfile
-              ? '로그인은 완료됐습니다. 이제 어떤 모드로 들어갈지 선택하면 됩니다.'
-              : '먼저 Google로 로그인한 뒤, 로그인 후에 인플루언서 모드와 팬 모드 중 하나를 선택합니다.'}
-        </p>
-
-        <div className="highlight-card">
-          <span className="mini-label">현재 단계</span>
-          <strong>
-            {pendingGoogleProfile
-              ? authMode === 'influencer'
-                ? '로그인 완료 · 인플루언서 모드 선택됨'
-                : '로그인 완료 · 팬 모드 선택됨'
-              : 'Google 로그인 전'}
-          </strong>
-          <p>
-            {pendingGoogleProfile
-              ? `${pendingGoogleProfile.name} 계정으로 로그인됨`
-              : '로그인 후에만 모드 선택이 열립니다.'}
-          </p>
+    <section className="scene-panel light auth-shell">
+      <div className="scene-card auth-form-card">
+        <div className="card-header">
+          <div>
+            <span className="card-kicker">LOGIN</span>
+            <h2>{pendingGoogleProfile ? '모드 선택' : '로그인'}</h2>
+          </div>
+          <span className="status-badge">LIVE UI</span>
         </div>
 
-        <div className="notice-preview">
+        {!pendingGoogleProfile ? (
+          <>
+            <div className="auth-method-row">
+              <button
+                className={authMethod === 'social' ? 'auth-method-tab active' : 'auth-method-tab'}
+                onClick={() => setAuthMethod('social')}
+                type="button"
+              >
+                SNS 로그인
+              </button>
+              <button
+                className={authMethod === 'email' ? 'auth-method-tab active' : 'auth-method-tab'}
+                onClick={() => setAuthMethod('email')}
+                type="button"
+              >
+                일반 로그인
+              </button>
+            </div>
+
+            {authMethod === 'social' ? (
+              <div className="auth-block">
+                <button className="primary-action auth-main-button" onClick={() => void startUnifiedGoogleLogin()}>
+                  {isStartingGoogleLogin ? 'Google로 이동 중...' : 'Google로 로그인'}
+                </button>
+                <p className="auth-helper-copy">로그인 후 인플루언서 또는 팬 모드를 고를 수 있습니다.</p>
+              </div>
+            ) : (
+              <div className="form-stack auth-form-stack">
+                <div className="field-block">
+                  <span className="mini-label">이메일</span>
+                  <input
+                    className="text-input"
+                    onChange={(event) => setLoginEmail(event.target.value)}
+                    placeholder="you@example.com"
+                    value={loginEmail}
+                  />
+                </div>
+                <div className="field-block">
+                  <span className="mini-label">비밀번호</span>
+                  <input
+                    className="text-input"
+                    onChange={(event) => setLoginPassword(event.target.value)}
+                    placeholder="비밀번호 입력"
+                    type="password"
+                    value={loginPassword}
+                  />
+                </div>
+                <button className="primary-action auth-main-button" onClick={handleEmailLogin}>
+                  일반 로그인
+                </button>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="auth-block">
+            <div className="highlight-card auth-profile-card">
+              <span className="mini-label">로그인 완료</span>
+              <strong>{pendingGoogleProfile.name}</strong>
+              <p>{pendingGoogleProfile.email}</p>
+            </div>
+
+            <div className="detail-grid auth-mode-grid">
+              <button
+                className={authMode === 'influencer' ? 'detail-card auth-mode-card active' : 'detail-card auth-mode-card'}
+                onClick={() => setAuthMode('influencer')}
+                type="button"
+              >
+                <span className="mini-label">인플루언서</span>
+                <strong>채널 연결하고 시작</strong>
+                <p>운영 화면으로 이어집니다.</p>
+              </button>
+              <button
+                className={authMode === 'fan' ? 'detail-card auth-mode-card active' : 'detail-card auth-mode-card'}
+                onClick={() => setAuthMode('fan')}
+                type="button"
+              >
+                <span className="mini-label">팬</span>
+                <strong>팬방으로 들어가기</strong>
+                <p>가입한 팬방을 불러옵니다.</p>
+              </button>
+            </div>
+
+            <button className="primary-action auth-main-button" onClick={() => void startSelectedAuthFlow()}>
+              {isStartingFanGoogleLogin ? '이동 중...' : authMode === 'influencer' ? '인플루언서 모드로 계속' : '팬 모드로 계속'}
+            </button>
+          </div>
+        )}
+
+        <div className="notice-preview auth-status-card">
           <span className="mini-label">상태</span>
           <strong>{isCreatorLoggedIn ? authFeedback : fanStatus}</strong>
-          <p>
-            {isCreatorLoggedIn
-              ? '현재 세션이 살아 있어 홈과 로그인 화면에서 같은 흐름을 반복하지 않고 운영 화면으로 이어집니다.'
-              : 'Google 로그인 뒤 선택한 모드에 맞는 화면으로 바로 이동합니다.'}
-          </p>
+          <p>{authFeedback}</p>
         </div>
 
         <div className="inline-actions">
-          {isCreatorLoggedIn ? (
-            <button className="primary-action" onClick={() => setCurrentView('content')}>
-              연결된 채널 보러가기
-            </button>
-          ) : (
-            <button className="primary-action" onClick={() => void startSelectedAuthFlow()}>
-              {isStartingGoogleLogin || isStartingFanGoogleLogin
-                ? 'Google로 이동 중...'
-                : pendingGoogleProfile
-                  ? authMode === 'influencer'
-                    ? '인플루언서 모드로 계속'
-                    : '팬 모드로 계속'
-                  : 'Google로 로그인'}
-            </button>
-          )}
           <button className="secondary-action dark" onClick={() => setCurrentView('home')}>
             홈으로
           </button>
         </div>
       </div>
 
-      <div className="scene-card">
-        <div className="card-header">
-          <div>
-            <span className="card-kicker">LOGIN FLOW</span>
-            <h2>{pendingGoogleProfile ? '모드 선택' : '먼저 로그인'}</h2>
-          </div>
-          <span className="status-badge">Live UI</span>
-        </div>
+      <div className="scene-copy auth-visual-panel">
+        <span className="section-label dark">INFLUENCEHUB</span>
+        <h2>인플루언서와 팬이 다시 만나는 공간</h2>
+        <p>
+          콘텐츠가 끝난 뒤에도 공지, 초대 링크, 커뮤니티, 이벤트, 굿즈까지 하나의 흐름으로
+          이어집니다.
+        </p>
 
-        {!pendingGoogleProfile ? (
-          <div className="detail-grid">
-            <article className="detail-card">
-              <span className="mini-label">1단계</span>
-              <strong>Google 계정으로 로그인</strong>
-              <p>로그인 자체는 하나로 통일합니다.</p>
-            </article>
-            <article className="detail-card">
-              <span className="mini-label">2단계</span>
-              <strong>로그인 후 모드 선택</strong>
-              <p>인플루언서로 들어갈지, 팬으로 들어갈지 그 다음에 고릅니다.</p>
-            </article>
-          </div>
-        ) : null}
+        <div className="auth-visual-stage">
+          <div className="auth-visual-orb auth-visual-orb-one" />
+          <div className="auth-visual-orb auth-visual-orb-two" />
 
-        {pendingGoogleProfile ? (
-          <div className="detail-grid auth-mode-grid">
-          <button
-            className={authMode === 'influencer' ? 'detail-card auth-mode-card active' : 'detail-card auth-mode-card'}
-            onClick={() => setAuthMode('influencer')}
-            type="button"
-          >
-            <span className="mini-label">인플루언서</span>
-            <strong>로그인 후 인플루언서로 시작</strong>
-            <p>YouTube 채널을 연결하고 운영 화면으로 들어갑니다.</p>
-          </button>
-          <button
-            className={authMode === 'fan' ? 'detail-card auth-mode-card active' : 'detail-card auth-mode-card'}
-            onClick={() => setAuthMode('fan')}
-            type="button"
-          >
-            <span className="mini-label">팬</span>
-            <strong>로그인 후 팬으로 들어가기</strong>
-            <p>같은 Google 계정으로 팬방 목록을 복원합니다.</p>
-          </button>
-          </div>
-        ) : null}
-
-        <div className="detail-grid">
-          <article className="detail-card">
-            <span className="mini-label">공통 로그인</span>
-            <strong>SNS 로그인은 하나로 통일</strong>
-            <p>로그인 버튼은 하나만 두고, 어떤 화면으로 들어갈지만 나눴습니다.</p>
+          <article className="auth-figure influencer-figure">
+            <span className="auth-figure-badge">INFLUENCER</span>
+            <strong>방장</strong>
+            <p>새 영상 공개</p>
           </article>
-          <article className="detail-card">
-            <span className="mini-label">계정 확장</span>
-            <strong>한 계정으로 두 역할 모두 가능</strong>
-            <p>
-              같은 사람이 인플루언서이면서 동시에 다른 인플루언서의 팬일 수 있는 구조를 유지합니다.
-            </p>
-          </article>
-        </div>
 
-        <div className="highlight-card compact-highlight">
-          <span className="mini-label">안내</span>
-          <strong>법률 문서는 하단 푸터에서만 확인할 수 있게 정리했습니다.</strong>
-          <p>회원가입 흐름에서는 로그인과 채널 연결에만 집중하도록 화면을 단순화했습니다.</p>
+          <article className="auth-figure fan-figure">
+            <span className="auth-figure-badge">FAN</span>
+            <strong>팬</strong>
+            <p>초대 링크 입장</p>
+          </article>
+
+          <article className="auth-chat-card auth-chat-card-main">
+            <span className="mini-label">공지</span>
+            <strong>오늘 밤 8시 본편 공개</strong>
+            <p>업로드 후 팬방 공지와 링크가 동시에 열립니다.</p>
+          </article>
+
+          <article className="auth-chat-card auth-chat-card-sub">
+            <span className="mini-label">팬 반응</span>
+            <strong>Q&amp;A 열렸어요?</strong>
+            <p>팬은 같은 계정으로 팬방에 다시 들어옵니다.</p>
+          </article>
         </div>
       </div>
     </section>
