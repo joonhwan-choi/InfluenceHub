@@ -1403,7 +1403,7 @@ function App() {
                 <div className="role-menu-dropdown">
                   {isCreatorLoggedIn ? (
                     <button className="role-menu-item" onClick={handleCreatorLogout} type="button">
-                      크리에이터 로그아웃
+                      인플루언서 로그아웃
                     </button>
                   ) : null}
                   {isFanLoggedIn && !isCreatorLoggedIn ? (
