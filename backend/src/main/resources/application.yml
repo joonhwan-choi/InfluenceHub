@@ -36,4 +36,5 @@ google:
   oauth:
     client-id: ${GOOGLE_OAUTH_CLIENT_ID:${YOUTUBE_CLIENT_ID:}}
     client-secret: ${GOOGLE_OAUTH_CLIENT_SECRET:${YOUTUBE_CLIENT_SECRET:}}
+    redirect-uri: ${GOOGLE_OAUTH_REDIRECT_URI:http://localhost:8080/api/v1/auth/google/callback}
     fan-redirect-uri: ${GOOGLE_FAN_REDIRECT_URI:http://localhost:8080/api/v1/fans/oauth/callback}
