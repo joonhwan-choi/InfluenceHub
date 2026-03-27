@@ -3,14 +3,17 @@ package com.influencehub.backend.fan.service;
 import com.influencehub.backend.auth.domain.CreatorSession;
 import com.influencehub.backend.auth.service.CreatorAuthService;
 import com.influencehub.backend.fan.domain.FanMembership;
+import com.influencehub.backend.fan.domain.FanTier;
 import com.influencehub.backend.fan.domain.InviteJoinEvent;
 import com.influencehub.backend.fan.domain.InviteLink;
 import com.influencehub.backend.fan.dto.CreateInviteLinkRequest;
+import com.influencehub.backend.fan.dto.CreatorFanMemberResponse;
 import com.influencehub.backend.fan.dto.CreatorInviteDashboardResponse;
 import com.influencehub.backend.fan.dto.FanAuthResponse;
 import com.influencehub.backend.fan.dto.FanJoinInviteRequest;
 import com.influencehub.backend.fan.dto.InviteLinkDetailResponse;
 import com.influencehub.backend.fan.dto.InviteLinkResponse;
+import com.influencehub.backend.fan.dto.UpdateFanTierRequest;
 import com.influencehub.backend.fan.repository.FanMembershipRepository;
 import com.influencehub.backend.fan.repository.InviteJoinEventRepository;
 import com.influencehub.backend.fan.repository.InviteLinkRepository;
@@ -98,10 +101,69 @@ public class FanInviteService {
         );
     }
 
+    @Transactional(readOnly = true)
+    public List<CreatorFanMemberResponse> creatorFanMembers(String creatorSessionToken) {
+        CreatorSession creatorSession = creatorAuthService.requireSession(creatorSessionToken);
+        return fanMembershipRepository.findByRoomOrderByCreatedAtDesc(creatorSession.getRoom())
+            .stream()
+            .map(membership -> new CreatorFanMemberResponse(
+                membership.getId(),
+                membership.getFan().getEmail(),
+                membership.getFan().getNickname(),
+                membership.getJoinedVia(),
+                membership.getTier().name()
+            ))
+            .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public CreatorFanMemberResponse updateFanTier(
+        String creatorSessionToken,
+        Long membershipId,
+        UpdateFanTierRequest request
+    ) {
+        CreatorSession creatorSession = creatorAuthService.requireSession(creatorSessionToken);
+        FanMembership membership = fanMembershipRepository.findById(membershipId)
+            .orElseThrow(() -> new IllegalStateException("팬 멤버십을 찾을 수 없습니다."));
+
+        if (!membership.getRoom().getId().equals(creatorSession.getRoom().getId())) {
+            throw new IllegalStateException("내 팬방의 팬만 분류할 수 있습니다.");
+        }
+
+        FanTier nextTier = FanTier.valueOf(request.getTier().trim().toUpperCase(Locale.ROOT));
+        membership.updateTier(nextTier);
+
+        return new CreatorFanMemberResponse(
+            membership.getId(),
+            membership.getFan().getEmail(),
+            membership.getFan().getNickname(),
+            membership.getJoinedVia(),
+            membership.getTier().name()
+        );
+    }
+
+    @Transactional
+    public InviteLinkResponse deactivateInviteLink(String creatorSessionToken, Long inviteLinkId) {
+        CreatorSession creatorSession = creatorAuthService.requireSession(creatorSessionToken);
+        InviteLink inviteLink = inviteLinkRepository.findById(inviteLinkId)
+            .orElseThrow(() -> new IllegalStateException("초대 링크를 찾을 수 없습니다."));
+
+        if (!inviteLink.getRoom().getId().equals(creatorSession.getRoom().getId())) {
+            throw new IllegalStateException("내 팬방의 초대 링크만 관리할 수 있습니다.");
+        }
+
+        inviteLink.deactivate();
+        inviteLinkRepository.save(inviteLink);
+        return toInviteResponse(inviteLink);
+    }
+
     @Transactional
     public InviteLinkDetailResponse openInvite(String inviteCode) {
         InviteLink inviteLink = inviteLinkRepository.findByInviteCode(inviteCode)
             .orElseThrow(() -> new IllegalStateException("초대 링크를 찾을 수 없습니다."));
+        if (!inviteLink.isActive()) {
+            throw new IllegalStateException("비활성화된 초대 링크입니다.");
+        }
         inviteLink.recordOpen();
         inviteLinkRepository.save(inviteLink);
 
@@ -112,7 +174,8 @@ public class FanInviteService {
             inviteLink.getRoom().getRoomName(),
             inviteLink.getRoom().getSlug(),
             inviteLink.getCreator().getNickname(),
-            inviteLink.getRoom().getDescription()
+            inviteLink.getRoom().getDescription(),
+            inviteLink.isActive()
         );
     }
 
@@ -120,6 +183,9 @@ public class FanInviteService {
     public FanAuthResponse joinInvite(FanJoinInviteRequest request) {
         InviteLink inviteLink = inviteLinkRepository.findByInviteCode(request.getInviteCode())
             .orElseThrow(() -> new IllegalStateException("초대 링크를 찾을 수 없습니다."));
+        if (!inviteLink.isActive()) {
+            throw new IllegalStateException("비활성화된 초대 링크입니다.");
+        }
 
         User fan = userRepository.findByEmail(request.getEmail().trim().toLowerCase(Locale.ROOT))
             .map(existing -> {
@@ -157,6 +223,7 @@ public class FanInviteService {
             inviteLink.getSourceLabel(),
             inviteLink.getOpenCount(),
             inviteLink.getJoinCount(),
+            inviteLink.isActive(),
             frontendUrl + "/invite/" + inviteLink.getInviteCode()
         );
     }

@@ -5,6 +5,8 @@ import com.influencehub.backend.room.domain.CreatorRoom;
 import com.influencehub.backend.user.domain.User;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -36,6 +38,10 @@ public class FanMembership extends BaseTimeEntity {
     @Column(nullable = false, length = 80)
     private String joinedVia;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private FanTier tier;
+
     protected FanMembership() {
     }
 
@@ -44,6 +50,7 @@ public class FanMembership extends BaseTimeEntity {
         this.room = room;
         this.inviteLink = inviteLink;
         this.joinedVia = joinedVia;
+        this.tier = FanTier.GENERAL;
     }
 
     public Long getId() {
@@ -64,5 +71,13 @@ public class FanMembership extends BaseTimeEntity {
 
     public String getJoinedVia() {
         return joinedVia;
+    }
+
+    public FanTier getTier() {
+        return tier;
+    }
+
+    public void updateTier(FanTier tier) {
+        this.tier = tier;
     }
 }

@@ -7,19 +7,22 @@ public class FanRoomSummaryResponse {
     private final String roomName;
     private final String roomSlug;
     private final String joinedVia;
+    private final String tier;
 
     public FanRoomSummaryResponse(
         Long membershipId,
         String creatorName,
         String roomName,
         String roomSlug,
-        String joinedVia
+        String joinedVia,
+        String tier
     ) {
         this.membershipId = membershipId;
         this.creatorName = creatorName;
         this.roomName = roomName;
         this.roomSlug = roomSlug;
         this.joinedVia = joinedVia;
+        this.tier = tier;
     }
 
     public Long getMembershipId() {
@@ -40,5 +43,9 @@ public class FanRoomSummaryResponse {
 
     public String getJoinedVia() {
         return joinedVia;
+    }
+
+    public String getTier() {
+        return tier;
     }
 }

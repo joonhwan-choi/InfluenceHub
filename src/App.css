@@ -1096,6 +1096,10 @@
   margin-top: 0;
 }
 
+.compact-actions {
+  margin-top: 14px;
+}
+
 .upload-action-row {
   display: flex;
   align-items: center;

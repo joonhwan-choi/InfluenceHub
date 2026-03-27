@@ -82,7 +82,8 @@ public class FanSessionService {
             membership.getRoom().getOwner().getNickname(),
             membership.getRoom().getRoomName(),
             membership.getRoom().getSlug(),
-            membership.getJoinedVia()
+            membership.getJoinedVia(),
+            membership.getTier().name()
         );
     }
 

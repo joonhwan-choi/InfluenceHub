@@ -107,6 +107,7 @@ type InviteLinkSummary = {
   source_label: string
   open_count: number
   join_count: number
+  active: boolean
   invite_url: string
 }
 
@@ -115,6 +116,14 @@ type CreatorInviteDashboardResponse = {
   total_join_count: number
   multi_room_fan_count: number
   invite_links: InviteLinkSummary[]
+}
+
+type CreatorFanMember = {
+  membership_id: number
+  fan_email: string
+  fan_nickname: string
+  joined_via: string
+  tier: string
 }
 
 const statCards = [
@@ -494,6 +503,8 @@ function App() {
   const [inviteSourceLabel, setInviteSourceLabel] = useState('영상 설명란')
   const [inviteStatus, setInviteStatus] = useState('초대 링크 생성 전')
   const [isCreatingInvite, setIsCreatingInvite] = useState(false)
+  const [fanMembers, setFanMembers] = useState<CreatorFanMember[]>([])
+  const [fanTierStatus, setFanTierStatus] = useState('팬 등급 분류 전')
   const [fanSession, setFanSession] = useState<FanAuthResponse | null>(null)
   const [inviteDetail, setInviteDetail] = useState<InviteDetailResponse | null>(null)
   const [inviteCode, setInviteCode] = useState('')
@@ -603,6 +614,7 @@ function App() {
       persistCreatorSession(data.session_token)
       setAuthFeedback(`로그인 유지 중 · ${data.channel_title} 채널이 연결되어 있습니다.`)
       void loadCreatorInviteDashboard(data.session_token)
+      void loadCreatorFanMembers(data.session_token)
       if (!uploadTitle.trim()) {
         setUploadTitle(`${connection.channel_title} 새 영상`)
       }
@@ -655,6 +667,31 @@ function App() {
     }
   }
 
+  const loadCreatorFanMembers = async (sessionToken?: string) => {
+    const creatorSessionToken = sessionToken ?? localStorage.getItem(creatorSessionStorageKey)
+    if (!creatorSessionToken) {
+      return
+    }
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/creator/fans`, {
+        headers: {
+          Authorization: `Bearer ${creatorSessionToken}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('팬 목록을 불러오지 못했습니다.')
+      }
+
+      const data = (await response.json()) as CreatorFanMember[]
+      setFanMembers(data)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '팬 목록을 불러오지 못했습니다.'
+      setFanTierStatus(message)
+    }
+  }
+
   const handleCreateInviteLink = async () => {
     const creatorSessionToken = localStorage.getItem(creatorSessionStorageKey)
     if (!creatorSessionToken) {
@@ -698,6 +735,77 @@ function App() {
       setInviteStatus(message)
     } finally {
       setIsCreatingInvite(false)
+    }
+  }
+
+  const handleCopyInviteLink = async (inviteUrl: string) => {
+    try {
+      await navigator.clipboard.writeText(inviteUrl)
+      setInviteStatus('초대 링크 복사 완료')
+    } catch {
+      setInviteStatus(`직접 복사하세요: ${inviteUrl}`)
+    }
+  }
+
+  const handleDeactivateInviteLink = async (inviteLinkId: number) => {
+    const creatorSessionToken = localStorage.getItem(creatorSessionStorageKey)
+    if (!creatorSessionToken) {
+      setInviteStatus('먼저 크리에이터 로그인이 필요합니다.')
+      return
+    }
+
+    setInviteStatus('초대 링크 비활성화 중')
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/invites/${inviteLinkId}/deactivate`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${creatorSessionToken}`,
+        },
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || '초대 링크 비활성화에 실패했습니다.')
+      }
+
+      setInviteStatus('초대 링크 비활성화 완료')
+      void loadCreatorInviteDashboard(creatorSessionToken)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '초대 링크 비활성화에 실패했습니다.'
+      setInviteStatus(message)
+    }
+  }
+
+  const handleUpdateFanTier = async (membershipId: number, tier: string) => {
+    const creatorSessionToken = localStorage.getItem(creatorSessionStorageKey)
+    if (!creatorSessionToken) {
+      setFanTierStatus('먼저 크리에이터 로그인이 필요합니다.')
+      return
+    }
+
+    setFanTierStatus(`${tier} 등급으로 변경 중`)
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/creator/fans/${membershipId}/tier`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${creatorSessionToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ tier }),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || '팬 등급 변경에 실패했습니다.')
+      }
+
+      setFanTierStatus(`${tier} 등급으로 변경 완료`)
+      void loadCreatorFanMembers(creatorSessionToken)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '팬 등급 변경에 실패했습니다.'
+      setFanTierStatus(message)
     }
   }
 
@@ -1466,18 +1574,48 @@ function App() {
             <div className="activity-list">
               {(inviteDashboard?.invite_links.length
                 ? inviteDashboard.invite_links.map((link) => ({
-                    title: link.title,
-                    body: `${link.source_label} · 열림 ${link.open_count}명 · 가입 ${link.join_count}명`,
-                    time: link.invite_code,
+                    ...link,
                   }))
                 : invitePerformance
-              ).map((item) => (
-                <article className="activity-card" key={item.title}>
-                  <span className="activity-time">{item.time}</span>
-                  <strong>{item.title}</strong>
-                  <p>{item.body}</p>
-                </article>
-              ))}
+              ).map((item) => {
+                if ('invite_link_id' in item) {
+                  return (
+                    <article className="activity-card" key={item.invite_link_id}>
+                      <span className="activity-time">{item.invite_code}</span>
+                      <strong>
+                        {item.title} {item.active ? '' : '(비활성)'}
+                      </strong>
+                      <p>
+                        {item.source_label} · 열림 {item.open_count}명 · 가입 {item.join_count}명
+                      </p>
+                      <div className="inline-actions compact-actions">
+                        <button
+                          className="tiny-action"
+                          onClick={() => void handleCopyInviteLink(item.invite_url)}
+                        >
+                          링크 복사
+                        </button>
+                        {item.active ? (
+                          <button
+                            className="tiny-action"
+                            onClick={() => void handleDeactivateInviteLink(item.invite_link_id)}
+                          >
+                            비활성화
+                          </button>
+                        ) : null}
+                      </div>
+                    </article>
+                  )
+                }
+
+                return (
+                  <article className="activity-card" key={item.title}>
+                    <span className="activity-time">{item.time}</span>
+                    <strong>{item.title}</strong>
+                    <p>{item.body}</p>
+                  </article>
+                )
+              })}
             </div>
           </section>
 
@@ -1556,6 +1694,84 @@ function App() {
                 </button>
                 <span className="helper-copy">{inviteStatus}</span>
               </div>
+            </div>
+          </section>
+        </div>
+
+        <div className="dashboard-panels">
+          <section className="timeline-panel">
+            <div className="panel-head">
+              <div>
+                <span className="card-kicker">팬 분류 보드</span>
+                <h3>VIP · 큰손 · 침철단 같은 코어 팬 관리</h3>
+              </div>
+            </div>
+
+            <div className="activity-list">
+              {(fanMembers.length
+                ? fanMembers
+                : [
+                    {
+                      membership_id: 0,
+                      fan_email: 'corefan@example.com',
+                      fan_nickname: '침철단 1호',
+                      joined_via: '라이브 고정 댓글',
+                      tier: 'CORE_CREW',
+                    },
+                  ]
+              ).map((fanMember) => (
+                <article className="activity-card" key={fanMember.membership_id || fanMember.fan_email}>
+                  <span className="activity-time">{fanMember.joined_via}</span>
+                  <strong>
+                    {fanMember.fan_nickname} · {fanMember.tier}
+                  </strong>
+                  <p>{fanMember.fan_email}</p>
+                  <div className="inline-actions compact-actions">
+                    {['GENERAL', 'VIP', 'BIG_SPENDER', 'CORE_CREW'].map((tier) => (
+                      <button
+                        className="tiny-action"
+                        disabled={fanMember.membership_id === 0}
+                        key={tier}
+                        onClick={() => void handleUpdateFanTier(fanMember.membership_id, tier)}
+                      >
+                        {tier}
+                      </button>
+                    ))}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section className="summary-panel">
+            <div className="panel-head">
+              <div>
+                <span className="card-kicker">등급 운영 메모</span>
+                <h3>팬 레벨링 기준</h3>
+              </div>
+            </div>
+
+            <div className="selected-module-list">
+              {[
+                ['GENERAL', '기본 팬'],
+                ['VIP', '자주 참여하는 팬'],
+                ['BIG_SPENDER', '굿즈/후원 전환이 큰 팬'],
+                ['CORE_CREW', '침철단처럼 이름 붙인 핵심 팬 그룹'],
+              ].map(([label, meta]) => (
+                <div className="selected-module" key={label}>
+                  <strong>{label}</strong>
+                  <span>{meta}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="notice-preview">
+              <span className="mini-label">최근 등급 변경</span>
+              <strong>{fanTierStatus}</strong>
+              <p>
+                팬 등급을 나누면 이벤트 우선 초대, 굿즈 선오픈, 멤버십 공지 대상을 쉽게
+                분리할 수 있습니다.
+              </p>
             </div>
           </section>
         </div>

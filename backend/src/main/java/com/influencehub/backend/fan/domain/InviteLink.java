@@ -44,6 +44,9 @@ public class InviteLink extends BaseTimeEntity {
     @Column(nullable = false)
     private long joinCount;
 
+    @Column(nullable = false)
+    private boolean active;
+
     protected InviteLink() {
     }
 
@@ -55,6 +58,7 @@ public class InviteLink extends BaseTimeEntity {
         this.sourceLabel = sourceLabel;
         this.openCount = 0L;
         this.joinCount = 0L;
+        this.active = true;
     }
 
     public Long getId() {
@@ -89,11 +93,19 @@ public class InviteLink extends BaseTimeEntity {
         return joinCount;
     }
 
+    public boolean isActive() {
+        return active;
+    }
+
     public void recordOpen() {
         this.openCount += 1L;
     }
 
     public void recordJoin() {
         this.joinCount += 1L;
+    }
+
+    public void deactivate() {
+        this.active = false;
     }
 }

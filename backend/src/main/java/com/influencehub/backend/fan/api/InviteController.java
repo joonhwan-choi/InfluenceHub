@@ -9,6 +9,7 @@ import javax.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -37,6 +38,14 @@ public class InviteController {
         @RequestHeader("Authorization") String authorizationHeader
     ) {
         return fanInviteService.creatorDashboard(extractBearerToken(authorizationHeader));
+    }
+
+    @PatchMapping("/{inviteLinkId}/deactivate")
+    public InviteLinkResponse deactivateInvite(
+        @RequestHeader("Authorization") String authorizationHeader,
+        @PathVariable Long inviteLinkId
+    ) {
+        return fanInviteService.deactivateInviteLink(extractBearerToken(authorizationHeader), inviteLinkId);
     }
 
     @GetMapping("/{inviteCode}")

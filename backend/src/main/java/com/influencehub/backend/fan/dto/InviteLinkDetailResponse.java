@@ -9,6 +9,7 @@ public class InviteLinkDetailResponse {
     private final String roomSlug;
     private final String creatorName;
     private final String roomDescription;
+    private final boolean active;
 
     public InviteLinkDetailResponse(
         String inviteCode,
@@ -17,7 +18,8 @@ public class InviteLinkDetailResponse {
         String roomName,
         String roomSlug,
         String creatorName,
-        String roomDescription
+        String roomDescription,
+        boolean active
     ) {
         this.inviteCode = inviteCode;
         this.title = title;
@@ -26,6 +28,7 @@ public class InviteLinkDetailResponse {
         this.roomSlug = roomSlug;
         this.creatorName = creatorName;
         this.roomDescription = roomDescription;
+        this.active = active;
     }
 
     public String getInviteCode() {
@@ -54,5 +57,9 @@ public class InviteLinkDetailResponse {
 
     public String getRoomDescription() {
         return roomDescription;
+    }
+
+    public boolean isActive() {
+        return active;
     }
 }

@@ -8,6 +8,7 @@ public class InviteLinkResponse {
     private final String sourceLabel;
     private final long openCount;
     private final long joinCount;
+    private final boolean active;
     private final String inviteUrl;
 
     public InviteLinkResponse(
@@ -17,6 +18,7 @@ public class InviteLinkResponse {
         String sourceLabel,
         long openCount,
         long joinCount,
+        boolean active,
         String inviteUrl
     ) {
         this.inviteLinkId = inviteLinkId;
@@ -25,6 +27,7 @@ public class InviteLinkResponse {
         this.sourceLabel = sourceLabel;
         this.openCount = openCount;
         this.joinCount = joinCount;
+        this.active = active;
         this.inviteUrl = inviteUrl;
     }
 
@@ -50,6 +53,10 @@ public class InviteLinkResponse {
 
     public long getJoinCount() {
         return joinCount;
+    }
+
+    public boolean isActive() {
+        return active;
     }
 
     public String getInviteUrl() {
