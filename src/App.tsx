@@ -299,33 +299,6 @@ const dashboardMetrics = [
   { label: '초대된 팬 수', value: '842', change: '링크 전환율 37%' },
 ]
 
-const toolCards = [
-  {
-    id: 'content' as const,
-    title: '콘텐츠 배포 센터',
-    text: '업로드 스케줄, 멀티 플랫폼 발행, 자동 공지 생성 초안까지 한 화면에서 조정합니다.',
-    badge: 'Publishing',
-  },
-  {
-    id: 'community' as const,
-    title: '팬 커뮤니티 운영',
-    text: '공지, 자유글, 베스트 댓글, 멤버십 전용 피드를 분리해 운영합니다.',
-    badge: 'Community',
-  },
-  {
-    id: 'events' as const,
-    title: '이벤트 플래너',
-    text: '응모, 인증, 추첨, 당첨 발표까지 단계별 카드로 관리합니다.',
-    badge: 'Engagement',
-  },
-  {
-    id: 'store' as const,
-    title: '굿즈 스토어 보드',
-    text: '드롭 일정, 상품 재고, 알림 신청과 주문 추세를 동시에 봅니다.',
-    badge: 'Commerce',
-  },
-]
-
 const invitePerformance = [
   {
     title: '오늘 영상 설명란 링크',
@@ -880,13 +853,13 @@ function App() {
   }
 
   const openCreatorStart = () => {
-    setCurrentView(isCreatorLoggedIn ? 'content' : isFanLoggedIn ? 'fan' : 'signup')
+    setCurrentView(isCreatorLoggedIn ? 'dashboard' : isFanLoggedIn ? 'fan' : 'signup')
   }
 
   const openCreatorOnboardingStep = (index: number) => {
     if (isCreatorLoggedIn) {
       if (index === 0) {
-        setCurrentView('content')
+        setCurrentView('dashboard')
         return
       }
       if (index === 1) {
@@ -1922,7 +1895,7 @@ function App() {
         persistCreatorSession(appToken)
       }
       clearGoogleProfile()
-      setCurrentView('content')
+      setCurrentView('dashboard')
       setAuthFeedback('구글 로그인 완료, 연결된 유튜브 채널 정보를 불러왔습니다.')
       void loadLatestConnection()
     }
@@ -1988,7 +1961,7 @@ function App() {
     if (!youtubeState) {
       const storedSessionToken = localStorage.getItem(creatorSessionStorageKey)
       if (storedSessionToken) {
-        setCurrentView('content')
+        setCurrentView('dashboard')
         setAuthFeedback('이전 로그인 상태를 복원하는 중')
         void fetchCurrentCreatorSession(storedSessionToken, { silent: true })
       }
@@ -3156,16 +3129,6 @@ function App() {
               <strong>{metric.value}</strong>
               <span className="metric-change">{metric.change}</span>
             </article>
-          ))}
-        </div>
-
-        <div className="tool-grid">
-          {toolCards.map((card) => (
-            <button className="tool-card" key={card.id} onClick={() => setCurrentView(card.id)}>
-              <span className="mini-label">{card.badge}</span>
-              <strong>{card.title}</strong>
-              <p>{card.text}</p>
-            </button>
           ))}
         </div>
 
