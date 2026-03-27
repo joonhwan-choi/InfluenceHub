@@ -612,10 +612,18 @@ function App() {
     'InfluenceHub에서 테스트 업로드한 영상입니다.',
   )
   const [privacyStatus, setPrivacyStatus] = useState<PrivacyStatus>('private')
+  const [scheduledPublishAt, setScheduledPublishAt] = useState(() => {
+    const date = new Date()
+    date.setHours(date.getHours() + 2)
+    date.setMinutes(0, 0, 0)
+    const timezoneOffset = date.getTimezoneOffset() * 60000
+    return new Date(date.getTime() - timezoneOffset).toISOString().slice(0, 16)
+  })
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [uploadPreviewUrl, setUploadPreviewUrl] = useState<string | null>(null)
   const [uploadStatus, setUploadStatus] = useState('아직 업로드 전')
   const [uploadError, setUploadError] = useState('')
+  const [scheduleStatus, setScheduleStatus] = useState('예약 등록 전')
   const [isLoadingChannel, setIsLoadingChannel] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null)
@@ -1450,6 +1458,48 @@ function App() {
       setUploadStatus('업로드 실패')
     } finally {
       setIsUploading(false)
+    }
+  }
+
+  const handleSchedulePublish = async () => {
+    const creatorSessionToken = localStorage.getItem(creatorSessionStorageKey)
+    if (!creatorSessionToken) {
+      setScheduleStatus('먼저 인플루언서 로그인이 필요합니다.')
+      return
+    }
+
+    if (!uploadTitle.trim()) {
+      setScheduleStatus('예약할 영상 제목을 먼저 입력하세요.')
+      return
+    }
+
+    setScheduleStatus('타임라인에 예약 등록 중')
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/publish-jobs/schedule`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${creatorSessionToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: uploadTitle.trim(),
+          scheduledAt: scheduledPublishAt ? new Date(scheduledPublishAt).toISOString().slice(0, 19) : '',
+        }),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || '예약 등록에 실패했습니다.')
+      }
+
+      const data = (await response.json()) as PublishJobHistoryItem
+      setPublishHistory((current) => [data, ...current].slice(0, 10))
+      setScheduleStatus('예약 타임라인 등록 완료')
+      void loadPublishHistory()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '예약 등록에 실패했습니다.'
+      setScheduleStatus(message)
     }
   }
 
@@ -3113,17 +3163,30 @@ function App() {
                 ))}
               </div>
             </div>
+            <div className="field-block">
+              <span className="mini-label">예약 시간</span>
+              <input
+                className="text-input"
+                type="datetime-local"
+                value={scheduledPublishAt}
+                onChange={(event) => setScheduledPublishAt(event.target.value)}
+              />
+            </div>
             <div className="chip-row">
               <span className="info-chip">업로드 파일 1개</span>
               <span className="info-chip">썸네일 자동 첨부</span>
               <span className="info-chip">공지 초안 자동 생성</span>
             </div>
             <div className="upload-action-row">
+              <button className="secondary-action" onClick={() => void handleSchedulePublish()} type="button">
+                예약 타임라인 등록
+              </button>
               <button className="primary-action" onClick={() => void handleUpload()} type="button">
                 {isUploading ? '업로드 중...' : 'YouTube 업로드'}
               </button>
               <span className="helper-copy">{uploadStatus}</span>
             </div>
+            <span className="helper-copy">{scheduleStatus}</span>
             {uploadError ? <p className="feedback-message error">{uploadError}</p> : null}
             {uploadResult ? (
               <article className="upload-result-card">
@@ -3171,6 +3234,11 @@ function App() {
                 <p>{privacyStatus === 'private' ? '검수용 업로드에 적합' : privacyStatus === 'unlisted' ? '링크 공유용 업로드' : '즉시 공개 업로드'}</p>
               </article>
               <article className="upload-check-card">
+                <span className="mini-label">예약 시간</span>
+                <strong>{scheduledPublishAt ? new Date(scheduledPublishAt).toLocaleString('ko-KR') : '미정'}</strong>
+                <p>예약 타임라인 등록 시 이 시간이 기준으로 저장됩니다.</p>
+              </article>
+              <article className="upload-check-card">
                 <span className="mini-label">파일 정보</span>
                 <strong>{selectedFile ? selectedFile.name : '파일 미선택'}</strong>
                 <p>{selectedFile ? `${(selectedFile.size / 1024 / 1024).toFixed(1)}MB · 업로드 준비 완료` : 'mp4 파일을 먼저 선택하세요.'}</p>
@@ -3194,6 +3262,25 @@ function App() {
                 </div>
               </article>
             ))}
+            {publishHistory
+              .filter((job) => job.status === 'READY' || job.status === 'PROCESSING')
+              .slice(0, 4)
+              .map((job) => (
+                <article className="timeline-row" key={`scheduled-${job.publish_job_id}`}>
+                  <span className="timeline-time">
+                    {new Date(job.scheduled_at).toLocaleString('ko-KR', {
+                      month: 'numeric',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </span>
+                  <div>
+                    <strong>{job.title}</strong>
+                    <p>{job.platform} · {job.status === 'READY' ? '예약 대기 중' : '처리 중'}</p>
+                  </div>
+                </article>
+              ))}
           </div>
 
           <div className="timeline-list">
