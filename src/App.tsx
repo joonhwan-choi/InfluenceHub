@@ -25,6 +25,7 @@ type DashboardSection = 'overview' | 'content' | 'community' | 'events' | 'store
 type BannerStyle = 'focus' | 'soft' | 'broadcast'
 type ButtonStyle = 'rounded' | 'solid' | 'outlined'
 type CardDensity = 'compact' | 'comfortable' | 'airy'
+type RoomSettingsSection = 'theme' | 'platforms'
 type RoomThemeId =
   | 'hub-classic'
   | 'sunset-sand'
@@ -751,6 +752,7 @@ function App() {
   const [bannerStyle, setBannerStyle] = useState<BannerStyle>('focus')
   const [buttonStyle, setButtonStyle] = useState<ButtonStyle>('rounded')
   const [cardDensity, setCardDensity] = useState<CardDensity>('comfortable')
+  const [roomSettingsSection, setRoomSettingsSection] = useState<RoomSettingsSection>('theme')
   const [selectedPublishPlatforms, setSelectedPublishPlatforms] = useState<string[]>(['YouTube'])
   const [hasHydratedCreatorSettings, setHasHydratedCreatorSettings] = useState(false)
   const roleMenuRef = useRef<HTMLDivElement | null>(null)
@@ -2617,178 +2619,200 @@ function App() {
             채널로 돌아가기
           </button>
         </div>
-      </div>
 
-      <div className="scene-card dark-card">
-        <div className="dual-pane">
-          <section className="editor-card">
-            <span className="card-kicker">방 컬러 커스텀</span>
-            <div className="theme-preset-grid">
-              {roomThemePresets.map((preset) => (
-                <button
-                  className={preset.id === selectedRoomTheme ? 'theme-preset-card active' : 'theme-preset-card'}
-                  key={preset.id}
-                  onClick={() => setSelectedRoomTheme(preset.id)}
-                  type="button"
-                >
-                  <div
-                    className="theme-swatch"
-                    style={{
-                      background: preset.heroBackground,
-                      boxShadow: `inset 0 0 0 1px ${preset.accent}33`,
-                    }}
-                  >
-                    <span style={{ backgroundColor: preset.accent }} />
-                    <span style={{ backgroundColor: preset.textColor, opacity: 0.9 }} />
-                    <span style={{ backgroundColor: 'rgba(255, 255, 255, 0.76)' }} />
-                  </div>
-                  <strong>{preset.name}</strong>
-                  <p>{preset.tone}</p>
-                </button>
-              ))}
-            </div>
-
-            <div className="notice-preview settings-save-card">
-              <span className="mini-label">저장된 설정</span>
-              <strong>{activeRoomTheme.name}</strong>
-              <p>테마와 운영 옵션은 저장되어 다음 접속 때도 그대로 유지됩니다.</p>
-            </div>
-
-            <div className="settings-option-grid">
-              <section className="settings-option-group">
-                <span className="mini-label">배너 스타일</span>
-                <div className="settings-chip-row">
-                  {[
-                    ['focus', '포커스'],
-                    ['soft', '소프트'],
-                    ['broadcast', '브로드캐스트'],
-                  ].map(([value, label]) => (
-                    <button
-                      className={bannerStyle === value ? 'settings-chip active' : 'settings-chip'}
-                      key={value}
-                      onClick={() => setBannerStyle(value as BannerStyle)}
-                      type="button"
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </section>
-
-              <section className="settings-option-group">
-                <span className="mini-label">버튼 스타일</span>
-                <div className="settings-chip-row">
-                  {[
-                    ['rounded', '라운드'],
-                    ['solid', '솔리드'],
-                    ['outlined', '아웃라인'],
-                  ].map(([value, label]) => (
-                    <button
-                      className={buttonStyle === value ? 'settings-chip active' : 'settings-chip'}
-                      key={value}
-                      onClick={() => setButtonStyle(value as ButtonStyle)}
-                      type="button"
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </section>
-
-              <section className="settings-option-group">
-                <span className="mini-label">카드 밀도</span>
-                <div className="settings-chip-row">
-                  {[
-                    ['compact', '컴팩트'],
-                    ['comfortable', '기본'],
-                    ['airy', '여유'],
-                  ].map(([value, label]) => (
-                    <button
-                      className={cardDensity === value ? 'settings-chip active' : 'settings-chip'}
-                      key={value}
-                      onClick={() => setCardDensity(value as CardDensity)}
-                      type="button"
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </section>
-            </div>
-          </section>
-
-          <section className="editor-card accent">
-            <span className="card-kicker">미리보기</span>
-            <div
-              className="settings-room-preview"
-              style={{
-                background: activeRoomTheme.heroBackground,
-                color: activeRoomTheme.textColor,
-              }}
-            >
-              <div className="creator-chip settings-preview-chip">
-                <span className="chip-avatar" style={{ background: activeRoomTheme.accent, color: '#fffaf1' }}>
-                  TV
-                </span>
-                <div>
-                  <strong>{connectedChannel?.channel_title ?? '침착한개발자TV'}</strong>
-                  <span style={{ color: activeRoomTheme.mutedColor }}>
-                    {connectedChannel?.room_name ?? '공식 팬방'} · {activeRoomTheme.name}
-                  </span>
-                </div>
-              </div>
-              <div className="preview-bubbles">
-                <div
-                  className="preview-bubble"
-                  style={{ background: activeRoomTheme.panelBackground, color: activeRoomTheme.textColor }}
-                >
-                  오늘 업로드 알림이 자동 등록됩니다.
-                </div>
-                <div
-                  className="preview-bubble"
-                  style={{ background: activeRoomTheme.panelBackground, color: activeRoomTheme.textColor }}
-                >
-                  이벤트와 굿즈 카드도 같은 톤으로 이어집니다.
-                </div>
-                <div
-                  className="preview-bubble strong"
-                  style={{
-                    background: activeRoomTheme.accent,
-                    color: activeRoomTheme.id === 'midnight-gold' ? '#1b2130' : '#fffaf1',
-                  }}
-                >
-                  팬 입장 전 첫 인상을 여기서 결정합니다.
-                </div>
-              </div>
-            </div>
-
-            <div className="room-form-preview settings-meta-list">
-              <label>
-                채널 이름
-                <div className="field">{connectedChannel?.channel_title ?? '침착한개발자TV'}</div>
-              </label>
-              <label>
-                팬방 주소
-                <div className="field muted">influencehub.io/room/{connectedChannel?.room_slug ?? 'devtv'}</div>
-              </label>
-              <label>
-                적용 테마
-                <div className="field multiline">
-                  {activeRoomTheme.name} · {activeRoomTheme.tone}
-                </div>
-              </label>
-              <label>
-                운영 프리셋
-                <div className="field multiline">
-                  배너 {bannerStyle} · 버튼 {buttonStyle} · 카드 {cardDensity}
-                </div>
-              </label>
-            </div>
-          </section>
+        <div className="settings-nav-list">
+          <button
+            className={roomSettingsSection === 'theme' ? 'settings-nav-item active' : 'settings-nav-item'}
+            onClick={() => setRoomSettingsSection('theme')}
+            type="button"
+          >
+            <strong>팬방 테마 설정</strong>
+            <span>컬러, 배너, 버튼, 카드 밀도</span>
+          </button>
+          <button
+            className={roomSettingsSection === 'platforms' ? 'settings-nav-item active' : 'settings-nav-item'}
+            onClick={() => setRoomSettingsSection('platforms')}
+            type="button"
+          >
+            <strong>플랫폼 설정</strong>
+            <span>연결값 입력, 테스트, 활성화 관리</span>
+          </button>
         </div>
       </div>
 
-      <section className="scene-card dark-card settings-platform-panel">
+      {roomSettingsSection === 'theme' ? (
+        <div className="scene-card dark-card">
+          <div className="dual-pane">
+            <section className="editor-card">
+              <span className="card-kicker">방 컬러 커스텀</span>
+              <div className="theme-preset-grid">
+                {roomThemePresets.map((preset) => (
+                  <button
+                    className={preset.id === selectedRoomTheme ? 'theme-preset-card active' : 'theme-preset-card'}
+                    key={preset.id}
+                    onClick={() => setSelectedRoomTheme(preset.id)}
+                    type="button"
+                  >
+                    <div
+                      className="theme-swatch"
+                      style={{
+                        background: preset.heroBackground,
+                        boxShadow: `inset 0 0 0 1px ${preset.accent}33`,
+                      }}
+                    >
+                      <span style={{ backgroundColor: preset.accent }} />
+                      <span style={{ backgroundColor: preset.textColor, opacity: 0.9 }} />
+                      <span style={{ backgroundColor: 'rgba(255, 255, 255, 0.76)' }} />
+                    </div>
+                    <strong>{preset.name}</strong>
+                    <p>{preset.tone}</p>
+                  </button>
+                ))}
+              </div>
+
+              <div className="notice-preview settings-save-card">
+                <span className="mini-label">저장된 설정</span>
+                <strong>{activeRoomTheme.name}</strong>
+                <p>테마와 운영 옵션은 저장되어 다음 접속 때도 그대로 유지됩니다.</p>
+              </div>
+
+              <div className="settings-option-grid">
+                <section className="settings-option-group">
+                  <span className="mini-label">배너 스타일</span>
+                  <div className="settings-chip-row">
+                    {[
+                      ['focus', '포커스'],
+                      ['soft', '소프트'],
+                      ['broadcast', '브로드캐스트'],
+                    ].map(([value, label]) => (
+                      <button
+                        className={bannerStyle === value ? 'settings-chip active' : 'settings-chip'}
+                        key={value}
+                        onClick={() => setBannerStyle(value as BannerStyle)}
+                        type="button"
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+
+                <section className="settings-option-group">
+                  <span className="mini-label">버튼 스타일</span>
+                  <div className="settings-chip-row">
+                    {[
+                      ['rounded', '라운드'],
+                      ['solid', '솔리드'],
+                      ['outlined', '아웃라인'],
+                    ].map(([value, label]) => (
+                      <button
+                        className={buttonStyle === value ? 'settings-chip active' : 'settings-chip'}
+                        key={value}
+                        onClick={() => setButtonStyle(value as ButtonStyle)}
+                        type="button"
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+
+                <section className="settings-option-group">
+                  <span className="mini-label">카드 밀도</span>
+                  <div className="settings-chip-row">
+                    {[
+                      ['compact', '컴팩트'],
+                      ['comfortable', '기본'],
+                      ['airy', '여유'],
+                    ].map(([value, label]) => (
+                      <button
+                        className={cardDensity === value ? 'settings-chip active' : 'settings-chip'}
+                        key={value}
+                        onClick={() => setCardDensity(value as CardDensity)}
+                        type="button"
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              </div>
+            </section>
+
+            <section className="editor-card accent">
+              <span className="card-kicker">미리보기</span>
+              <div
+                className="settings-room-preview"
+                style={{
+                  background: activeRoomTheme.heroBackground,
+                  color: activeRoomTheme.textColor,
+                }}
+              >
+                <div className="creator-chip settings-preview-chip">
+                  <span className="chip-avatar" style={{ background: activeRoomTheme.accent, color: '#fffaf1' }}>
+                    TV
+                  </span>
+                  <div>
+                    <strong>{connectedChannel?.channel_title ?? '침착한개발자TV'}</strong>
+                    <span style={{ color: activeRoomTheme.mutedColor }}>
+                      {connectedChannel?.room_name ?? '공식 팬방'} · {activeRoomTheme.name}
+                    </span>
+                  </div>
+                </div>
+                <div className="preview-bubbles">
+                  <div
+                    className="preview-bubble"
+                    style={{ background: activeRoomTheme.panelBackground, color: activeRoomTheme.textColor }}
+                  >
+                    오늘 업로드 알림이 자동 등록됩니다.
+                  </div>
+                  <div
+                    className="preview-bubble"
+                    style={{ background: activeRoomTheme.panelBackground, color: activeRoomTheme.textColor }}
+                  >
+                    이벤트와 굿즈 카드도 같은 톤으로 이어집니다.
+                  </div>
+                  <div
+                    className="preview-bubble strong"
+                    style={{
+                      background: activeRoomTheme.accent,
+                      color: activeRoomTheme.id === 'midnight-gold' ? '#1b2130' : '#fffaf1',
+                    }}
+                  >
+                    팬 입장 전 첫 인상을 여기서 결정합니다.
+                  </div>
+                </div>
+              </div>
+
+              <div className="room-form-preview settings-meta-list">
+                <label>
+                  채널 이름
+                  <div className="field">{connectedChannel?.channel_title ?? '침착한개발자TV'}</div>
+                </label>
+                <label>
+                  팬방 주소
+                  <div className="field muted">influencehub.io/room/{connectedChannel?.room_slug ?? 'devtv'}</div>
+                </label>
+                <label>
+                  적용 테마
+                  <div className="field multiline">
+                    {activeRoomTheme.name} · {activeRoomTheme.tone}
+                  </div>
+                </label>
+                <label>
+                  운영 프리셋
+                  <div className="field multiline">
+                    배너 {bannerStyle} · 버튼 {buttonStyle} · 카드 {cardDensity}
+                  </div>
+                </label>
+              </div>
+            </section>
+          </div>
+        </div>
+      ) : null}
+
+      {roomSettingsSection === 'platforms' ? (
+        <section className="scene-card dark-card settings-platform-panel">
         <div className="panel-head">
           <div>
             <span className="card-kicker">배포 채널 관리</span>
@@ -2885,6 +2909,7 @@ function App() {
           </section>
         </div>
       </section>
+      ) : null}
     </section>
   )
 
