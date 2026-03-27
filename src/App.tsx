@@ -72,6 +72,13 @@ type UploadResult = {
   notice_title: string
 }
 
+type YoutubeCommentResult = {
+  videoId: string
+  commentId: string
+  commentUrl: string
+  message: string
+}
+
 type AuthUrlResponse = {
   auth_url: string
   redirect_uri: string
@@ -220,6 +227,8 @@ type PlatformCatalogItem = {
   status: string
   detail: string
   tone: PlatformTone
+  supportsPost: boolean
+  supportsVideo: boolean
 }
 
 type PlatformSetupState = {
@@ -227,6 +236,8 @@ type PlatformSetupState = {
   secretValue: string
   isEnabled: boolean
   statusLabel: string
+  supportsPost: boolean
+  supportsVideo: boolean
 }
 
 const featureCatalog: FeatureModule[] = [
@@ -386,54 +397,72 @@ const platformCatalog: PlatformCatalogItem[] = [
     status: 'Connected',
     detail: 'Data API + Upload API 키 등록 완료',
     tone: 'youtube',
+    supportsPost: false,
+    supportsVideo: true,
   },
   {
     name: 'CHZZK',
     status: 'Ready',
     detail: '라이브 예고 공지와 팬방 연결 예정',
     tone: 'neutral',
+    supportsPost: false,
+    supportsVideo: false,
   },
   {
     name: 'X',
     status: 'Planned',
     detail: '영상 공개 직후 짧은 알림 포스트 배포',
     tone: 'dark',
+    supportsPost: true,
+    supportsVideo: true,
   },
   {
     name: 'Instagram',
     status: 'Planned',
     detail: '릴스/스토리용 짧은 티저 알림 배포',
     tone: 'instagram',
+    supportsPost: true,
+    supportsVideo: true,
   },
   {
     name: 'Facebook',
     status: 'Planned',
     detail: '커뮤니티 링크 카드와 게시글 미러링',
     tone: 'facebook',
+    supportsPost: true,
+    supportsVideo: true,
   },
   {
     name: 'TikTok',
     status: 'Research',
     detail: '클립형 숏폼 티저 업로드 자동화 검토',
     tone: 'dark',
+    supportsPost: true,
+    supportsVideo: true,
   },
   {
     name: 'Threads',
     status: 'Planned',
     detail: '짧은 근황 알림과 공개 직후 반응 수집',
     tone: 'light',
+    supportsPost: true,
+    supportsVideo: true,
   },
   {
     name: 'Discord',
     status: 'Ready',
     detail: 'Webhook 기반 커뮤니티 알림 채널 연동',
     tone: 'neutral',
+    supportsPost: true,
+    supportsVideo: true,
   },
   {
     name: 'Twitch',
     status: 'Idea',
     detail: '라이브 전환 시 팬방 공지와 일정 동기화',
     tone: 'purple',
+    supportsPost: false,
+    supportsVideo: false,
   },
 ]
 
@@ -660,14 +689,16 @@ function App() {
   })
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [uploadPreviewUrl, setUploadPreviewUrl] = useState<string | null>(null)
-  const [postTitle, setPostTitle] = useState('오늘 팬방 선공개 컷')
+  const [postTitle, setPostTitle] = useState('오늘 유튜브 커뮤니티에 올릴 한 줄')
   const [postBody, setPostBody] = useState(
     '본편 올라가기 전에 현장 스틸 먼저 올립니다. 오늘 밤 라이브에서 비하인드 더 풀게요.',
   )
   const [selectedPostImage, setSelectedPostImage] = useState<File | null>(null)
   const [postPreviewUrl, setPostPreviewUrl] = useState<string | null>(null)
-  const [postImageDataUrl, setPostImageDataUrl] = useState<string | null>(null)
-  const [postStatus, setPostStatus] = useState('아직 게시 전')
+  const [postStatus, setPostStatus] = useState('아직 초안 생성 전')
+  const [commentTargetUrl, setCommentTargetUrl] = useState('')
+  const [commentStatus, setCommentStatus] = useState('아직 댓글 배포 전')
+  const [commentResult, setCommentResult] = useState<YoutubeCommentResult | null>(null)
   const [uploadStatus, setUploadStatus] = useState('아직 업로드 전')
   const [uploadError, setUploadError] = useState('')
   const [scheduleStatus, setScheduleStatus] = useState('예약 등록 전')
@@ -705,19 +736,22 @@ function App() {
       secretValue: 'AIzaSyD9••••••••••••••••',
       isEnabled: true,
       statusLabel: 'Connected',
+      supportsPost: false,
+      supportsVideo: true,
     },
-    CHZZK: { clientValue: '', secretValue: '', isEnabled: false, statusLabel: 'Inactive' },
-    X: { clientValue: '', secretValue: '', isEnabled: false, statusLabel: 'Inactive' },
-    Instagram: { clientValue: '', secretValue: '', isEnabled: false, statusLabel: 'Inactive' },
-    Facebook: { clientValue: '', secretValue: '', isEnabled: false, statusLabel: 'Inactive' },
-    TikTok: { clientValue: '', secretValue: '', isEnabled: false, statusLabel: 'Inactive' },
-    Threads: { clientValue: '', secretValue: '', isEnabled: false, statusLabel: 'Inactive' },
-    Discord: { clientValue: '', secretValue: '', isEnabled: false, statusLabel: 'Inactive' },
-    Twitch: { clientValue: '', secretValue: '', isEnabled: false, statusLabel: 'Inactive' },
+    CHZZK: { clientValue: '', secretValue: '', isEnabled: false, statusLabel: 'Inactive', supportsPost: false, supportsVideo: false },
+    X: { clientValue: '', secretValue: '', isEnabled: false, statusLabel: 'Inactive', supportsPost: true, supportsVideo: true },
+    Instagram: { clientValue: '', secretValue: '', isEnabled: false, statusLabel: 'Inactive', supportsPost: true, supportsVideo: true },
+    Facebook: { clientValue: '', secretValue: '', isEnabled: false, statusLabel: 'Inactive', supportsPost: true, supportsVideo: true },
+    TikTok: { clientValue: '', secretValue: '', isEnabled: false, statusLabel: 'Inactive', supportsPost: true, supportsVideo: true },
+    Threads: { clientValue: '', secretValue: '', isEnabled: false, statusLabel: 'Inactive', supportsPost: true, supportsVideo: true },
+    Discord: { clientValue: '', secretValue: '', isEnabled: false, statusLabel: 'Inactive', supportsPost: true, supportsVideo: true },
+    Twitch: { clientValue: '', secretValue: '', isEnabled: false, statusLabel: 'Inactive', supportsPost: false, supportsVideo: false },
   })
   const [bannerStyle, setBannerStyle] = useState<BannerStyle>('focus')
   const [buttonStyle, setButtonStyle] = useState<ButtonStyle>('rounded')
   const [cardDensity, setCardDensity] = useState<CardDensity>('comfortable')
+  const [selectedPublishPlatforms, setSelectedPublishPlatforms] = useState<string[]>(['YouTube'])
   const [hasHydratedCreatorSettings, setHasHydratedCreatorSettings] = useState(false)
   const roleMenuRef = useRef<HTMLDivElement | null>(null)
 
@@ -742,6 +776,10 @@ function App() {
     client: '연결 값',
     secret: '보안 값',
   }
+  const enabledPlatforms = platformCatalog.filter((platform) => platformSetup[platform.name]?.isEnabled)
+  const publishablePlatforms = enabledPlatforms.filter((platform) =>
+    publishComposerMode === 'video' ? platform.supportsVideo : platform.supportsPost,
+  )
   const visibleFanFeed: FanFeedItem[] =
     isCreatorLoggedIn && communityFeed.length > 0
       ? communityFeed.slice(0, 3).map((post) => ({
@@ -751,6 +789,7 @@ function App() {
           imageUrl: post.image_url,
         }))
       : fanFeed
+  const youtubeCommunityDraft = `${postTitle.trim() || '유튜브 커뮤니티 제목'}\n\n${postBody.trim() || '유튜브 커뮤니티 본문'}`
   const homeStatCards = [
     {
       label: '연결 채널',
@@ -806,6 +845,23 @@ function App() {
       isEnabled: nextEnabled,
       statusLabel: nextEnabled ? 'Connected' : 'Inactive',
     })
+    setSelectedPublishPlatforms((current) => {
+      if (!nextEnabled) {
+        return current.filter((platformName) => platformName !== selectedPlatformName)
+      }
+      if (current.includes(selectedPlatformName)) {
+        return current
+      }
+      return [...current, selectedPlatformName]
+    })
+  }
+
+  const togglePublishPlatform = (platformName: string) => {
+    setSelectedPublishPlatforms((current) =>
+      current.includes(platformName)
+        ? current.filter((name) => name !== platformName)
+        : [...current, platformName],
+    )
   }
 
   const goToDashboard = () => {
@@ -1485,16 +1541,6 @@ function App() {
   const handlePostImageChange = (event: ChangeEvent<HTMLInputElement>) => {
     const nextFile = event.target.files?.[0] ?? null
     setSelectedPostImage(nextFile)
-    if (!nextFile) {
-      setPostImageDataUrl(null)
-      return
-    }
-
-    const reader = new FileReader()
-    reader.onload = () => {
-      setPostImageDataUrl(typeof reader.result === 'string' ? reader.result : null)
-    }
-    reader.readAsDataURL(nextFile)
   }
 
   useEffect(() => {
@@ -1525,51 +1571,77 @@ function App() {
     }
   }, [selectedPostImage])
 
+  useEffect(() => {
+    if (uploadResult?.watch_url) {
+      setCommentTargetUrl(uploadResult.watch_url)
+      return
+    }
+
+    const latestYoutubeJob = publishHistory.find(
+      (job) => job.platform === 'YOUTUBE' && job.target_url,
+    )
+    if (latestYoutubeJob?.target_url) {
+      setCommentTargetUrl(latestYoutubeJob.target_url)
+    }
+  }, [uploadResult, publishHistory])
+
   const handlePublishPost = async () => {
     if (!postTitle.trim()) {
-      setUploadError('게시글 제목을 입력하세요.')
+      setUploadError('유튜브 글 제목을 입력하세요.')
       return
     }
 
     if (!postBody.trim()) {
-      setUploadError('게시글 본문을 입력하세요.')
-      return
-    }
-
-    const creatorSessionToken = localStorage.getItem(creatorSessionStorageKey)
-    if (!creatorSessionToken) {
-      setUploadError('먼저 인플루언서 로그인이 필요합니다.')
+      setUploadError('유튜브 글 본문을 입력하세요.')
       return
     }
 
     try {
-      const response = await fetch(`${apiBaseUrl}/api/v1/community/mine`, {
+      await navigator.clipboard.writeText(youtubeCommunityDraft)
+      setPostStatus('유튜브 커뮤니티 초안 복사 완료')
+      setUploadError('')
+    } catch {
+      setPostStatus('초안 준비 완료')
+      setUploadError('복사는 브라우저 권한 문제로 실패했습니다. 아래 초안을 직접 복사하면 됩니다.')
+    }
+  }
+
+  const handlePublishYoutubeComment = async () => {
+    if (!commentTargetUrl.trim()) {
+      setUploadError('댓글을 달 YouTube 영상 URL이 필요합니다.')
+      return
+    }
+
+    if (!postBody.trim()) {
+      setUploadError('댓글 본문으로 사용할 내용을 입력하세요.')
+      return
+    }
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/youtube/comment`, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${creatorSessionToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          title: postTitle.trim(),
-          content: postBody.trim(),
-          imageUrl: postImageDataUrl,
+          videoUrl: commentTargetUrl.trim(),
+          message: postBody.trim(),
         }),
       })
 
       if (!response.ok) {
-        throw new Error('게시글을 저장하지 못했습니다.')
+        const errorPayload = (await response.json().catch(() => null)) as { message?: string } | null
+        throw new Error(errorPayload?.message ?? '유튜브 고정 댓글을 배포하지 못했습니다. YouTube를 다시 연결해 주세요.')
       }
 
-      const savedPost = (await response.json()) as CommunityPostItem
-      setCommunityFeed((current) => [savedPost, ...current.filter((post) => post.post_id !== savedPost.post_id)])
-      setPostStatus('팬방 게시글 등록 완료')
+      const data = (await response.json()) as YoutubeCommentResult
+      setCommentResult(data)
+      setCommentStatus('유튜브 댓글 배포 완료')
       setUploadError('')
-      setFanTab('feed')
-      await loadCreatorCommunityPosts(creatorSessionToken)
     } catch (error) {
-      const message = error instanceof Error ? error.message : '게시글을 저장하지 못했습니다.'
+      const message = error instanceof Error ? error.message : '유튜브 댓글 배포에 실패했습니다.'
+      setCommentStatus('댓글 배포 실패')
       setUploadError(message)
-      setPostStatus('게시 실패')
     }
   }
 
@@ -2582,6 +2654,104 @@ function App() {
               <p>테마와 운영 옵션은 저장되어 다음 접속 때도 그대로 유지됩니다.</p>
             </div>
 
+            <section className="settings-platform-panel">
+              <div className="panel-head">
+                <div>
+                  <span className="card-kicker">배포 채널 관리</span>
+                  <h3>확장 가능한 배포 채널</h3>
+                </div>
+              </div>
+
+              <div className="platform-management-grid">
+                <div className="platform-grid">
+                  {platformCatalog.map((platform) => {
+                    const state = platformSetup[platform.name]
+
+                    return (
+                      <button
+                        className={
+                          platform.name === selectedPlatformName
+                            ? `platform-card ${platform.tone} active-selection`
+                            : `platform-card ${platform.tone}`
+                        }
+                        key={platform.name}
+                        onClick={() => setSelectedPlatformName(platform.name)}
+                        type="button"
+                      >
+                        <span className="platform-status">{state?.statusLabel ?? platform.status}</span>
+                        <strong>{platform.name}</strong>
+                        <p>{platform.detail}</p>
+                      </button>
+                    )
+                  })}
+                </div>
+
+                <section className="platform-config-panel">
+                  <div className="panel-head">
+                    <div>
+                      <span className="card-kicker">선택된 채널</span>
+                      <h3>{selectedPlatformName} 연결 설정</h3>
+                    </div>
+                    <span className={selectedPlatformConfig.isEnabled ? 'status-badge' : 'status-badge muted'}>
+                      {selectedPlatformConfig.statusLabel}
+                    </span>
+                  </div>
+
+                  <div className="credential-grid">
+                    <div className="field-block">
+                      <span className="mini-label">{selectedPlatformLabels.client}</span>
+                      <input
+                        className="text-input"
+                        value={selectedPlatformConfig.clientValue}
+                        onChange={(event) =>
+                          updatePlatformSetup(selectedPlatformName, { clientValue: event.target.value })
+                        }
+                        placeholder={`${selectedPlatformName} ${selectedPlatformLabels.client}`}
+                      />
+                    </div>
+                    <div className="field-block">
+                      <span className="mini-label">{selectedPlatformLabels.secret}</span>
+                      <input
+                        className="text-input"
+                        value={selectedPlatformConfig.secretValue}
+                        onChange={(event) =>
+                          updatePlatformSetup(selectedPlatformName, { secretValue: event.target.value })
+                        }
+                        placeholder={`${selectedPlatformName} ${selectedPlatformLabels.secret}`}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="chip-row">
+                    <span className="info-chip">
+                      {selectedPlatformConfig.isEnabled ? '현재 활성화됨' : '현재 비활성화'}
+                    </span>
+                    <span className="info-chip">
+                      {selectedPlatformConfig.supportsVideo ? '영상 배포 가능' : '영상 API 미지원'}
+                    </span>
+                    <span className="info-chip">
+                      {selectedPlatformConfig.supportsPost ? '게시글 배포 가능' : '게시글 API 미지원'}
+                    </span>
+                  </div>
+
+                  <div className="inline-actions">
+                    <button className="secondary-action" onClick={handleTestPlatformConnection} type="button">
+                      연결 테스트
+                    </button>
+                    <button className="primary-action" onClick={handleTogglePlatformActivation} type="button">
+                      {selectedPlatformConfig.isEnabled ? '비활성화' : '활성화'}
+                    </button>
+                  </div>
+
+                  <div className="notice-preview compact-highlight">
+                    <span className="mini-label">운영 메모</span>
+                    <strong>{selectedPlatformName}은 필요한 값이 들어간 뒤에만 활성화하세요.</strong>
+                    <p>콘텐츠 배포 센터에서는 여기서 활성화한 채널만 선택해서 한번에 배포할 수 있습니다.</p>
+                  </div>
+                </section>
+              </div>
+            </section>
+
             <div className="settings-option-grid">
               <section className="settings-option-group">
                 <span className="mini-label">배너 스타일</span>
@@ -3294,18 +3464,75 @@ function App() {
           onClick={() => setPublishComposerMode('post')}
           type="button"
         >
-          게시글 배포
+          유튜브 글
         </button>
       </div>
+
+      <section className="studio-panel">
+        <div className="panel-head">
+          <div>
+            <span className="card-kicker">배포 대상 선택</span>
+            <h3>설정된 채널 중에서 한번에 배포하기</h3>
+          </div>
+        </div>
+
+        {publishablePlatforms.length > 0 ? (
+          <>
+            <div className="platform-grid">
+              {publishablePlatforms.map((platform) => (
+                <button
+                  className={
+                    selectedPublishPlatforms.includes(platform.name)
+                      ? `platform-card ${platform.tone} active-selection`
+                      : `platform-card ${platform.tone}`
+                  }
+                  key={`publish-${platform.name}`}
+                  onClick={() => togglePublishPlatform(platform.name)}
+                  type="button"
+                >
+                  <span className="platform-status">
+                    {selectedPublishPlatforms.includes(platform.name) ? 'Selected' : 'Ready'}
+                  </span>
+                  <strong>{platform.name}</strong>
+                  <p>
+                    {publishComposerMode === 'video'
+                      ? platform.supportsVideo
+                        ? '영상 배포 가능'
+                        : '영상 배포 미지원'
+                      : platform.supportsPost
+                        ? '게시글/알림 배포 가능'
+                        : '게시글 배포 미지원'}
+                  </p>
+                </button>
+              ))}
+            </div>
+
+            <div className="chip-row">
+              <span className="info-chip">선택됨 {selectedPublishPlatforms.length}개</span>
+              <span className="info-chip">
+                {selectedPublishPlatforms.length > 0
+                  ? selectedPublishPlatforms.join(' · ')
+                  : '최소 1개 채널 선택'}
+              </span>
+            </div>
+          </>
+        ) : (
+          <div className="notice-preview compact-highlight">
+            <span className="mini-label">배포 채널 없음</span>
+            <strong>현재 이 타입으로 배포 가능한 활성 채널이 없습니다.</strong>
+            <p>설정에서 플랫폼을 활성화하면 콘텐츠 배포 센터에서 선택해서 한번에 배포할 수 있습니다.</p>
+          </div>
+        )}
+      </section>
 
       <div className="split-grid">
         <section className="studio-panel">
           <div className="panel-head">
             <div>
               <span className="card-kicker">인플루언스허브 업로드</span>
-              <h3>{publishComposerMode === 'video' ? '오늘의 메인 영상' : '팬방 게시글 작성'}</h3>
+              <h3>{publishComposerMode === 'video' ? '오늘의 메인 영상' : '유튜브 글 초안과 댓글'}</h3>
             </div>
-            <span className="status-badge">{publishComposerMode === 'video' ? 'Queued' : 'Post Ready'}</span>
+            <span className="status-badge">{publishComposerMode === 'video' ? 'Queued' : 'Draft Ready'}</span>
           </div>
 
           <div className="form-stack">
@@ -3370,34 +3597,43 @@ function App() {
             ) : (
               <>
                 <div className="field-block">
-                  <span className="mini-label">게시글 제목</span>
+                  <span className="mini-label">커뮤니티 글 제목</span>
                   <input
                     className="text-input"
                     value={postTitle}
                     onChange={(event) => setPostTitle(event.target.value)}
-                    placeholder="팬방에 보여줄 제목을 입력하세요"
+                    placeholder="유튜브 커뮤니티에 쓸 제목을 입력하세요"
                   />
                 </div>
                 <div className="field-block">
-                  <span className="mini-label">게시글 본문</span>
+                  <span className="mini-label">커뮤니티 글 본문</span>
                   <textarea
                     className="text-area"
                     value={postBody}
                     onChange={(event) => setPostBody(event.target.value)}
-                    placeholder="공지, 사진 설명, 근황 글을 적어보세요"
+                    placeholder="유튜브 커뮤니티 글 또는 고정 댓글에 쓸 내용을 적어보세요"
                   />
                 </div>
                 <div className="field-block">
-                  <span className="mini-label">첨부 사진</span>
+                  <span className="mini-label">초안용 이미지</span>
                   <label className="upload-dropzone">
                     <input accept="image/*" className="file-input" onChange={handlePostImageChange} type="file" />
-                    <strong>{selectedPostImage ? selectedPostImage.name : '사진 파일 선택'}</strong>
+                    <strong>{selectedPostImage ? selectedPostImage.name : '이미지 파일 선택'}</strong>
                     <span>
                       {selectedPostImage
-                        ? `${(selectedPostImage.size / 1024 / 1024).toFixed(1)}MB · 게시 준비 완료`
-                        : '팬방 공지, 비하인드 컷, 티저 이미지를 함께 올릴 수 있습니다.'}
+                        ? `${(selectedPostImage.size / 1024 / 1024).toFixed(1)}MB · 초안 준비 완료`
+                        : '유튜브 커뮤니티 글에 함께 넣을 이미지 초안을 미리 확인할 수 있습니다.'}
                     </span>
                   </label>
+                </div>
+                <div className="field-block">
+                  <span className="mini-label">댓글 연결 영상 URL</span>
+                  <input
+                    className="text-input"
+                    value={commentTargetUrl}
+                    onChange={(event) => setCommentTargetUrl(event.target.value)}
+                    placeholder="https://www.youtube.com/watch?v=..."
+                  />
                 </div>
               </>
             )}
@@ -3421,9 +3657,9 @@ function App() {
                 </>
               ) : (
                 <>
-                  <span className="info-chip">사진 첨부 가능</span>
-                  <span className="info-chip">팬 피드 즉시 반영</span>
-                  <span className="info-chip">공지/근황/티저 활용</span>
+                  <span className="info-chip">커뮤니티 글 초안 복사</span>
+                  <span className="info-chip">고정 댓글 바로 배포</span>
+                  <span className="info-chip">최신 업로드 URL 자동 연결</span>
                 </>
               )}
             </div>
@@ -3440,7 +3676,7 @@ function App() {
                     void handleUpload()
                     return
                   }
-                  handlePublishPost()
+                  void handlePublishPost()
                 }}
                 type="button"
               >
@@ -3448,10 +3684,17 @@ function App() {
                   ? isUploading
                     ? '업로드 중...'
                     : 'YouTube 업로드'
-                  : '팬방 게시글 배포'}
+                  : '커뮤니티 초안 복사'}
               </button>
+              {publishComposerMode === 'post' ? (
+                <button className="secondary-action" onClick={() => void handlePublishYoutubeComment()} type="button">
+                  고정 댓글 배포
+                </button>
+              ) : null}
               <span className="helper-copy">
-                {publishComposerMode === 'video' ? uploadStatus : postStatus}
+                {publishComposerMode === 'video'
+                  ? uploadStatus
+                  : `${postStatus}${commentStatus !== '아직 댓글 배포 전' ? ` · ${commentStatus}` : ''}`}
               </span>
             </div>
             {publishComposerMode === 'video' && useScheduledPublish ? (
@@ -3471,10 +3714,15 @@ function App() {
             ) : null}
             {publishComposerMode === 'post' ? (
               <article className="upload-result-card">
-                <span className="mini-label">게시 상태</span>
+                <span className="mini-label">유튜브 글 준비 상태</span>
                 <strong>{postTitle.trim() || '게시글 제목 미입력'}</strong>
                 <p>{postStatus}</p>
-                <p>{selectedPostImage ? '사진 1장 첨부 준비 완료' : '텍스트만으로도 게시 가능합니다.'}</p>
+                <p>{selectedPostImage ? '이미지 초안 1장 준비 완료' : '텍스트만으로도 커뮤니티 글 초안 생성이 가능합니다.'}</p>
+                {commentResult ? (
+                  <a className="result-link" href={commentResult.commentUrl} rel="noreferrer" target="_blank">
+                    배포된 댓글 보기
+                  </a>
+                ) : null}
               </article>
             ) : null}
           </div>
@@ -3484,7 +3732,7 @@ function App() {
           <div className="panel-head">
             <div>
               <span className="card-kicker">업로드 전 확인</span>
-              <h3>{publishComposerMode === 'video' ? '미리보기와 체크' : '게시글 미리보기'}</h3>
+              <h3>{publishComposerMode === 'video' ? '미리보기와 체크' : '커뮤니티 초안 미리보기'}</h3>
             </div>
           </div>
 
@@ -3501,11 +3749,11 @@ function App() {
               {(publishComposerMode === 'video' && !uploadPreviewUrl) ||
               (publishComposerMode === 'post' && !postPreviewUrl) ? (
                 <div className="upload-preview-empty">
-                  <strong>{publishComposerMode === 'video' ? '영상 미리보기' : '게시글 대표 이미지'}</strong>
+                  <strong>{publishComposerMode === 'video' ? '영상 미리보기' : '커뮤니티 글 이미지 초안'}</strong>
                   <p>
                     {publishComposerMode === 'video'
                       ? '파일을 고르면 여기서 업로드 전에 바로 확인할 수 있습니다.'
-                      : '사진을 고르면 팬방에 올라갈 대표 이미지를 먼저 볼 수 있습니다.'}
+                      : '사진을 고르면 유튜브 커뮤니티에 올릴 이미지 초안을 먼저 볼 수 있습니다.'}
                   </p>
                 </div>
               ) : null}
@@ -3550,22 +3798,27 @@ function App() {
               ) : (
                 <>
                   <article className="upload-check-card">
-                    <span className="mini-label">게시글 제목</span>
+                    <span className="mini-label">커뮤니티 글 제목</span>
                     <strong>{postTitle.trim() || '제목 미입력'}</strong>
                     <p>{postBody.trim() ? '본문 입력 완료' : '본문을 더 적을 수 있습니다.'}</p>
                   </article>
                   <article className="upload-check-card">
-                    <span className="mini-label">본문 요약</span>
+                    <span className="mini-label">커뮤니티 글 요약</span>
                     <strong>{postBody.trim().slice(0, 26) || '본문 미입력'}</strong>
-                    <p>{postBody.trim().length > 26 ? '팬 피드에서는 요약으로 노출됩니다.' : '짧은 공지도 바로 올릴 수 있습니다.'}</p>
+                    <p>{postBody.trim().length > 26 ? '유튜브 커뮤니티 글과 고정 댓글 초안으로 함께 활용합니다.' : '짧은 한 줄 공지도 바로 만들 수 있습니다.'}</p>
                   </article>
                   <article className="upload-check-card">
-                    <span className="mini-label">첨부 이미지</span>
+                    <span className="mini-label">댓글 연결 영상</span>
+                    <strong>{commentTargetUrl.trim() || '영상 URL 미입력'}</strong>
+                    <p>{commentTargetUrl.trim() ? '고정 댓글 배포 대상 영상이 연결되어 있습니다.' : '댓글을 달 YouTube 영상 URL을 넣어주세요.'}</p>
+                  </article>
+                  <article className="upload-check-card">
+                    <span className="mini-label">초안 이미지</span>
                     <strong>{selectedPostImage ? selectedPostImage.name : '이미지 미선택'}</strong>
                     <p>
                       {selectedPostImage
-                        ? `${(selectedPostImage.size / 1024 / 1024).toFixed(1)}MB · 게시 준비 완료`
-                        : '사진 없이 텍스트 게시글만 올려도 됩니다.'}
+                        ? `${(selectedPostImage.size / 1024 / 1024).toFixed(1)}MB · 초안 준비 완료`
+                        : '사진 없이 텍스트 중심 커뮤니티 글 초안만 써도 됩니다.'}
                     </p>
                   </article>
                 </>
@@ -3577,9 +3830,9 @@ function App() {
             <div className="panel-head">
               <div>
                 <span className="card-kicker">
-                  {publishComposerMode === 'video' ? '발행 순서' : '게시글 미리보기'}
+                  {publishComposerMode === 'video' ? '발행 순서' : '유튜브 커뮤니티 초안'}
                 </span>
-                <h3>{publishComposerMode === 'video' ? '예약 타임라인' : '팬 피드에 보이는 방식'}</h3>
+                <h3>{publishComposerMode === 'video' ? '예약 타임라인' : '복사해서 바로 올릴 초안'}</h3>
               </div>
             </div>
             {publishComposerMode === 'video' ? (
@@ -3618,9 +3871,10 @@ function App() {
                 {postPreviewUrl ? (
                   <img alt={postTitle || '게시글 미리보기'} className="post-preview-card-image" src={postPreviewUrl} />
                 ) : null}
-                <span className="fan-badge">POST</span>
+                <span className="fan-badge">DRAFT</span>
                 <strong>{postTitle.trim() || '게시글 제목을 입력하세요'}</strong>
-                <p>{postBody.trim() || '팬방에 올라갈 본문이 여기에 미리 보입니다.'}</p>
+                <p>{postBody.trim() || '유튜브 커뮤니티에 올릴 본문 초안이 여기에 미리 보입니다.'}</p>
+                <textarea className="text-area compact-preview" readOnly value={youtubeCommunityDraft} />
               </article>
             )}
           </div>
@@ -3629,9 +3883,9 @@ function App() {
             <div className="panel-head">
               <div>
                 <span className="card-kicker">
-                  {publishComposerMode === 'video' ? '최근 발행 이력' : '최근 게시 흐름'}
+                  {publishComposerMode === 'video' ? '최근 발행 이력' : '댓글 배포 상태'}
                 </span>
-                <h3>{publishComposerMode === 'video' ? '업로드 기록' : '게시글 반영 상태'}</h3>
+                <h3>{publishComposerMode === 'video' ? '업로드 기록' : '유튜브 반영 상태'}</h3>
               </div>
             </div>
             {publishComposerMode === 'video' ? (
@@ -3663,10 +3917,10 @@ function App() {
               )
             ) : (
               <article className="timeline-row">
-                <span className="timeline-time">POST</span>
+                <span className="timeline-time">YT</span>
                 <div>
-                  <strong>{postStatus}</strong>
-                  <p>게시글 배포를 누르면 팬 피드에 새 카드가 바로 추가됩니다.</p>
+                  <strong>{commentStatus}</strong>
+                  <p>커뮤니티 글은 복사 후 유튜브 스튜디오에 올리고, 댓글은 여기서 바로 배포할 수 있습니다.</p>
                 </div>
               </article>
             )}
@@ -3674,105 +3928,6 @@ function App() {
         </section>
       </div>
 
-      <section className="studio-panel">
-        <div className="panel-head">
-          <div>
-            <span className="card-kicker">멀티 플랫폼 카탈로그</span>
-            <h3>확장 가능한 배포 채널</h3>
-          </div>
-        </div>
-
-        <div className="platform-management-grid">
-          <div className="platform-grid">
-            {platformCatalog.map((platform) => {
-              const state = platformSetup[platform.name]
-
-              return (
-                <button
-                  className={
-                    platform.name === selectedPlatformName
-                      ? `platform-card ${platform.tone} active-selection`
-                      : `platform-card ${platform.tone}`
-                  }
-                  key={platform.name}
-                  onClick={() => setSelectedPlatformName(platform.name)}
-                  type="button"
-                >
-                  <span className="platform-status">{state?.statusLabel ?? platform.status}</span>
-                  <strong>{platform.name}</strong>
-                  <p>{platform.detail}</p>
-                </button>
-              )
-            })}
-          </div>
-
-          <section className="platform-config-panel">
-            <div className="panel-head">
-              <div>
-                <span className="card-kicker">선택된 채널</span>
-                <h3>{selectedPlatformName} 연결 설정</h3>
-              </div>
-              <span className={selectedPlatformConfig.isEnabled ? 'status-badge' : 'status-badge muted'}>
-                {selectedPlatformConfig.statusLabel}
-              </span>
-            </div>
-
-            <div className="credential-grid">
-              <div className="field-block">
-                <span className="mini-label">{selectedPlatformLabels.client}</span>
-                <input
-                  className="text-input"
-                  value={selectedPlatformConfig.clientValue}
-                  onChange={(event) =>
-                    updatePlatformSetup(selectedPlatformName, { clientValue: event.target.value })
-                  }
-                  placeholder={`${selectedPlatformName} ${selectedPlatformLabels.client}`}
-                />
-              </div>
-              <div className="field-block">
-                <span className="mini-label">{selectedPlatformLabels.secret}</span>
-                <input
-                  className="text-input"
-                  value={selectedPlatformConfig.secretValue}
-                  onChange={(event) =>
-                    updatePlatformSetup(selectedPlatformName, { secretValue: event.target.value })
-                  }
-                  placeholder={`${selectedPlatformName} ${selectedPlatformLabels.secret}`}
-                />
-              </div>
-            </div>
-
-            <div className="chip-row">
-              <span className="info-chip">
-                {selectedPlatformConfig.isEnabled ? '현재 활성화됨' : '현재 비활성화'}
-              </span>
-              <span className="info-chip">팬방 공지 연동 가능</span>
-              <span className="info-chip">업로드 흐름 확장 가능</span>
-            </div>
-
-            <div className="inline-actions">
-              <button className="secondary-action" onClick={handleTestPlatformConnection} type="button">
-                연결 테스트
-              </button>
-              <button className="primary-action" onClick={handleTogglePlatformActivation} type="button">
-                {selectedPlatformConfig.isEnabled ? '비활성화' : '활성화'}
-              </button>
-            </div>
-
-            <div className="notice-preview compact-highlight">
-              <span className="mini-label">운영 메모</span>
-              <strong>{selectedPlatformName}은 필요한 값이 들어간 뒤에만 활성화하세요.</strong>
-              <p>실제로 쓸 채널만 켜두고, 나머지는 비활성 상태로 두면 운영이 훨씬 깔끔합니다.</p>
-            </div>
-          </section>
-        </div>
-
-        <div className="highlight-card compact-highlight">
-          <span className="mini-label">정책 링크</span>
-          <strong>개인정보처리방침과 약관은 하단 푸터에서만 열립니다.</strong>
-          <p>플랫폼 설정 화면에서는 연동과 업로드 흐름만 남기고, 법률 링크는 전역 하단으로 모았습니다.</p>
-        </div>
-      </section>
     </section>
   )
 
