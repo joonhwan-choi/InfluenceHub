@@ -42,14 +42,19 @@ public class CreatorAuthService {
 
     @Transactional(readOnly = true)
     public CreatorAuthResponse currentSession(String sessionToken) {
+        CreatorSession session = requireSession(sessionToken);
+        return toResponse(session);
+    }
+
+    @Transactional(readOnly = true)
+    public CreatorSession requireSession(String sessionToken) {
         CreatorSession session = creatorSessionRepository.findBySessionToken(sessionToken)
             .orElseThrow(() -> new IllegalStateException("로그인 세션이 없습니다."));
 
         if (session.isExpired(LocalDateTime.now())) {
             throw new IllegalStateException("로그인 세션이 만료되었습니다.");
         }
-
-        return toResponse(session);
+        return session;
     }
 
     @Transactional
