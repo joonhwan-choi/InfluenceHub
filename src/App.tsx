@@ -204,6 +204,22 @@ type StoreItemSummary = {
   sales: string
 }
 
+type PlatformTone = 'youtube' | 'neutral' | 'dark' | 'instagram' | 'facebook' | 'light' | 'purple'
+
+type PlatformCatalogItem = {
+  name: string
+  status: string
+  detail: string
+  tone: PlatformTone
+}
+
+type PlatformSetupState = {
+  clientValue: string
+  secretValue: string
+  isEnabled: boolean
+  statusLabel: string
+}
+
 const featureCatalog: FeatureModule[] = [
   {
     name: '팬 커뮤니티',
@@ -355,7 +371,7 @@ const contentTimeline = [
   },
 ]
 
-const platformCatalog = [
+const platformCatalog: PlatformCatalogItem[] = [
   {
     name: 'YouTube',
     status: 'Connected',
@@ -411,6 +427,18 @@ const platformCatalog = [
     tone: 'purple',
   },
 ]
+
+const platformFieldLabels: Record<string, { client: string; secret: string }> = {
+  YouTube: { client: 'Client ID', secret: 'API Key' },
+  CHZZK: { client: '채널 키', secret: 'Webhook URL' },
+  X: { client: 'App Key', secret: 'App Secret' },
+  Instagram: { client: 'App ID', secret: 'Access Token' },
+  Facebook: { client: 'Page ID', secret: 'Access Token' },
+  TikTok: { client: 'Client Key', secret: 'Client Secret' },
+  Threads: { client: '앱 식별자', secret: '연동 토큰' },
+  Discord: { client: '서버 이름', secret: 'Webhook URL' },
+  Twitch: { client: 'Client ID', secret: 'OAuth Token' },
+}
 
 const youtubeIntegrationSteps = [
   {
@@ -629,6 +657,7 @@ function App() {
   const [isUploading, setIsUploading] = useState(false)
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null)
   const [publishHistory, setPublishHistory] = useState<PublishJobHistoryItem[]>([])
+  const [selectedPlatformName, setSelectedPlatformName] = useState('YouTube')
   const [isStartingGoogleLogin, setIsStartingGoogleLogin] = useState(false)
   const [authFeedback, setAuthFeedback] = useState('아직 구글 로그인 전')
   const [isCreatorLoggedIn, setIsCreatorLoggedIn] = useState(false)
@@ -652,6 +681,22 @@ function App() {
   const [pendingGoogleProfile, setPendingGoogleProfile] = useState<PendingGoogleProfile | null>(null)
   const [selectedRoomTheme, setSelectedRoomTheme] = useState<RoomThemeId>('hub-classic')
   const [isRoleMenuOpen, setIsRoleMenuOpen] = useState(false)
+  const [platformSetup, setPlatformSetup] = useState<Record<string, PlatformSetupState>>({
+    YouTube: {
+      clientValue: 'yt-client-8f3c••••••••••',
+      secretValue: 'AIzaSyD9••••••••••••••••',
+      isEnabled: true,
+      statusLabel: 'Connected',
+    },
+    CHZZK: { clientValue: '', secretValue: '', isEnabled: false, statusLabel: 'Inactive' },
+    X: { clientValue: '', secretValue: '', isEnabled: false, statusLabel: 'Inactive' },
+    Instagram: { clientValue: '', secretValue: '', isEnabled: false, statusLabel: 'Inactive' },
+    Facebook: { clientValue: '', secretValue: '', isEnabled: false, statusLabel: 'Inactive' },
+    TikTok: { clientValue: '', secretValue: '', isEnabled: false, statusLabel: 'Inactive' },
+    Threads: { clientValue: '', secretValue: '', isEnabled: false, statusLabel: 'Inactive' },
+    Discord: { clientValue: '', secretValue: '', isEnabled: false, statusLabel: 'Inactive' },
+    Twitch: { clientValue: '', secretValue: '', isEnabled: false, statusLabel: 'Inactive' },
+  })
   const [bannerStyle, setBannerStyle] = useState<BannerStyle>('focus')
   const [buttonStyle, setButtonStyle] = useState<ButtonStyle>('rounded')
   const [cardDensity, setCardDensity] = useState<CardDensity>('comfortable')
@@ -674,6 +719,11 @@ function App() {
     })) ?? fanRooms
   const activeFanRoom =
     displayedFanRooms.find((room) => room.id === selectedFanRoomId) ?? displayedFanRooms[0]
+  const selectedPlatformConfig = platformSetup[selectedPlatformName]
+  const selectedPlatformLabels = platformFieldLabels[selectedPlatformName] ?? {
+    client: '연결 값',
+    secret: '보안 값',
+  }
   const visibleFanFeed =
     isCreatorLoggedIn && communityFeed.length > 0
       ? communityFeed.slice(0, 3).map((post) => ({
@@ -710,6 +760,33 @@ function App() {
         ? current.filter((name) => name !== featureName)
         : [...current, featureName],
     )
+  }
+
+  const updatePlatformSetup = (platformName: string, nextState: Partial<PlatformSetupState>) => {
+    setPlatformSetup((current) => ({
+      ...current,
+      [platformName]: {
+        ...current[platformName],
+        ...nextState,
+      },
+    }))
+  }
+
+  const handleTestPlatformConnection = () => {
+    if (!selectedPlatformConfig.clientValue.trim() || !selectedPlatformConfig.secretValue.trim()) {
+      updatePlatformSetup(selectedPlatformName, { statusLabel: '값 필요' })
+      return
+    }
+
+    updatePlatformSetup(selectedPlatformName, { statusLabel: 'Ready' })
+  }
+
+  const handleTogglePlatformActivation = () => {
+    const nextEnabled = !selectedPlatformConfig.isEnabled
+    updatePlatformSetup(selectedPlatformName, {
+      isEnabled: nextEnabled,
+      statusLabel: nextEnabled ? 'Connected' : 'Inactive',
+    })
   }
 
   const goToDashboard = () => {
@@ -3345,14 +3422,89 @@ function App() {
           </div>
         </div>
 
-        <div className="platform-grid">
-          {platformCatalog.map((platform) => (
-            <article className={`platform-card ${platform.tone}`} key={platform.name}>
-              <span className="platform-status">{platform.status}</span>
-              <strong>{platform.name}</strong>
-              <p>{platform.detail}</p>
-            </article>
-          ))}
+        <div className="platform-management-grid">
+          <div className="platform-grid">
+            {platformCatalog.map((platform) => {
+              const state = platformSetup[platform.name]
+
+              return (
+                <button
+                  className={
+                    platform.name === selectedPlatformName
+                      ? `platform-card ${platform.tone} active-selection`
+                      : `platform-card ${platform.tone}`
+                  }
+                  key={platform.name}
+                  onClick={() => setSelectedPlatformName(platform.name)}
+                  type="button"
+                >
+                  <span className="platform-status">{state?.statusLabel ?? platform.status}</span>
+                  <strong>{platform.name}</strong>
+                  <p>{platform.detail}</p>
+                </button>
+              )
+            })}
+          </div>
+
+          <section className="platform-config-panel">
+            <div className="panel-head">
+              <div>
+                <span className="card-kicker">선택된 채널</span>
+                <h3>{selectedPlatformName} 연결 설정</h3>
+              </div>
+              <span className={selectedPlatformConfig.isEnabled ? 'status-badge' : 'status-badge muted'}>
+                {selectedPlatformConfig.statusLabel}
+              </span>
+            </div>
+
+            <div className="credential-grid">
+              <div className="field-block">
+                <span className="mini-label">{selectedPlatformLabels.client}</span>
+                <input
+                  className="text-input"
+                  value={selectedPlatformConfig.clientValue}
+                  onChange={(event) =>
+                    updatePlatformSetup(selectedPlatformName, { clientValue: event.target.value })
+                  }
+                  placeholder={`${selectedPlatformName} ${selectedPlatformLabels.client}`}
+                />
+              </div>
+              <div className="field-block">
+                <span className="mini-label">{selectedPlatformLabels.secret}</span>
+                <input
+                  className="text-input"
+                  value={selectedPlatformConfig.secretValue}
+                  onChange={(event) =>
+                    updatePlatformSetup(selectedPlatformName, { secretValue: event.target.value })
+                  }
+                  placeholder={`${selectedPlatformName} ${selectedPlatformLabels.secret}`}
+                />
+              </div>
+            </div>
+
+            <div className="chip-row">
+              <span className="info-chip">
+                {selectedPlatformConfig.isEnabled ? '현재 활성화됨' : '현재 비활성화'}
+              </span>
+              <span className="info-chip">팬방 공지 연동 가능</span>
+              <span className="info-chip">업로드 흐름 확장 가능</span>
+            </div>
+
+            <div className="inline-actions">
+              <button className="secondary-action" onClick={handleTestPlatformConnection} type="button">
+                연결 테스트
+              </button>
+              <button className="primary-action" onClick={handleTogglePlatformActivation} type="button">
+                {selectedPlatformConfig.isEnabled ? '비활성화' : '활성화'}
+              </button>
+            </div>
+
+            <div className="notice-preview compact-highlight">
+              <span className="mini-label">운영 메모</span>
+              <strong>{selectedPlatformName}은 필요한 값이 들어간 뒤에만 활성화하세요.</strong>
+              <p>실제로 쓸 채널만 켜두고, 나머지는 비활성 상태로 두면 운영이 훨씬 깔끔합니다.</p>
+            </div>
+          </section>
         </div>
 
         <div className="highlight-card compact-highlight">
