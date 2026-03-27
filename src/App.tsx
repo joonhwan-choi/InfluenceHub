@@ -3570,7 +3570,9 @@ function App() {
         </div>
       </section>
     ) : (
-      <section className={isClassicRoomTheme ? 'fan-scene fan-scene-classic' : 'fan-scene'}>
+      <section
+        className={`fan-scene${isClassicRoomTheme ? ' fan-scene-classic' : ''} fan-theme-${selectedRoomTheme}`}
+      >
       <div
         className="fan-hero"
         style={{
@@ -3578,31 +3580,53 @@ function App() {
           color: activeRoomTheme.textColor,
         }}
       >
-        <div className="creator-chip">
-          <span className="chip-avatar" style={{ background: activeRoomTheme.accent, color: '#fffaf1' }}>TV</span>
-          <div>
-            <strong>{activeFanRoom.label}</strong>
-            <span style={{ color: activeRoomTheme.mutedColor }}>{activeFanRoom.meta} · {activeFanRoom.joinedVia}</span>
+        <div className="fan-hero-copy">
+          <div className="fan-hero-topline">
+            <span className="fan-hero-pill">FAN ROOM</span>
+            <span className="fan-hero-meta">LIVE COMMUNITY PREVIEW</span>
+          </div>
+
+          <div className="creator-chip">
+            <span className="chip-avatar" style={{ background: activeRoomTheme.accent, color: '#fffaf1' }}>TV</span>
+            <div>
+              <strong>{activeFanRoom.label}</strong>
+              <span style={{ color: activeRoomTheme.mutedColor }}>{activeFanRoom.meta} · {activeFanRoom.joinedVia}</span>
+            </div>
+          </div>
+
+          <div className="fan-hero-badges">
+            <span>공지</span>
+            <span>일정</span>
+            <span>굿즈</span>
+            <span>초대 링크</span>
           </div>
         </div>
 
-        <div className="fan-actions">
-          <button className="primary-action" onClick={() => setCurrentView('home')}>
-            {fanSession ? '팬 홈으로' : '인플루언서 홈으로'}
-          </button>
-          {fanSession ? (
-            <button className="secondary-action" onClick={handleFanLogout}>
-              팬 로그아웃
+        <div className="fan-hero-side">
+          <div className="fan-hero-stat-card">
+            <span className="mini-label">이번 주 팬 룸 포인트</span>
+            <strong>{activeFanRoom.creator}</strong>
+            <p>새 공지, 일정, 굿즈 드롭까지 같은 톤으로 이어집니다.</p>
+          </div>
+
+          <div className="fan-actions">
+            <button className="primary-action" onClick={() => setCurrentView('home')}>
+              {fanSession ? '팬 홈으로' : '인플루언서 홈으로'}
             </button>
-          ) : isCreatorLoggedIn ? (
-            <button className="secondary-action" onClick={() => setCurrentView('content')}>
-              운영 화면으로
-            </button>
-          ) : (
-            <button className="secondary-action" onClick={() => setCurrentView('home')}>
-              홈으로
-            </button>
-          )}
+            {fanSession ? (
+              <button className="secondary-action" onClick={handleFanLogout}>
+                팬 로그아웃
+              </button>
+            ) : isCreatorLoggedIn ? (
+              <button className="secondary-action" onClick={() => setCurrentView('content')}>
+                운영 화면으로
+              </button>
+            ) : (
+              <button className="secondary-action" onClick={() => setCurrentView('home')}>
+                홈으로
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
