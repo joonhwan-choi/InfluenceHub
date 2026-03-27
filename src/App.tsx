@@ -966,6 +966,45 @@ function App() {
     }
   }
 
+  const handleFanLogin = async () => {
+    if (!fanEmail.trim()) {
+      setFanError('팬 로그인에 사용할 이메일을 입력하세요.')
+      return
+    }
+
+    setFanError('')
+    setFanStatus('팬 로그인 중')
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/fans/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: fanEmail.trim(),
+          nickname: fanNickname.trim() || undefined,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || '팬 로그인에 실패했습니다.')
+      }
+
+      const data = (await response.json()) as FanAuthResponse
+      setFanSession(data)
+      persistFanSession(data.session_token)
+      setSelectedFanRoomId(data.joined_rooms[0]?.room_slug ?? 'salt-toast')
+      setCurrentView('fan')
+      setFanStatus(`${data.nickname}님 팬 로그인 완료`)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '팬 로그인에 실패했습니다.'
+      setFanError(message)
+      setFanStatus('팬 로그인 실패')
+    }
+  }
+
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const nextFile = event.target.files?.[0] ?? null
     setSelectedFile(nextFile)
@@ -2612,8 +2651,84 @@ function App() {
     </section>
   )
 
-  const renderFan = () => (
-    <section className="fan-scene">
+  const renderFan = () =>
+    !fanSession ? (
+      <section className="scene-panel light">
+        <div className="scene-copy">
+          <span className="section-label dark">FAN LOGIN</span>
+          <h2>팬도 다시 로그인해서 들어올 수 있어야 합니다</h2>
+          <p>
+            초대 링크로 한 번 가입한 팬은 같은 이메일로 다시 로그인해서 가입한 팬방
+            목록을 바로 불러올 수 있어야 자연스럽습니다.
+          </p>
+
+          <div className="highlight-card">
+            <span className="mini-label">현재 상태</span>
+            <strong>{fanStatus}</strong>
+            <p>
+              먼저 초대 링크로 팬 가입을 한 뒤, 이후에는 이메일만으로 팬 세션을 다시
+              열 수 있게 바꿨습니다.
+            </p>
+          </div>
+
+          <div className="inline-actions">
+            <button className="primary-action" onClick={() => void handleFanLogin()}>
+              팬 로그인
+            </button>
+            <button className="secondary-action dark" onClick={() => setCurrentView('invite')}>
+              초대 링크로 가입하기
+            </button>
+          </div>
+        </div>
+
+        <div className="scene-card">
+          <div className="card-header">
+            <div>
+              <span className="card-kicker">팬 로그인</span>
+              <h2>가입한 팬방 다시 불러오기</h2>
+            </div>
+            <span className="status-badge">Fan Auth</span>
+          </div>
+
+          <div className="form-stack">
+            <div className="field-block">
+              <span className="mini-label">이메일</span>
+              <input
+                className="text-input"
+                value={fanEmail}
+                onChange={(event) => setFanEmail(event.target.value)}
+                placeholder="fan@example.com"
+              />
+            </div>
+            <div className="field-block">
+              <span className="mini-label">닉네임 수정(선택)</span>
+              <input
+                className="text-input"
+                value={fanNickname}
+                onChange={(event) => setFanNickname(event.target.value)}
+                placeholder="원하면 새 닉네임 입력"
+              />
+            </div>
+          </div>
+
+          <div className="detail-grid">
+            <article className="detail-card">
+              <span className="mini-label">팬 로그인 후</span>
+              <strong>가입한 팬방 목록 복원</strong>
+              <p>같은 팬 계정으로 가입했던 크리에이터 팬방이 한 번에 다시 열립니다.</p>
+            </article>
+            <article className="detail-card">
+              <span className="mini-label">첫 가입이 아직이면</span>
+              <strong>초대 링크로 먼저 팬 가입</strong>
+              <p>이메일만으로 로그인하려면 먼저 초대 링크를 타고 팬 가입이 한 번 있어야 합니다.</p>
+            </article>
+          </div>
+
+          {fanError ? <p className="feedback-message error">{fanError}</p> : null}
+        </div>
+      </section>
+    ) : (
+      <section className="fan-scene">
       <div className="fan-hero">
         <div className="creator-chip">
           <span className="chip-avatar">TV</span>
@@ -2754,7 +2869,7 @@ function App() {
         </aside>
       </div>
     </section>
-  )
+    )
 
   const renderInvite = () => (
     <section className="scene-panel light">

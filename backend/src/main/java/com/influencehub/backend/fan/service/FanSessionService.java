@@ -3,14 +3,18 @@ package com.influencehub.backend.fan.service;
 import com.influencehub.backend.fan.domain.FanMembership;
 import com.influencehub.backend.fan.domain.FanSession;
 import com.influencehub.backend.fan.dto.FanAuthResponse;
+import com.influencehub.backend.fan.dto.FanLoginRequest;
 import com.influencehub.backend.fan.dto.FanRoomSummaryResponse;
 import com.influencehub.backend.fan.repository.FanMembershipRepository;
 import com.influencehub.backend.fan.repository.FanSessionRepository;
 import com.influencehub.backend.user.domain.User;
+import com.influencehub.backend.user.domain.UserRole;
+import com.influencehub.backend.user.repository.UserRepository;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,14 +27,17 @@ public class FanSessionService {
 
     private final FanSessionRepository fanSessionRepository;
     private final FanMembershipRepository fanMembershipRepository;
+    private final UserRepository userRepository;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public FanSessionService(
         FanSessionRepository fanSessionRepository,
-        FanMembershipRepository fanMembershipRepository
+        FanMembershipRepository fanMembershipRepository,
+        UserRepository userRepository
     ) {
         this.fanSessionRepository = fanSessionRepository;
         this.fanMembershipRepository = fanMembershipRepository;
+        this.userRepository = userRepository;
     }
 
     @Transactional
@@ -42,6 +49,27 @@ public class FanSessionService {
         );
 
         return toResponse(session);
+    }
+
+    @Transactional
+    public FanAuthResponse login(FanLoginRequest request) {
+        String email = request.getEmail().trim().toLowerCase(Locale.ROOT);
+        User fan = userRepository.findByEmail(email)
+            .orElseThrow(() -> new IllegalStateException("가입된 팬 계정이 없습니다. 먼저 초대 링크로 가입하세요."));
+
+        if (fan.getRole() != UserRole.FAN) {
+            throw new IllegalStateException("팬 계정으로만 로그인할 수 있습니다.");
+        }
+
+        if (request.getNickname() != null && !request.getNickname().trim().isEmpty()) {
+            fan.updateProfile(request.getNickname().trim(), fan.getProfileImageUrl());
+        }
+
+        if (fanMembershipRepository.findByFanOrderByCreatedAtDesc(fan).isEmpty()) {
+            throw new IllegalStateException("가입한 팬방이 없어 로그인할 수 없습니다.");
+        }
+
+        return issueSession(fan);
     }
 
     @Transactional(readOnly = true)

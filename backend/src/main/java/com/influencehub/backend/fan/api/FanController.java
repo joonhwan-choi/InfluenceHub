@@ -2,6 +2,7 @@ package com.influencehub.backend.fan.api;
 
 import com.influencehub.backend.fan.dto.FanAuthResponse;
 import com.influencehub.backend.fan.dto.FanJoinInviteRequest;
+import com.influencehub.backend.fan.dto.FanLoginRequest;
 import com.influencehub.backend.fan.service.FanInviteService;
 import com.influencehub.backend.fan.service.FanSessionService;
 import javax.validation.Valid;
@@ -28,6 +29,11 @@ public class FanController {
     @PostMapping("/join")
     public FanAuthResponse join(@Valid @RequestBody FanJoinInviteRequest request) {
         return fanInviteService.joinInvite(request);
+    }
+
+    @PostMapping("/login")
+    public FanAuthResponse login(@Valid @RequestBody FanLoginRequest request) {
+        return fanSessionService.login(request);
     }
 
     @GetMapping("/me")
