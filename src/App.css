@@ -76,6 +76,14 @@
   align-items: center;
 }
 
+.nav-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .nav-tab {
   min-height: 42px;
   padding: 0 14px;
@@ -100,6 +108,17 @@
   color: #ffd9bf;
   font: 800 0.72rem/1 "Arial Black", "AppleGothic", sans-serif;
   letter-spacing: 0.08em;
+}
+
+.header-logout {
+  border: 0;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #f5f1e8;
+  cursor: pointer;
+  font: 700 0.84rem/1 "Arial", "AppleGothic", sans-serif;
 }
 
 .hero-panel {
@@ -1812,6 +1831,7 @@
   }
 
   .nav-tabs,
+  .nav-actions,
   .hero-actions,
   .inline-actions,
   .fan-actions {

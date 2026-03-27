@@ -615,6 +615,36 @@ function App() {
     setFanStatus('팬 로그아웃됨')
   }
 
+  const handleCreatorLogout = () => {
+    const sessionToken = localStorage.getItem(creatorSessionStorageKey)
+    if (sessionToken) {
+      void fetch(`${apiBaseUrl}/api/v1/auth/logout`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${sessionToken}`,
+        },
+      })
+    }
+
+    clearCreatorSession()
+    setCurrentView('home')
+  }
+
+  const handleFanLogout = () => {
+    const sessionToken = localStorage.getItem(fanSessionStorageKey)
+    if (sessionToken) {
+      void fetch(`${apiBaseUrl}/api/v1/fans/logout`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${sessionToken}`,
+        },
+      })
+    }
+
+    clearFanSession()
+    setCurrentView('home')
+  }
+
   const fetchCurrentCreatorSession = async (
     sessionToken: string,
     options?: { silent?: boolean },
@@ -1091,18 +1121,32 @@ function App() {
         </span>
       </button>
 
-      <nav className="nav-tabs" aria-label="primary">
-        {headerTabs.map(([id, label]) => (
-          <button
-            className={currentView === id ? 'nav-tab active' : 'nav-tab'}
-            key={id}
-            onClick={() => setCurrentView(id)}
-          >
-            {label}
+      <div className="nav-actions">
+        <nav className="nav-tabs" aria-label="primary">
+          {headerTabs.map(([id, label]) => (
+            <button
+              className={currentView === id ? 'nav-tab active' : 'nav-tab'}
+              key={id}
+              onClick={() => setCurrentView(id)}
+            >
+              {label}
+            </button>
+          ))}
+          {headerRoleLabel ? <span className="nav-role-chip">{headerRoleLabel}</span> : null}
+        </nav>
+
+        {isCreatorLoggedIn ? (
+          <button className="header-logout" onClick={handleCreatorLogout}>
+            크리에이터 로그아웃
           </button>
-        ))}
-        {headerRoleLabel ? <span className="nav-role-chip">{headerRoleLabel}</span> : null}
-      </nav>
+        ) : null}
+
+        {isFanLoggedIn && !isCreatorLoggedIn ? (
+          <button className="header-logout" onClick={handleFanLogout}>
+            팬 로그아웃
+          </button>
+        ) : null}
+      </div>
     </header>
   )
 
@@ -1917,21 +1961,7 @@ function App() {
 
             <div className="inline-actions">
               {isCreatorLoggedIn ? (
-                <button
-                  className="secondary-action dark"
-                  onClick={() => {
-                    const sessionToken = localStorage.getItem(creatorSessionStorageKey)
-                    if (sessionToken) {
-                      void fetch(`${apiBaseUrl}/api/v1/auth/logout`, {
-                        method: 'POST',
-                        headers: {
-                          Authorization: `Bearer ${sessionToken}`,
-                        },
-                      })
-                    }
-                    clearCreatorSession()
-                  }}
-                >
+                <button className="secondary-action dark" onClick={handleCreatorLogout}>
                   로그아웃
                 </button>
               ) : (
@@ -2430,22 +2460,7 @@ function App() {
             {fanSession ? '메인으로' : '방장 화면으로'}
           </button>
           {fanSession ? (
-            <button
-              className="secondary-action"
-              onClick={() => {
-                const sessionToken = localStorage.getItem(fanSessionStorageKey)
-                if (sessionToken) {
-                  void fetch(`${apiBaseUrl}/api/v1/fans/logout`, {
-                    method: 'POST',
-                    headers: {
-                      Authorization: `Bearer ${sessionToken}`,
-                    },
-                  })
-                }
-                clearFanSession()
-                setCurrentView('home')
-              }}
-            >
+            <button className="secondary-action" onClick={handleFanLogout}>
               팬 로그아웃
             </button>
           ) : (
