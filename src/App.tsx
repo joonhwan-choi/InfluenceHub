@@ -406,6 +406,21 @@ function App() {
     setCurrentView('dashboard')
   }
 
+  const openCreatorStart = () => {
+    setCurrentView(isCreatorLoggedIn ? 'content' : 'signup')
+  }
+
+  const openCreatorOnboardingStep = (index: number) => {
+    if (isCreatorLoggedIn) {
+      setCurrentView(index === 0 ? 'content' : index === 1 ? 'dashboard' : 'features')
+      return
+    }
+
+    setCurrentView(
+      index === 0 ? 'signup' : index === 1 ? 'room' : index === 2 ? 'features' : 'dashboard',
+    )
+  }
+
   const persistCreatorSession = (sessionToken: string) => {
     localStorage.setItem(creatorSessionStorageKey, sessionToken)
     setIsCreatorLoggedIn(true)
@@ -604,8 +619,8 @@ function App() {
       <nav className="nav-tabs" aria-label="primary">
         {[
           ['home', '홈'],
-          ['signup', '가입'],
-          ['room', '팬방 생성'],
+          ['signup', isCreatorLoggedIn ? '내 채널' : '가입'],
+          ['room', isCreatorLoggedIn ? '팬방 정보' : '팬방 생성'],
           ['features', '기능 설정'],
           ['dashboard', '운영 대시보드'],
           ['privacy', '개인정보'],
@@ -646,8 +661,8 @@ function App() {
           </p>
 
           <div className="hero-actions">
-            <button className="primary-action" onClick={() => setCurrentView('signup')}>
-              크리에이터로 시작
+            <button className="primary-action" onClick={openCreatorStart}>
+              {isCreatorLoggedIn ? '내 채널 관리하기' : '크리에이터로 시작'}
             </button>
             <button className="secondary-action" onClick={() => setCurrentView('fan')}>
               팬 입장 화면 보기
@@ -676,8 +691,9 @@ function App() {
             </div>
 
             <p className="card-intro">
-              화면은 연결돼 있고, 지금은 프론트 프로토타입 중심으로 크리에이터
-              운영 경험을 먼저 설계한 상태입니다.
+              {isCreatorLoggedIn
+                ? '이미 로그인된 크리에이터 기준으로 채널 관리와 운영 화면으로 바로 이어집니다.'
+                : '화면은 연결돼 있고, 지금은 프론트 프로토타입 중심으로 크리에이터 운영 경험을 먼저 설계한 상태입니다.'}
             </p>
 
             <div className="journey-list">
@@ -685,17 +701,7 @@ function App() {
                 <button
                   className="journey-card"
                   key={step}
-                  onClick={() =>
-                    setCurrentView(
-                      index === 0
-                        ? 'signup'
-                        : index === 1
-                          ? 'room'
-                          : index === 2
-                            ? 'features'
-                            : 'dashboard',
-                    )
-                  }
+                  onClick={() => openCreatorOnboardingStep(index)}
                 >
                   <span>0{index + 1}</span>
                   <strong>{step}</strong>
@@ -714,7 +720,7 @@ function App() {
                 </div>
               </div>
               <button className="tiny-action" onClick={() => setCurrentView('dashboard')}>
-                대시보드 열기
+                {isCreatorLoggedIn ? '운영 계속하기' : '대시보드 열기'}
               </button>
             </div>
 
@@ -785,11 +791,11 @@ function App() {
     <section className="scene-panel light">
       <div className="scene-copy">
         <span className="section-label dark">STEP 01</span>
-        <h2>크리에이터 계정 만들기</h2>
+        <h2>{isCreatorLoggedIn ? '연결된 크리에이터 계정' : '크리에이터 계정 만들기'}</h2>
         <p>
-          소셜 로그인 진입점을 먼저 고르고, 계정이 연결되면 팬방 생성 단계로
-          바로 넘어갑니다. 어떤 플랫폼에서 시작하느냐에 따라 초반 문구와
-          권장 설정이 달라집니다.
+          {isCreatorLoggedIn
+            ? '이미 로그인된 상태이므로 다시 가입할 필요가 없습니다. 연결된 채널 정보와 운영 화면으로 바로 이동하면 됩니다.'
+            : '소셜 로그인 진입점을 먼저 고르고, 계정이 연결되면 팬방 생성 단계로 바로 넘어갑니다. 어떤 플랫폼에서 시작하느냐에 따라 초반 문구와 권장 설정이 달라집니다.'}
         </p>
 
         <div className="highlight-card">
@@ -802,8 +808,9 @@ function App() {
           <span className="mini-label">OAuth2 상태</span>
           <strong>{authFeedback}</strong>
           <p>
-            크리에이터가 구글로 로그인하면 YouTube 채널을 연결하고, 돌아오자마자
-            채널명, 설명, 구독자 수가 운영 화면에 채워집니다.
+            {isCreatorLoggedIn
+              ? '현재 세션이 살아 있어 홈과 가입 화면에서 같은 로그인 흐름을 반복하지 않고 운영 화면으로 이어집니다.'
+              : '크리에이터가 구글로 로그인하면 YouTube 채널을 연결하고, 돌아오자마자 채널명, 설명, 구독자 수가 운영 화면에 채워집니다.'}
           </p>
         </div>
 
@@ -857,8 +864,12 @@ function App() {
           </article>
           <article className="detail-card">
             <span className="mini-label">다음 연결</span>
-            <strong>팬방 주소 자동 제안</strong>
-            <p>연결된 채널명과 설명을 기준으로 방 이름, 소개, 운영 카드가 이어집니다.</p>
+            <strong>{isCreatorLoggedIn ? '중복 로그인 방지' : '팬방 주소 자동 제안'}</strong>
+            <p>
+              {isCreatorLoggedIn
+                ? '로그인된 상태에서 홈으로 돌아가도 다시 처음부터 반복하지 않고 채널 관리 화면으로 연결합니다.'
+                : '연결된 채널명과 설명을 기준으로 방 이름, 소개, 운영 카드가 이어집니다.'}
+            </p>
           </article>
         </div>
 
@@ -881,10 +892,11 @@ function App() {
     <section className="scene-panel">
       <div className="scene-copy">
         <span className="section-label">STEP 02</span>
-        <h2>팬방의 첫 인상을 설계</h2>
+        <h2>{isCreatorLoggedIn ? '팬방 기본 정보를 확인' : '팬방의 첫 인상을 설계'}</h2>
         <p>
-          채널 이름, 팬방 주소, 소개 문구, 운영 톤을 먼저 고정하면 나머지
-          화면의 카드와 공지 문구가 그에 맞게 정렬됩니다.
+          {isCreatorLoggedIn
+            ? '연결된 유튜브 채널 기준으로 팬방 기본 정보가 잡혀 있습니다. 필요하면 기능 설정이나 운영 화면으로 바로 넘어가면 됩니다.'
+            : '채널 이름, 팬방 주소, 소개 문구, 운영 톤을 먼저 고정하면 나머지 화면의 카드와 공지 문구가 그에 맞게 정렬됩니다.'}
         </p>
 
         <div className="progress-strip">
@@ -896,7 +908,7 @@ function App() {
 
         <div className="inline-actions">
           <button className="primary-action" onClick={() => setCurrentView('features')}>
-            기능 선택으로
+            {isCreatorLoggedIn ? '기능 설정으로' : '기능 선택으로'}
           </button>
           <button className="secondary-action" onClick={() => setCurrentView('signup')}>
             이전 단계
