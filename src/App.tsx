@@ -252,6 +252,9 @@ type PlatformSetupState = {
   supportsVideo: boolean
 }
 
+const isRenderableImageUrl = (value?: string | null) =>
+  typeof value === 'string' && /^https?:\/\/\S+/i.test(value.trim())
+
 const featureCatalog: FeatureModule[] = [
   {
     name: '팬 커뮤니티',
@@ -783,7 +786,7 @@ function App() {
           title: post.title,
           text: post.content,
           badge: postTypeToBadge[post.post_type] ?? 'POST',
-          imageUrl: post.image_url,
+          imageUrl: isRenderableImageUrl(post.image_url) ? post.image_url : undefined,
         }))
       : fanFeed
   const youtubeCommunityDraft = `${postTitle.trim() || '유튜브 커뮤니티 제목'}\n\n${postBody.trim() || '유튜브 커뮤니티 본문'}`
@@ -4530,7 +4533,16 @@ function App() {
             <div className="fan-moment-list">
               {visibleFanFeed.map((moment) => (
                 <article className="fan-moment-card" key={moment.title}>
-                  {moment.imageUrl ? <img alt={moment.title} className="fan-moment-media" src={moment.imageUrl} /> : null}
+                  {moment.imageUrl ? (
+                    <img
+                      alt={moment.title}
+                      className="fan-moment-media"
+                      onError={(event) => {
+                        event.currentTarget.style.display = 'none'
+                      }}
+                      src={moment.imageUrl}
+                    />
+                  ) : null}
                   <span className="fan-badge">{moment.badge}</span>
                   <strong>{moment.title}</strong>
                   <p>{moment.text}</p>
