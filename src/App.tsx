@@ -568,6 +568,7 @@ function App() {
 
   const activeRoomTheme =
     roomThemePresets.find((preset) => preset.id === selectedRoomTheme) ?? roomThemePresets[0]
+  const useRoomThemeSurface = currentView === 'fan' || currentView === 'room'
 
   const displayedFanRooms =
     fanSession?.joined_rooms.map((room) => ({
@@ -1317,6 +1318,30 @@ function App() {
   useEffect(() => {
     localStorage.setItem(roomThemeStorageKey, selectedRoomTheme)
   }, [selectedRoomTheme])
+
+  useEffect(() => {
+    const root = document.documentElement
+    const body = document.body
+
+    if (!useRoomThemeSurface) {
+      root.classList.remove('room-themed-root')
+      body.classList.remove('room-themed-root')
+      root.style.removeProperty('--room-theme-hero')
+      root.style.removeProperty('--room-theme-panel')
+      root.style.removeProperty('--room-theme-accent')
+      root.style.removeProperty('--room-theme-text')
+      root.style.removeProperty('--room-theme-muted')
+      return
+    }
+
+    root.classList.add('room-themed-root')
+    body.classList.add('room-themed-root')
+    root.style.setProperty('--room-theme-hero', activeRoomTheme.heroBackground)
+    root.style.setProperty('--room-theme-panel', activeRoomTheme.panelBackground)
+    root.style.setProperty('--room-theme-accent', activeRoomTheme.accent)
+    root.style.setProperty('--room-theme-text', activeRoomTheme.textColor)
+    root.style.setProperty('--room-theme-muted', activeRoomTheme.mutedColor)
+  }, [activeRoomTheme, useRoomThemeSurface])
 
   const renderHeader = () => (
     <header className="top-nav">
@@ -3267,7 +3292,6 @@ function App() {
     </section>
   )
 
-  const useRoomThemeSurface = currentView === 'fan' || currentView === 'room'
   const themedPageStyle = useRoomThemeSurface
     ? ({
         '--room-theme-hero': activeRoomTheme.heroBackground,
