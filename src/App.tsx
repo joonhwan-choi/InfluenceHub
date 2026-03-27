@@ -4670,7 +4670,10 @@ function App() {
     : undefined
 
   return (
-    <main className={`page-shell app-shell${useRoomThemeSurface ? ' room-themed' : ''}`} style={themedPageStyle}>
+    <main
+      className={`page-shell app-shell${useRoomThemeSurface ? ' room-themed' : ''}${useRoomThemeSurface && isClassicRoomTheme ? ' room-theme-classic' : ''}`}
+      style={themedPageStyle}
+    >
       {renderHeader()}
       {currentView === 'home' && renderHome()}
       {currentView === 'signup' && renderSignup()}
