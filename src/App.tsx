@@ -2737,24 +2737,21 @@ function App() {
   const renderRoom = () => (
     <section className={`scene-panel creator-workspace ${creatorExperienceClasses}`}>
       <div className="scene-copy">
-        <span className="section-label">ROOM SETTINGS</span>
-        <h2>{isCreatorLoggedIn ? '팬방 설정' : '팬방의 첫 인상을 정리합니다'}</h2>
-        <p>
-          {isCreatorLoggedIn
-            ? '채널에 맞는 테마와 운영 옵션을 먼저 잡아두면 팬 화면과 운영 화면이 같은 톤으로 맞춰집니다.'
-            : '채널 이름, 팬방 주소, 소개 톤을 먼저 정리하면 이후 화면이 그 기준으로 이어집니다.'}
-        </p>
+        <span className="section-label">SETTINGS HUB</span>
+        <h2>설정</h2>
+        <p>팬방 테마, 배포 채널, 운영 구성을 한 곳에서 관리합니다.</p>
 
-        <div className="progress-strip">
-          <span className="progress-dot done" />
-          <span className="progress-dot active" />
-          <span className="progress-dot" />
-          <span className="progress-dot" />
+        <div className="selection-summary settings-save-card">
+          <span className="mini-label">현재 상태</span>
+          <strong>{connectedChannel?.room_name ?? '팬방 기본 설정'} </strong>
+          <p>
+            테마 {activeRoomTheme.name} · 채널 {enabledPlatforms.length}개 활성화 · 기능 {selectedFeatures.length}개 사용 중
+          </p>
         </div>
 
         <div className="inline-actions">
-          <button className="primary-action" onClick={() => openRoomSettingsSection('modules')}>
-            {isCreatorLoggedIn ? '운영 구성으로' : '운영 구성 선택'}
+          <button className="primary-action" onClick={() => openRoomSettingsSection('theme')}>
+            테마부터 보기
           </button>
           <button className="secondary-action" onClick={() => setCurrentView('content')}>
             채널로 돌아가기
