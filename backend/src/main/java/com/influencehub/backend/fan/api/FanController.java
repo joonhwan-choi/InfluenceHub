@@ -3,6 +3,7 @@ package com.influencehub.backend.fan.api;
 import com.influencehub.backend.fan.dto.FanAuthResponse;
 import com.influencehub.backend.fan.dto.FanGoogleAuthUrlResponse;
 import com.influencehub.backend.fan.dto.FanJoinInviteRequest;
+import com.influencehub.backend.fan.dto.GoogleProfileRequest;
 import com.influencehub.backend.fan.service.FanGoogleOAuthService;
 import com.influencehub.backend.fan.service.FanInviteService;
 import com.influencehub.backend.fan.service.FanSessionService;
@@ -46,6 +47,11 @@ public class FanController {
     @PostMapping("/join")
     public FanAuthResponse join(@Valid @RequestBody FanJoinInviteRequest request) {
         return fanInviteService.joinInvite(request);
+    }
+
+    @PostMapping("/google-login")
+    public FanAuthResponse googleLogin(@Valid @RequestBody GoogleProfileRequest request) {
+        return fanSessionService.loginWithGoogle(request.toProfile());
     }
 
     @GetMapping("/auth-url")

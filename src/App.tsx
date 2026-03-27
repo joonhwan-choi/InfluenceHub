@@ -61,6 +61,17 @@ type FanAuthUrlResponse = {
   redirect_uri: string
 }
 
+type GoogleAuthUrlResponse = {
+  auth_url: string
+  redirect_uri: string
+}
+
+type PendingGoogleProfile = {
+  email: string
+  name: string
+  picture: string
+}
+
 type CreatorSession = {
   session_token: string
   expires_at: string
@@ -350,6 +361,7 @@ const youtubeIntegrationSteps = [
 
 const creatorSessionStorageKey = 'influencehub.creator-session-token'
 const fanSessionStorageKey = 'influencehub.fan-session-token'
+const googleProfileStorageKey = 'influencehub.google-profile'
 
 const importedChannelPreview = {
   title: '침착한개발자TV',
@@ -480,6 +492,7 @@ function App() {
   const [fanError, setFanError] = useState('')
   const [isJoiningInvite, setIsJoiningInvite] = useState(false)
   const [isStartingFanGoogleLogin, setIsStartingFanGoogleLogin] = useState(false)
+  const [pendingGoogleProfile, setPendingGoogleProfile] = useState<PendingGoogleProfile | null>(null)
 
   const displayedFanRooms =
     fanSession?.joined_rooms.map((room) => ({
@@ -571,12 +584,17 @@ function App() {
         ]
 
   const startSelectedAuthFlow = async () => {
+    if (!pendingGoogleProfile) {
+      await startUnifiedGoogleLogin()
+      return
+    }
+
     if (authMode === 'influencer') {
       await startCreatorGoogleLogin()
       return
     }
 
-    await startFanGoogleLogin()
+    await completeFanMode()
   }
 
   const persistCreatorSession = (sessionToken: string) => {
@@ -593,6 +611,16 @@ function App() {
 
   const persistFanSession = (sessionToken: string) => {
     localStorage.setItem(fanSessionStorageKey, sessionToken)
+  }
+
+  const persistGoogleProfile = (profile: PendingGoogleProfile) => {
+    localStorage.setItem(googleProfileStorageKey, JSON.stringify(profile))
+    setPendingGoogleProfile(profile)
+  }
+
+  const clearGoogleProfile = () => {
+    localStorage.removeItem(googleProfileStorageKey)
+    setPendingGoogleProfile(null)
   }
 
   const clearFanSession = () => {
@@ -935,6 +963,62 @@ function App() {
     }
   }
 
+  const startUnifiedGoogleLogin = async () => {
+    setIsStartingGoogleLogin(true)
+    setAuthFeedback('Google 로그인 페이지로 이동 중')
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/auth/google/auth-url`)
+      if (!response.ok) {
+        throw new Error('공통 Google 로그인 주소를 만들지 못했습니다.')
+      }
+
+      const data = (await response.json()) as GoogleAuthUrlResponse
+      window.location.assign(data.auth_url)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Google 로그인을 시작하지 못했습니다.'
+      setAuthFeedback(message)
+      setIsStartingGoogleLogin(false)
+    }
+  }
+
+  const completeFanMode = async () => {
+    if (!pendingGoogleProfile) {
+      setFanError('먼저 Google 로그인이 필요합니다.')
+      return
+    }
+
+    setFanError('')
+    setFanStatus('팬 모드로 전환 중')
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/fans/google-login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(pendingGoogleProfile),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || '팬 모드 전환에 실패했습니다.')
+      }
+
+      const data = (await response.json()) as FanAuthResponse
+      setFanSession(data)
+      persistFanSession(data.session_token)
+      setSelectedFanRoomId(data.joined_rooms[0]?.room_slug ?? 'salt-toast')
+      clearGoogleProfile()
+      setCurrentView('fan')
+      setFanStatus(`${data.nickname}님 팬 로그인 완료`)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '팬 모드 전환에 실패했습니다.'
+      setFanError(message)
+      setFanStatus('팬 모드 전환 실패')
+    }
+  }
+
   const handleFanJoin = async () => {
     if (!inviteCode.trim()) {
       setFanError('초대 링크 코드가 필요합니다.')
@@ -1025,9 +1109,13 @@ function App() {
     const view = params.get('view')
     const youtubeState = params.get('youtube')
     const fanOAuthState = params.get('fan')
+    const googleState = params.get('google')
     const message = params.get('message')
     const appToken = params.get('appToken')
     const fanAppToken = params.get('fanAppToken')
+    const googleEmail = params.get('googleEmail')
+    const googleName = params.get('googleName')
+    const googlePicture = params.get('googlePicture')
     const pathname = window.location.pathname
 
     if (
@@ -1043,6 +1131,7 @@ function App() {
       if (appToken) {
         persistCreatorSession(appToken)
       }
+      clearGoogleProfile()
       setCurrentView('content')
       setAuthFeedback('구글 로그인 완료, 연결된 유튜브 채널 정보를 불러왔습니다.')
       void loadLatestConnection()
@@ -1051,6 +1140,21 @@ function App() {
     if (youtubeState === 'error') {
       setCurrentView('signup')
       setAuthFeedback(message || '구글 로그인 중 오류가 발생했습니다.')
+    }
+
+    if (googleState === 'connected' && googleEmail && googleName) {
+      persistGoogleProfile({
+        email: googleEmail,
+        name: googleName,
+        picture: googlePicture ?? '',
+      })
+      setCurrentView('signup')
+      setAuthFeedback('Google 로그인 완료')
+    }
+
+    if (googleState === 'error') {
+      setCurrentView('signup')
+      setAuthFeedback(message || 'Google 로그인 중 오류가 발생했습니다.')
     }
 
     if (fanOAuthState === 'connected') {
@@ -1069,7 +1173,18 @@ function App() {
       setFanError(message || '팬 Google 로그인 중 오류가 발생했습니다.')
     }
 
-    if (view || youtubeState || fanOAuthState || message || appToken || fanAppToken) {
+    if (
+      view ||
+      youtubeState ||
+      fanOAuthState ||
+      googleState ||
+      message ||
+      appToken ||
+      fanAppToken ||
+      googleEmail ||
+      googleName ||
+      googlePicture
+    ) {
       window.history.replaceState({}, document.title, window.location.pathname)
     }
 
@@ -1096,6 +1211,15 @@ function App() {
         setCurrentView('fan')
       }
       void fetchFanSession(storedFanSessionToken, { silent: true })
+    }
+
+    const storedGoogleProfile = localStorage.getItem(googleProfileStorageKey)
+    if (storedGoogleProfile) {
+      try {
+        setPendingGoogleProfile(JSON.parse(storedGoogleProfile) as PendingGoogleProfile)
+      } catch {
+        localStorage.removeItem(googleProfileStorageKey)
+      }
     }
   }, [])
 
@@ -1503,16 +1627,24 @@ function App() {
         <p>
           {isCreatorLoggedIn
             ? '이미 로그인된 상태이므로 다시 시작할 필요가 없습니다. 연결된 채널 정보와 운영 화면으로 바로 이동하면 됩니다.'
-            : '로그인은 하나로 두고, 로그인 후 들어갈 모드만 고릅니다. 같은 사람이 인플루언서이면서 다른 인플루언서의 팬일 수도 있습니다.'}
+            : pendingGoogleProfile
+              ? '로그인은 완료됐습니다. 이제 어떤 모드로 들어갈지 선택하면 됩니다.'
+              : '먼저 Google로 로그인한 뒤, 로그인 후에 인플루언서 모드와 팬 모드 중 하나를 선택합니다.'}
         </p>
 
         <div className="highlight-card">
-          <span className="mini-label">로그인 후 이동</span>
-          <strong>{authMode === 'influencer' ? '인플루언서로 시작' : '팬으로 들어가기'}</strong>
+          <span className="mini-label">현재 단계</span>
+          <strong>
+            {pendingGoogleProfile
+              ? authMode === 'influencer'
+                ? '로그인 완료 · 인플루언서 모드 선택됨'
+                : '로그인 완료 · 팬 모드 선택됨'
+              : 'Google 로그인 전'}
+          </strong>
           <p>
-            {authMode === 'influencer'
-              ? '채널 연결과 운영 화면으로 이어집니다.'
-              : '가입한 팬방 목록을 불러오거나 초대 링크 가입으로 이어집니다.'}
+            {pendingGoogleProfile
+              ? `${pendingGoogleProfile.name} 계정으로 로그인됨`
+              : '로그인 후에만 모드 선택이 열립니다.'}
           </p>
         </div>
 
@@ -1535,7 +1667,11 @@ function App() {
             <button className="primary-action" onClick={() => void startSelectedAuthFlow()}>
               {isStartingGoogleLogin || isStartingFanGoogleLogin
                 ? 'Google로 이동 중...'
-                : 'Google로 로그인'}
+                : pendingGoogleProfile
+                  ? authMode === 'influencer'
+                    ? '인플루언서 모드로 계속'
+                    : '팬 모드로 계속'
+                  : 'Google로 로그인'}
             </button>
           )}
           <button className="secondary-action dark" onClick={() => setCurrentView('home')}>
@@ -1548,12 +1684,28 @@ function App() {
         <div className="card-header">
           <div>
             <span className="card-kicker">LOGIN FLOW</span>
-            <h2>로그인 후 모드 선택</h2>
+            <h2>{pendingGoogleProfile ? '모드 선택' : '먼저 로그인'}</h2>
           </div>
           <span className="status-badge">Live UI</span>
         </div>
 
-        <div className="detail-grid auth-mode-grid">
+        {!pendingGoogleProfile ? (
+          <div className="detail-grid">
+            <article className="detail-card">
+              <span className="mini-label">1단계</span>
+              <strong>Google 계정으로 로그인</strong>
+              <p>로그인 자체는 하나로 통일합니다.</p>
+            </article>
+            <article className="detail-card">
+              <span className="mini-label">2단계</span>
+              <strong>로그인 후 모드 선택</strong>
+              <p>인플루언서로 들어갈지, 팬으로 들어갈지 그 다음에 고릅니다.</p>
+            </article>
+          </div>
+        ) : null}
+
+        {pendingGoogleProfile ? (
+          <div className="detail-grid auth-mode-grid">
           <button
             className={authMode === 'influencer' ? 'detail-card auth-mode-card active' : 'detail-card auth-mode-card'}
             onClick={() => setAuthMode('influencer')}
@@ -1572,7 +1724,8 @@ function App() {
             <strong>로그인 후 팬으로 들어가기</strong>
             <p>같은 Google 계정으로 팬방 목록을 복원합니다.</p>
           </button>
-        </div>
+          </div>
+        ) : null}
 
         <div className="detail-grid">
           <article className="detail-card">
@@ -1581,10 +1734,10 @@ function App() {
             <p>로그인 버튼은 하나만 두고, 어떤 화면으로 들어갈지만 나눴습니다.</p>
           </article>
           <article className="detail-card">
-            <span className="mini-label">팬 첫 입장</span>
-            <strong>초대 링크에서 바로 시작</strong>
+            <span className="mini-label">계정 확장</span>
+            <strong>한 계정으로 두 역할 모두 가능</strong>
             <p>
-              팬의 첫 가입은 초대 링크에서 이뤄지고, 그 다음부터는 같은 로그인 화면으로 돌아옵니다.
+              같은 사람이 인플루언서이면서 동시에 다른 인플루언서의 팬일 수 있는 구조를 유지합니다.
             </p>
           </article>
         </div>
