@@ -2,6 +2,8 @@ package com.influencehub.backend.youtube.api;
 
 import com.influencehub.backend.auth.dto.CreatorAuthResponse;
 import com.influencehub.backend.youtube.dto.YoutubeAuthUrlResponse;
+import com.influencehub.backend.youtube.dto.YoutubeCommentPublishRequest;
+import com.influencehub.backend.youtube.dto.YoutubeCommentPublishResponse;
 import com.influencehub.backend.youtube.dto.YoutubeConnectionResponse;
 import com.influencehub.backend.youtube.dto.YoutubeConnectionSnapshotResponse;
 import com.influencehub.backend.youtube.dto.YoutubeOAuthExchangeRequest;
@@ -9,6 +11,7 @@ import com.influencehub.backend.youtube.dto.YoutubeUploadResponse;
 import com.influencehub.backend.youtube.service.YoutubeIntegrationService;
 import java.io.IOException;
 import java.net.URI;
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import javax.validation.Valid;
 import org.springframework.http.HttpHeaders;
@@ -82,6 +85,18 @@ public class YoutubeIntegrationController {
             privacyStatus,
             file
         );
+    }
+
+    @PostMapping("/comment")
+    public ResponseEntity<?> comment(
+        @RequestParam(value = "accessToken", required = false) String accessToken,
+        @RequestBody YoutubeCommentPublishRequest request
+    ) {
+        try {
+            return ResponseEntity.ok(youtubeIntegrationService.publishComment(accessToken, request));
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            return ResponseEntity.badRequest().body(Map.of("message", ex.getMessage()));
+        }
     }
 
     private ResponseEntity<Void> buildRedirect(

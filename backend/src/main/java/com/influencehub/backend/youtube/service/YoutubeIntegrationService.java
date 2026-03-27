@@ -19,6 +19,8 @@ import com.influencehub.backend.user.domain.UserRole;
 import com.influencehub.backend.user.repository.UserRepository;
 import com.influencehub.backend.youtube.dto.YoutubeAuthUrlResponse;
 import com.influencehub.backend.youtube.dto.YoutubeChannelProfileResponse;
+import com.influencehub.backend.youtube.dto.YoutubeCommentPublishRequest;
+import com.influencehub.backend.youtube.dto.YoutubeCommentPublishResponse;
 import com.influencehub.backend.youtube.dto.YoutubeConnectionResponse;
 import com.influencehub.backend.youtube.dto.YoutubeConnectionSnapshotResponse;
 import com.influencehub.backend.youtube.dto.YoutubeUploadResponse;
@@ -42,6 +44,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -49,11 +52,12 @@ import org.springframework.web.util.UriComponentsBuilder;
 public class YoutubeIntegrationService {
 
     private static final String AUTH_SCOPE =
-        "https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.upload";
+        "https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.force-ssl";
     private static final String AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
     private static final String TOKEN_URL = "https://oauth2.googleapis.com/token";
     private static final String CHANNELS_URL = "https://www.googleapis.com/youtube/v3/channels";
     private static final String VIDEO_UPLOAD_URL = "https://www.googleapis.com/upload/youtube/v3/videos";
+    private static final String COMMENT_THREAD_URL = "https://www.googleapis.com/youtube/v3/commentThreads";
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
@@ -282,6 +286,59 @@ public class YoutubeIntegrationService {
         }
     }
 
+    @Transactional
+    public YoutubeCommentPublishResponse publishComment(
+        String accessToken,
+        YoutubeCommentPublishRequest request
+    ) {
+        String resolvedAccessToken = resolveAccessToken(accessToken);
+        String videoId = extractVideoId(request.getVideoUrl());
+        String message = request.getMessage() == null ? "" : request.getMessage().trim();
+
+        if (videoId.isBlank()) {
+            throw new IllegalArgumentException("댓글을 연결할 YouTube 영상 URL이 필요합니다.");
+        }
+
+        if (message.isEmpty()) {
+            throw new IllegalArgumentException("댓글 본문이 필요합니다.");
+        }
+
+        HttpHeaders headers = authorizedHeaders(resolvedAccessToken);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        ObjectNode root = objectMapper.createObjectNode();
+        ObjectNode snippet = root.putObject("snippet");
+        snippet.put("videoId", videoId);
+        ObjectNode topLevelComment = snippet.putObject("topLevelComment");
+        ObjectNode topLevelCommentSnippet = topLevelComment.putObject("snippet");
+        topLevelCommentSnippet.put("textOriginal", message);
+
+        URI uri = UriComponentsBuilder.fromHttpUrl(COMMENT_THREAD_URL)
+            .queryParam("part", "snippet")
+            .build(true)
+            .toUri();
+
+        ResponseEntity<String> response;
+        try {
+            response = restTemplate.exchange(
+                uri,
+                HttpMethod.POST,
+                new HttpEntity<>(root.toString(), headers),
+                String.class
+            );
+        } catch (HttpClientErrorException.Forbidden ex) {
+            throw new IllegalStateException("댓글 배포 권한이 부족합니다. YouTube를 다시 연결해 주세요.", ex);
+        }
+
+        JsonNode responseJson = readJson(response.getBody());
+        String commentId = textOrEmpty(responseJson.path("snippet").path("topLevelComment"), "id");
+        String commentUrl = commentId.isBlank()
+            ? "https://www.youtube.com/watch?v=" + urlEncode(videoId)
+            : "https://www.youtube.com/watch?v=" + urlEncode(videoId) + "&lc=" + urlEncode(commentId);
+
+        return new YoutubeCommentPublishResponse(videoId, commentId, commentUrl, message);
+    }
+
     private String resolveAccessToken(String accessToken) {
         if (accessToken != null && !accessToken.isBlank()) {
             return accessToken;
@@ -475,6 +532,43 @@ public class YoutubeIntegrationService {
 
     private String urlEncode(String value) {
         return URLEncoder.encode(value, StandardCharsets.UTF_8);
+    }
+
+    private String extractVideoId(String videoUrl) {
+        if (videoUrl == null || videoUrl.isBlank()) {
+            return "";
+        }
+
+        String normalized = videoUrl.trim();
+        if (!normalized.startsWith("http")) {
+            return normalized;
+        }
+
+        try {
+            URI uri = URI.create(normalized);
+            String host = uri.getHost() == null ? "" : uri.getHost().toLowerCase(Locale.ROOT);
+            String path = uri.getPath() == null ? "" : uri.getPath();
+
+            if (host.contains("youtu.be")) {
+                return path.replaceFirst("^/", "");
+            }
+
+            if (host.contains("youtube.com")) {
+                String query = uri.getQuery();
+                if (query != null) {
+                    for (String token : query.split("&")) {
+                        String[] entry = token.split("=", 2);
+                        if (entry.length == 2 && "v".equals(entry[0])) {
+                            return entry[1];
+                        }
+                    }
+                }
+            }
+        } catch (RuntimeException ignored) {
+            return normalized;
+        }
+
+        return normalized;
     }
 
     private String slugify(String value) {

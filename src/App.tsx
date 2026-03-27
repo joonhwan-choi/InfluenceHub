@@ -80,6 +80,12 @@ type YoutubeCommentResult = {
   message: string
 }
 
+type InstagramPublishResult = {
+  status: string
+  mediaId: string
+  permalink: string
+}
+
 type AuthUrlResponse = {
   auth_url: string
   redirect_uri: string
@@ -425,10 +431,10 @@ const platformCatalog: PlatformCatalogItem[] = [
   {
     name: 'Instagram',
     status: 'Planned',
-    detail: '릴스/스토리용 짧은 티저 알림 배포',
+    detail: '이미지 피드 + 캡션 게시글 배포',
     tone: 'instagram',
     supportsPost: true,
-    supportsVideo: true,
+    supportsVideo: false,
   },
   {
     name: 'Facebook',
@@ -476,7 +482,7 @@ const platformFieldLabels: Record<string, { client: string; secret: string }> = 
   YouTube: { client: 'Client ID', secret: 'API Key' },
   CHZZK: { client: '채널 키', secret: 'Webhook URL' },
   X: { client: 'App Key', secret: 'App Secret' },
-  Instagram: { client: 'App ID', secret: 'Access Token' },
+  Instagram: { client: 'Instagram Account ID', secret: 'Long-lived Access Token' },
   Facebook: { client: 'Page ID', secret: 'Access Token' },
   TikTok: { client: 'Client Key', secret: 'Client Secret' },
   Threads: { client: '앱 식별자', secret: '연동 토큰' },
@@ -702,6 +708,9 @@ function App() {
   const [selectedPostImage, setSelectedPostImage] = useState<File | null>(null)
   const [postPreviewUrl, setPostPreviewUrl] = useState<string | null>(null)
   const [postStatus, setPostStatus] = useState('아직 초안 생성 전')
+  const [instagramMediaUrl, setInstagramMediaUrl] = useState('')
+  const [instagramPublishStatus, setInstagramPublishStatus] = useState('아직 Instagram 배포 전')
+  const [instagramPublishResult, setInstagramPublishResult] = useState<InstagramPublishResult | null>(null)
   const [commentTargetUrl, setCommentTargetUrl] = useState('')
   const [commentStatus, setCommentStatus] = useState('아직 댓글 배포 전')
   const [commentResult, setCommentResult] = useState<YoutubeCommentResult | null>(null)
@@ -747,7 +756,7 @@ function App() {
     },
     CHZZK: { clientValue: '', secretValue: '', isEnabled: false, statusLabel: 'Inactive', supportsPost: false, supportsVideo: false },
     X: { clientValue: '', secretValue: '', isEnabled: false, statusLabel: 'Inactive', supportsPost: true, supportsVideo: true },
-    Instagram: { clientValue: '', secretValue: '', isEnabled: false, statusLabel: 'Inactive', supportsPost: true, supportsVideo: true },
+    Instagram: { clientValue: '', secretValue: '', isEnabled: false, statusLabel: 'Inactive', supportsPost: true, supportsVideo: false },
     Facebook: { clientValue: '', secretValue: '', isEnabled: false, statusLabel: 'Inactive', supportsPost: true, supportsVideo: true },
     TikTok: { clientValue: '', secretValue: '', isEnabled: false, statusLabel: 'Inactive', supportsPost: true, supportsVideo: true },
     Threads: { clientValue: '', secretValue: '', isEnabled: false, statusLabel: 'Inactive', supportsPost: true, supportsVideo: true },
@@ -790,6 +799,7 @@ function App() {
   const publishablePlatforms = enabledPlatforms.filter((platform) =>
     publishComposerMode === 'video' ? platform.supportsVideo : platform.supportsPost,
   )
+  const isInstagramSelectedForPublish = selectedPublishPlatforms.includes('Instagram')
   const visibleFanFeed: FanFeedItem[] =
     isCreatorLoggedIn && communityFeed.length > 0
       ? communityFeed.slice(0, 3).map((post) => ({
@@ -1628,22 +1638,82 @@ function App() {
 
   const handlePublishPost = async () => {
     if (!postTitle.trim()) {
-      setUploadError('유튜브 글 제목을 입력하세요.')
+      setUploadError('게시글 제목을 입력하세요.')
       return
     }
 
     if (!postBody.trim()) {
-      setUploadError('유튜브 글 본문을 입력하세요.')
+      setUploadError('게시글 본문을 입력하세요.')
       return
     }
 
     try {
-      await navigator.clipboard.writeText(youtubeCommunityDraft)
-      setPostStatus('유튜브 커뮤니티 초안 복사 완료')
       setUploadError('')
-    } catch {
-      setPostStatus('초안 준비 완료')
-      setUploadError('복사는 브라우저 권한 문제로 실패했습니다. 아래 초안을 직접 복사하면 됩니다.')
+      setInstagramPublishResult(null)
+
+      const completedChannels: string[] = []
+
+      if (selectedPublishPlatforms.includes('Instagram')) {
+        const creatorSessionToken = localStorage.getItem(creatorSessionStorageKey)
+
+        if (!creatorSessionToken) {
+          throw new Error('Instagram 배포에는 인플루언서 로그인이 필요합니다.')
+        }
+
+        if (!instagramMediaUrl.trim()) {
+          throw new Error('Instagram은 공개 이미지 URL이 필요합니다.')
+        }
+
+        setInstagramPublishStatus('Instagram으로 발행 중')
+
+        const instagramResponse = await fetch(`${apiBaseUrl}/api/v1/instagram/publish`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${creatorSessionToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: postTitle.trim(),
+            caption: postBody.trim(),
+            mediaUrl: instagramMediaUrl.trim(),
+          }),
+        })
+
+        if (!instagramResponse.ok) {
+          const errorPayload = (await instagramResponse.json().catch(() => null)) as
+            | { message?: string }
+            | null
+          throw new Error(errorPayload?.message ?? 'Instagram 게시글을 배포하지 못했습니다.')
+        }
+
+        const instagramData = (await instagramResponse.json()) as InstagramPublishResult
+        setInstagramPublishResult(instagramData)
+        setInstagramPublishStatus('Instagram 배포 완료')
+        completedChannels.push('Instagram')
+      } else {
+        setInstagramPublishStatus('Instagram 미선택')
+      }
+
+      try {
+        await navigator.clipboard.writeText(youtubeCommunityDraft)
+        setPostStatus(
+          completedChannels.length > 0
+            ? `${completedChannels.join(' · ')} 배포 완료 · 초안 복사 완료`
+            : '커뮤니티 초안 복사 완료',
+        )
+      } catch {
+        setPostStatus(
+          completedChannels.length > 0
+            ? `${completedChannels.join(' · ')} 배포 완료`
+            : '초안 준비 완료',
+        )
+        setUploadError('복사는 브라우저 권한 문제로 실패했습니다. 아래 초안을 직접 복사하면 됩니다.')
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '게시글 배포에 실패했습니다.'
+      setPostStatus('게시글 작업 실패')
+      setInstagramPublishStatus('Instagram 배포 실패')
+      setUploadError(message)
     }
   }
 
@@ -2015,6 +2085,15 @@ function App() {
     }
     localStorage.setItem(creatorAppearanceStorageKey, JSON.stringify(appearanceSettings))
   }, [bannerStyle, buttonStyle, cardDensity])
+
+  useEffect(() => {
+    setSelectedPublishPlatforms((current) => {
+      const next = current.filter((platformName) =>
+        publishablePlatforms.some((platform) => platform.name === platformName),
+      )
+      return next.length === current.length ? current : next
+    })
+  }, [publishComposerMode, platformSetup])
 
   useEffect(() => {
     if (!isCreatorLoggedIn || !hasHydratedCreatorSettings) {
@@ -2979,6 +3058,13 @@ function App() {
                 <p>Webhook URL을 넣고 연결 테스트 후 활성화하면, 콘텐츠 배포에서 선택해서 같이 보낼 수 있습니다.</p>
               </div>
             ) : null}
+            {selectedPlatformName === 'Instagram' ? (
+              <div className="notice-preview compact-highlight">
+                <span className="mini-label">Instagram 발행 조건</span>
+                <strong>지금은 이미지 피드 + 캡션 게시글만 연결합니다.</strong>
+                <p>Instagram Account ID와 Long-lived Access Token을 넣고 활성화하면, 콘텐츠 배포에서 공개 이미지 URL 기준으로 실제 발행할 수 있습니다.</p>
+              </div>
+            ) : null}
           </section>
         </div>
       </section>
@@ -3562,7 +3648,7 @@ function App() {
           onClick={() => setPublishComposerMode('post')}
           type="button"
         >
-          유튜브 글
+          게시글 배포
         </button>
       </div>
 
@@ -3628,7 +3714,7 @@ function App() {
           <div className="panel-head">
             <div>
               <span className="card-kicker">인플루언스허브 업로드</span>
-              <h3>{publishComposerMode === 'video' ? '오늘의 메인 영상' : '유튜브 글 초안과 댓글'}</h3>
+              <h3>{publishComposerMode === 'video' ? '오늘의 메인 영상' : '게시글 초안과 외부 배포'}</h3>
             </div>
             <span className="status-badge">{publishComposerMode === 'video' ? 'Queued' : 'Draft Ready'}</span>
           </div>
@@ -3695,21 +3781,21 @@ function App() {
             ) : (
               <>
                 <div className="field-block">
-                  <span className="mini-label">커뮤니티 글 제목</span>
+                  <span className="mini-label">게시글 제목</span>
                   <input
                     className="text-input"
                     value={postTitle}
                     onChange={(event) => setPostTitle(event.target.value)}
-                    placeholder="유튜브 커뮤니티에 쓸 제목을 입력하세요"
+                    placeholder="Instagram 캡션과 초안에 쓸 제목을 입력하세요"
                   />
                 </div>
                 <div className="field-block">
-                  <span className="mini-label">커뮤니티 글 본문</span>
+                  <span className="mini-label">게시글 본문</span>
                   <textarea
                     className="text-area"
                     value={postBody}
                     onChange={(event) => setPostBody(event.target.value)}
-                    placeholder="유튜브 커뮤니티 글 또는 고정 댓글에 쓸 내용을 적어보세요"
+                    placeholder="Instagram 캡션, 댓글 초안, 공지 문구로 함께 쓸 내용을 적어보세요"
                   />
                 </div>
                 <div className="field-block">
@@ -3724,6 +3810,20 @@ function App() {
                     </span>
                   </label>
                 </div>
+                {isInstagramSelectedForPublish ? (
+                  <div className="field-block">
+                    <span className="mini-label">Instagram 공개 이미지 URL</span>
+                    <input
+                      className="text-input"
+                      value={instagramMediaUrl}
+                      onChange={(event) => setInstagramMediaUrl(event.target.value)}
+                      placeholder="https://.../cover.jpg"
+                    />
+                    <span className="helper-copy">
+                      Instagram은 공개 접근 가능한 이미지 URL이 있어야 실제 발행할 수 있습니다.
+                    </span>
+                  </div>
+                ) : null}
                 <div className="field-block">
                   <span className="mini-label">댓글 연결 영상 URL</span>
                   <input
@@ -3755,9 +3855,10 @@ function App() {
                 </>
               ) : (
                 <>
-                  <span className="info-chip">커뮤니티 글 초안 복사</span>
+                  <span className="info-chip">선택 채널 게시글 실행</span>
+                  <span className="info-chip">Instagram 캡션 발행</span>
                   <span className="info-chip">고정 댓글 바로 배포</span>
-                  <span className="info-chip">최신 업로드 URL 자동 연결</span>
+                  <span className="info-chip">유튜브 초안 복사</span>
                 </>
               )}
             </div>
@@ -3782,7 +3883,7 @@ function App() {
                   ? isUploading
                     ? '업로드 중...'
                     : 'YouTube 업로드'
-                  : '커뮤니티 초안 복사'}
+                  : '선택 채널 게시글 실행'}
               </button>
               {publishComposerMode === 'post' ? (
                 <button className="secondary-action" onClick={() => void handlePublishYoutubeComment()} type="button">
@@ -3792,7 +3893,7 @@ function App() {
               <span className="helper-copy">
                 {publishComposerMode === 'video'
                   ? uploadStatus
-                  : `${postStatus}${commentStatus !== '아직 댓글 배포 전' ? ` · ${commentStatus}` : ''}`}
+                  : `${postStatus}${instagramPublishStatus !== '아직 Instagram 배포 전' ? ` · ${instagramPublishStatus}` : ''}${commentStatus !== '아직 댓글 배포 전' ? ` · ${commentStatus}` : ''}`}
               </span>
             </div>
             {publishComposerMode === 'video' && useScheduledPublish ? (
@@ -3812,10 +3913,15 @@ function App() {
             ) : null}
             {publishComposerMode === 'post' ? (
               <article className="upload-result-card">
-                <span className="mini-label">유튜브 글 준비 상태</span>
+                <span className="mini-label">게시글 작업 상태</span>
                 <strong>{postTitle.trim() || '게시글 제목 미입력'}</strong>
                 <p>{postStatus}</p>
-                <p>{selectedPostImage ? '이미지 초안 1장 준비 완료' : '텍스트만으로도 커뮤니티 글 초안 생성이 가능합니다.'}</p>
+                <p>{selectedPostImage ? '이미지 초안 1장 준비 완료' : '텍스트만으로도 초안 생성은 가능합니다.'}</p>
+                {instagramPublishResult ? (
+                  <a className="result-link" href={instagramPublishResult.permalink} rel="noreferrer" target="_blank">
+                    Instagram 게시글 보기
+                  </a>
+                ) : null}
                 {commentResult ? (
                   <a className="result-link" href={commentResult.commentUrl} rel="noreferrer" target="_blank">
                     배포된 댓글 보기
@@ -3830,7 +3936,7 @@ function App() {
           <div className="panel-head">
             <div>
               <span className="card-kicker">업로드 전 확인</span>
-              <h3>{publishComposerMode === 'video' ? '미리보기와 체크' : '커뮤니티 초안 미리보기'}</h3>
+              <h3>{publishComposerMode === 'video' ? '미리보기와 체크' : '게시글 초안 미리보기'}</h3>
             </div>
           </div>
 
@@ -3847,11 +3953,11 @@ function App() {
               {(publishComposerMode === 'video' && !uploadPreviewUrl) ||
               (publishComposerMode === 'post' && !postPreviewUrl) ? (
                 <div className="upload-preview-empty">
-                  <strong>{publishComposerMode === 'video' ? '영상 미리보기' : '커뮤니티 글 이미지 초안'}</strong>
+                  <strong>{publishComposerMode === 'video' ? '영상 미리보기' : '게시글 이미지 초안'}</strong>
                   <p>
                     {publishComposerMode === 'video'
                       ? '파일을 고르면 여기서 업로드 전에 바로 확인할 수 있습니다.'
-                      : '사진을 고르면 유튜브 커뮤니티에 올릴 이미지 초안을 먼저 볼 수 있습니다.'}
+                      : '사진을 고르면 Instagram 캡션용 이미지 초안을 먼저 볼 수 있습니다.'}
                   </p>
                 </div>
               ) : null}
@@ -3896,15 +4002,22 @@ function App() {
               ) : (
                 <>
                   <article className="upload-check-card">
-                    <span className="mini-label">커뮤니티 글 제목</span>
+                    <span className="mini-label">게시글 제목</span>
                     <strong>{postTitle.trim() || '제목 미입력'}</strong>
                     <p>{postBody.trim() ? '본문 입력 완료' : '본문을 더 적을 수 있습니다.'}</p>
                   </article>
                   <article className="upload-check-card">
-                    <span className="mini-label">커뮤니티 글 요약</span>
+                    <span className="mini-label">캡션 요약</span>
                     <strong>{postBody.trim().slice(0, 26) || '본문 미입력'}</strong>
-                    <p>{postBody.trim().length > 26 ? '유튜브 커뮤니티 글과 고정 댓글 초안으로 함께 활용합니다.' : '짧은 한 줄 공지도 바로 만들 수 있습니다.'}</p>
+                    <p>{postBody.trim().length > 26 ? 'Instagram 캡션과 고정 댓글 초안으로 함께 활용합니다.' : '짧은 한 줄 알림도 바로 만들 수 있습니다.'}</p>
                   </article>
+                  {isInstagramSelectedForPublish ? (
+                    <article className="upload-check-card">
+                      <span className="mini-label">Instagram 공개 URL</span>
+                      <strong>{instagramMediaUrl.trim() || '미입력'}</strong>
+                      <p>{instagramMediaUrl.trim() ? 'Instagram 발행 가능한 공개 이미지 URL이 연결되었습니다.' : 'Instagram 게시글 발행에는 공개 이미지 URL이 필요합니다.'}</p>
+                    </article>
+                  ) : null}
                   <article className="upload-check-card">
                     <span className="mini-label">댓글 연결 영상</span>
                     <strong>{commentTargetUrl.trim() || '영상 URL 미입력'}</strong>
@@ -3928,7 +4041,7 @@ function App() {
             <div className="panel-head">
               <div>
                 <span className="card-kicker">
-                  {publishComposerMode === 'video' ? '발행 순서' : '유튜브 커뮤니티 초안'}
+                  {publishComposerMode === 'video' ? '발행 순서' : '게시글 실행 초안'}
                 </span>
                 <h3>{publishComposerMode === 'video' ? '예약 타임라인' : '복사해서 바로 올릴 초안'}</h3>
               </div>
@@ -3971,7 +4084,7 @@ function App() {
                 ) : null}
                 <span className="fan-badge">DRAFT</span>
                 <strong>{postTitle.trim() || '게시글 제목을 입력하세요'}</strong>
-                <p>{postBody.trim() || '유튜브 커뮤니티에 올릴 본문 초안이 여기에 미리 보입니다.'}</p>
+                <p>{postBody.trim() || 'Instagram 캡션이나 고정 댓글에 쓸 본문 초안이 여기에 미리 보입니다.'}</p>
                 <textarea className="text-area compact-preview" readOnly value={youtubeCommunityDraft} />
               </article>
             )}
@@ -3981,9 +4094,9 @@ function App() {
             <div className="panel-head">
               <div>
                 <span className="card-kicker">
-                  {publishComposerMode === 'video' ? '최근 발행 이력' : '댓글 배포 상태'}
+                  {publishComposerMode === 'video' ? '최근 발행 이력' : '게시글 반영 상태'}
                 </span>
-                <h3>{publishComposerMode === 'video' ? '업로드 기록' : '유튜브 반영 상태'}</h3>
+                <h3>{publishComposerMode === 'video' ? '업로드 기록' : 'Instagram / YouTube 반영 상태'}</h3>
               </div>
             </div>
             {publishComposerMode === 'video' ? (
@@ -4015,10 +4128,14 @@ function App() {
               )
             ) : (
               <article className="timeline-row">
-                <span className="timeline-time">YT</span>
+                <span className="timeline-time">POST</span>
                 <div>
-                  <strong>{commentStatus}</strong>
-                  <p>커뮤니티 글은 복사 후 유튜브 스튜디오에 올리고, 댓글은 여기서 바로 배포할 수 있습니다.</p>
+                  <strong>
+                    {instagramPublishStatus !== '아직 Instagram 배포 전'
+                      ? instagramPublishStatus
+                      : commentStatus}
+                  </strong>
+                  <p>Instagram은 공개 이미지 URL 기준으로 실제 발행하고, YouTube는 댓글만 여기서 바로 배포할 수 있습니다.</p>
                 </div>
               </article>
             )}
