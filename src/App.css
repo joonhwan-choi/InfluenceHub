@@ -34,9 +34,9 @@
 }
 
 .page-shell.room-themed .top-nav {
-  background: color-mix(in srgb, var(--room-theme-panel) 82%, rgba(255, 255, 255, 0.82));
-  border-color: color-mix(in srgb, var(--room-theme-accent) 18%, rgba(28, 36, 50, 0.08));
-  box-shadow: 0 20px 50px color-mix(in srgb, var(--room-theme-accent) 10%, rgba(0, 0, 0, 0.12));
+  background: color-mix(in srgb, var(--room-theme-panel) 58%, rgba(255, 255, 255, 0.96));
+  border-color: color-mix(in srgb, var(--room-theme-accent) 18%, rgba(28, 36, 50, 0.12));
+  box-shadow: 0 20px 50px color-mix(in srgb, var(--room-theme-accent) 12%, rgba(0, 0, 0, 0.1));
 }
 
 .brand-lockup,
@@ -123,12 +123,14 @@
 }
 
 .page-shell.room-themed .nav-tab {
-  background: color-mix(in srgb, var(--room-theme-text) 8%, rgba(255, 255, 255, 0.56));
+  background: rgba(255, 255, 255, 0.88);
+  color: color-mix(in srgb, var(--room-theme-text) 96%, #1c2432);
+  box-shadow: inset 0 0 0 1px rgba(28, 36, 50, 0.08);
 }
 
 .page-shell.room-themed .nav-tab.active {
-  background: color-mix(in srgb, var(--room-theme-accent) 22%, rgba(255, 255, 255, 0.86));
-  color: var(--room-theme-text);
+  background: color-mix(in srgb, var(--room-theme-accent) 24%, rgba(255, 255, 255, 0.94));
+  color: color-mix(in srgb, var(--room-theme-text) 96%, #1c2432);
 }
 
 .nav-role-chip {
@@ -144,8 +146,8 @@
 }
 
 .page-shell.room-themed .nav-role-chip {
-  background: color-mix(in srgb, var(--room-theme-accent) 24%, rgba(255, 255, 255, 0.82));
-  color: var(--room-theme-text);
+  background: color-mix(in srgb, var(--room-theme-accent) 28%, rgba(255, 255, 255, 0.92));
+  color: color-mix(in srgb, var(--room-theme-text) 96%, #1c2432);
 }
 
 .header-logout {
@@ -160,8 +162,9 @@
 }
 
 .page-shell.room-themed .header-logout {
-  background: color-mix(in srgb, var(--room-theme-text) 8%, rgba(255, 255, 255, 0.64));
-  border: 1px solid color-mix(in srgb, var(--room-theme-accent) 12%, rgba(28, 36, 50, 0.08));
+  background: rgba(255, 255, 255, 0.9);
+  color: color-mix(in srgb, var(--room-theme-text) 96%, #1c2432);
+  border: 1px solid color-mix(in srgb, var(--room-theme-accent) 14%, rgba(28, 36, 50, 0.12));
 }
 
 .hero-panel {
@@ -319,7 +322,7 @@
 
 .page-shell.room-themed .primary-action {
   background: linear-gradient(135deg, color-mix(in srgb, var(--room-theme-accent) 42%, #ffe1a8), var(--room-theme-accent));
-  color: color-mix(in srgb, var(--room-theme-text) 92%, #171923);
+  color: #1c2432;
   box-shadow: 0 20px 40px color-mix(in srgb, var(--room-theme-accent) 24%, rgba(0, 0, 0, 0.12));
 }
 
@@ -330,8 +333,8 @@
 }
 
 .page-shell.room-themed .secondary-action {
-  background: color-mix(in srgb, var(--room-theme-text) 6%, rgba(255, 255, 255, 0.68));
-  color: var(--room-theme-text);
+  background: rgba(255, 255, 255, 0.9);
+  color: color-mix(in srgb, var(--room-theme-text) 96%, #1c2432);
   border-color: color-mix(in srgb, var(--room-theme-accent) 14%, rgba(28, 36, 50, 0.12));
 }
 
@@ -342,8 +345,8 @@
 }
 
 .page-shell.room-themed .secondary-action.dark {
-  background: color-mix(in srgb, var(--room-theme-panel) 72%, rgba(255, 255, 255, 0.56));
-  color: var(--room-theme-text);
+  background: color-mix(in srgb, var(--room-theme-panel) 46%, rgba(255, 255, 255, 0.94));
+  color: color-mix(in srgb, var(--room-theme-text) 96%, #1c2432);
   border-color: color-mix(in srgb, var(--room-theme-accent) 12%, rgba(28, 36, 50, 0.12));
 }
 

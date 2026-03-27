@@ -568,7 +568,7 @@ function App() {
 
   const activeRoomTheme =
     roomThemePresets.find((preset) => preset.id === selectedRoomTheme) ?? roomThemePresets[0]
-  const useRoomThemeSurface = currentView === 'fan' || currentView === 'room'
+  const useRoomThemeSurface = currentView === 'fan'
 
   const displayedFanRooms =
     fanSession?.joined_rooms.map((room) => ({
