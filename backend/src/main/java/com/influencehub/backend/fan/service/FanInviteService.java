@@ -103,6 +103,7 @@ public class FanInviteService {
         InviteLink inviteLink = inviteLinkRepository.findByInviteCode(inviteCode)
             .orElseThrow(() -> new IllegalStateException("초대 링크를 찾을 수 없습니다."));
         inviteLink.recordOpen();
+        inviteLinkRepository.save(inviteLink);
 
         return new InviteLinkDetailResponse(
             inviteLink.getInviteCode(),
@@ -140,6 +141,7 @@ public class FanInviteService {
                 new FanMembership(fan, inviteLink.getRoom(), inviteLink, inviteLink.getSourceLabel())
             );
             inviteLink.recordJoin();
+            inviteLinkRepository.save(inviteLink);
             newlyJoined = true;
         }
 
