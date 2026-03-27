@@ -13,6 +13,7 @@ type View =
   | 'store'
   | 'privacy'
   | 'terms'
+  | 'invite'
   | 'fan'
 
 type SocialTone = 'google' | 'youtube' | 'kakao'
@@ -71,6 +72,32 @@ type CreatorSession = {
   room_name: string
   room_slug: string
   subscriber_count: string
+}
+
+type FanJoinedRoom = {
+  membership_id: number
+  creator_name: string
+  room_name: string
+  room_slug: string
+  joined_via: string
+}
+
+type FanAuthResponse = {
+  session_token: string
+  expires_at: string
+  email: string
+  nickname: string
+  joined_rooms: FanJoinedRoom[]
+}
+
+type InviteDetailResponse = {
+  invite_code: string
+  title: string
+  source_label: string
+  room_name: string
+  room_slug: string
+  creator_name: string
+  room_description: string
 }
 
 const statCards = [
@@ -328,6 +355,7 @@ const youtubeIntegrationSteps = [
 ]
 
 const creatorSessionStorageKey = 'influencehub.creator-session-token'
+const fanSessionStorageKey = 'influencehub.fan-session-token'
 
 const importedChannelPreview = {
   title: '침착한개발자TV',
@@ -444,10 +472,28 @@ function App() {
   const [isStartingGoogleLogin, setIsStartingGoogleLogin] = useState(false)
   const [authFeedback, setAuthFeedback] = useState('아직 구글 로그인 전')
   const [isCreatorLoggedIn, setIsCreatorLoggedIn] = useState(false)
+  const [fanSession, setFanSession] = useState<FanAuthResponse | null>(null)
+  const [inviteDetail, setInviteDetail] = useState<InviteDetailResponse | null>(null)
+  const [inviteCode, setInviteCode] = useState('')
+  const [fanEmail, setFanEmail] = useState('')
+  const [fanNickname, setFanNickname] = useState('')
+  const [fanStatus, setFanStatus] = useState('팬 로그인 전')
+  const [fanError, setFanError] = useState('')
+  const [isJoiningInvite, setIsJoiningInvite] = useState(false)
+  const [isLoadingFanSession, setIsLoadingFanSession] = useState(false)
 
   const selectedSocialDetail =
     socialButtons.find((button) => button.tone === selectedSocial) ?? socialButtons[0]
-  const activeFanRoom = fanRooms.find((room) => room.id === selectedFanRoomId) ?? fanRooms[0]
+  const displayedFanRooms =
+    fanSession?.joined_rooms.map((room) => ({
+      id: room.room_slug,
+      creator: room.creator_name,
+      label: room.room_name,
+      meta: '가입 완료된 팬방',
+      joinedVia: room.joined_via,
+    })) ?? fanRooms
+  const activeFanRoom =
+    displayedFanRooms.find((room) => room.id === selectedFanRoomId) ?? displayedFanRooms[0]
 
   const toggleFeature = (featureName: string) => {
     setSelectedFeatures((current) =>
@@ -489,6 +535,17 @@ function App() {
     setConnectedChannel(null)
     setIsCreatorLoggedIn(false)
     setAuthFeedback('로그아웃됨')
+  }
+
+  const persistFanSession = (sessionToken: string) => {
+    localStorage.setItem(fanSessionStorageKey, sessionToken)
+  }
+
+  const clearFanSession = () => {
+    localStorage.removeItem(fanSessionStorageKey)
+    setFanSession(null)
+    setSelectedFanRoomId('salt-toast')
+    setFanStatus('팬 로그아웃됨')
   }
 
   const fetchCurrentCreatorSession = async (
@@ -549,6 +606,107 @@ function App() {
     }
 
     await fetchCurrentCreatorSession(sessionToken, options)
+  }
+
+  const fetchFanSession = async (sessionToken: string, options?: { silent?: boolean }) => {
+    setIsLoadingFanSession(true)
+    if (!options?.silent) {
+      setFanError('')
+    }
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/fans/me`, {
+        headers: {
+          Authorization: `Bearer ${sessionToken}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('팬 세션을 확인하지 못했습니다.')
+      }
+
+      const data = (await response.json()) as FanAuthResponse
+      setFanSession(data)
+      persistFanSession(data.session_token)
+      setSelectedFanRoomId(data.joined_rooms[0]?.room_slug ?? 'salt-toast')
+      setFanStatus(`${data.nickname}님 팬 세션 유지 중`)
+    } catch (error) {
+      localStorage.removeItem(fanSessionStorageKey)
+      setFanSession(null)
+      const message = error instanceof Error ? error.message : '팬 세션을 확인하지 못했습니다.'
+      if (!options?.silent) {
+        setFanError(message)
+      }
+    } finally {
+      setIsLoadingFanSession(false)
+    }
+  }
+
+  const loadInviteDetail = async (nextInviteCode: string) => {
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/invites/${nextInviteCode}`)
+      if (!response.ok) {
+        throw new Error('초대 링크 정보를 불러오지 못했습니다.')
+      }
+
+      const data = (await response.json()) as InviteDetailResponse
+      setInviteDetail(data)
+      setInviteCode(nextInviteCode)
+      setCurrentView('invite')
+      setFanStatus(`${data.creator_name} 팬방 초대 링크 열림`)
+      setFanError('')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '초대 링크 정보를 불러오지 못했습니다.'
+      setFanError(message)
+    }
+  }
+
+  const handleFanJoin = async () => {
+    if (!inviteCode.trim()) {
+      setFanError('초대 링크 코드가 필요합니다.')
+      return
+    }
+
+    if (!fanEmail.trim() || !fanNickname.trim()) {
+      setFanError('이메일과 닉네임을 입력하세요.')
+      return
+    }
+
+    setIsJoiningInvite(true)
+    setFanError('')
+    setFanStatus('팬 가입 처리 중')
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/fans/join`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          inviteCode,
+          email: fanEmail.trim(),
+          nickname: fanNickname.trim(),
+        }),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || '팬 가입에 실패했습니다.')
+      }
+
+      const data = (await response.json()) as FanAuthResponse
+      setFanSession(data)
+      persistFanSession(data.session_token)
+      setSelectedFanRoomId(data.joined_rooms[0]?.room_slug ?? 'salt-toast')
+      setCurrentView('fan')
+      setFanStatus(`${data.nickname}님 팬 가입 완료`)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '팬 가입에 실패했습니다.'
+      setFanError(message)
+      setFanStatus('팬 가입 실패')
+    } finally {
+      setIsJoiningInvite(false)
+    }
   }
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -631,8 +789,14 @@ function App() {
     const youtubeState = params.get('youtube')
     const message = params.get('message')
     const appToken = params.get('appToken')
+    const pathname = window.location.pathname
 
-    if (view === 'content' || view === 'signup' || view === 'dashboard') {
+    if (
+      view === 'content' ||
+      view === 'signup' ||
+      view === 'dashboard' ||
+      view === 'fan'
+    ) {
       setCurrentView(view)
     }
 
@@ -654,6 +818,13 @@ function App() {
       window.history.replaceState({}, document.title, window.location.pathname)
     }
 
+    if (pathname.startsWith('/invite/')) {
+      const nextInviteCode = pathname.replace('/invite/', '').trim()
+      if (nextInviteCode) {
+        void loadInviteDetail(nextInviteCode)
+      }
+    }
+
     if (!youtubeState) {
       const storedSessionToken = localStorage.getItem(creatorSessionStorageKey)
       if (storedSessionToken) {
@@ -661,6 +832,14 @@ function App() {
         setAuthFeedback('이전 로그인 상태를 복원하는 중')
         void fetchCurrentCreatorSession(storedSessionToken, { silent: true })
       }
+    }
+
+    const storedFanSessionToken = localStorage.getItem(fanSessionStorageKey)
+    if (storedFanSessionToken) {
+      if (!storedSessionToken && !pathname.startsWith('/invite/')) {
+        setCurrentView('fan')
+      }
+      void fetchFanSession(storedFanSessionToken, { silent: true })
     }
   }, [])
 
@@ -683,7 +862,7 @@ function App() {
           ['dashboard', '운영 대시보드'],
           ['privacy', '개인정보'],
           ['terms', '약관'],
-          ['fan', '팬 화면'],
+          ['fan', fanSession ? '내 팬방' : '팬 화면'],
         ].map(([id, label]) => (
           <button
             className={currentView === id ? 'nav-tab active' : 'nav-tab'}
@@ -1842,12 +2021,36 @@ function App() {
         </div>
 
         <div className="fan-actions">
-          <button className="primary-action" onClick={() => setCurrentView('dashboard')}>
-            방장 화면으로
+          <button
+            className="primary-action"
+            onClick={() => setCurrentView(fanSession ? 'home' : 'dashboard')}
+          >
+            {fanSession ? '메인으로' : '방장 화면으로'}
           </button>
-          <button className="secondary-action" onClick={() => setCurrentView('home')}>
-            홈으로
-          </button>
+          {fanSession ? (
+            <button
+              className="secondary-action"
+              onClick={() => {
+                const sessionToken = localStorage.getItem(fanSessionStorageKey)
+                if (sessionToken) {
+                  void fetch(`${apiBaseUrl}/api/v1/fans/logout`, {
+                    method: 'POST',
+                    headers: {
+                      Authorization: `Bearer ${sessionToken}`,
+                    },
+                  })
+                }
+                clearFanSession()
+                setCurrentView('home')
+              }}
+            >
+              팬 로그아웃
+            </button>
+          ) : (
+            <button className="secondary-action" onClick={() => setCurrentView('home')}>
+              홈으로
+            </button>
+          )}
         </div>
       </div>
 
@@ -1860,7 +2063,7 @@ function App() {
         </div>
 
         <div className="fan-room-grid">
-          {fanRooms.map((room) => (
+          {displayedFanRooms.map((room) => (
             <button
               className={room.id === selectedFanRoomId ? 'fan-room-card active' : 'fan-room-card'}
               key={room.id}
@@ -1968,6 +2171,97 @@ function App() {
     </section>
   )
 
+  const renderInvite = () => (
+    <section className="scene-panel light">
+      <div className="scene-copy">
+        <span className="section-label dark">INVITE</span>
+        <h2>{inviteDetail ? `${inviteDetail.creator_name} 팬방 초대` : '팬 초대 링크'}</h2>
+        <p>
+          영상 설명란이나 라이브 고정 댓글의 링크를 누르면 여기로 들어옵니다. 팬 가입을
+          완료하면 해당 팬방에 바로 입장하고, 이후 다른 크리에이터 팬방도 같은 계정으로
+          추가 가입할 수 있습니다.
+        </p>
+
+        <div className="highlight-card">
+          <span className="mini-label">현재 상태</span>
+          <strong>{fanStatus}</strong>
+          <p>{inviteDetail ? `${inviteDetail.source_label}에서 유입된 팬 초대입니다.` : '초대 링크를 불러오는 중입니다.'}</p>
+        </div>
+
+        {fanSession ? (
+          <div className="notice-preview">
+            <span className="mini-label">가입된 팬방</span>
+            <strong>{fanSession.joined_rooms.length}개 팬방 가입됨</strong>
+            <p>같은 팬 계정으로 여러 인플루언서 팬방을 선택해서 들어갈 수 있습니다.</p>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="scene-card">
+        <div className="card-header">
+          <div>
+            <span className="card-kicker">팬 가입</span>
+            <h2>{inviteDetail?.room_name ?? '초대 링크 확인'}</h2>
+          </div>
+          <span className="status-badge">{inviteDetail ? 'Invite Live' : 'Loading'}</span>
+        </div>
+
+        {inviteDetail ? (
+          <>
+            <div className="detail-grid">
+              <article className="detail-card">
+                <span className="mini-label">방장</span>
+                <strong>{inviteDetail.creator_name}</strong>
+                <p>{inviteDetail.room_description}</p>
+              </article>
+              <article className="detail-card">
+                <span className="mini-label">팬방 주소</span>
+                <strong>{inviteDetail.room_slug}</strong>
+                <p>가입 후 팬 목록에서 바로 선택해 다시 들어올 수 있습니다.</p>
+              </article>
+            </div>
+
+            <div className="form-stack">
+              <div className="field-block">
+                <span className="mini-label">이메일</span>
+                <input
+                  className="text-input"
+                  value={fanEmail}
+                  onChange={(event) => setFanEmail(event.target.value)}
+                  placeholder="fan@example.com"
+                />
+              </div>
+              <div className="field-block">
+                <span className="mini-label">닉네임</span>
+                <input
+                  className="text-input"
+                  value={fanNickname}
+                  onChange={(event) => setFanNickname(event.target.value)}
+                  placeholder="팬 닉네임"
+                />
+              </div>
+            </div>
+
+            <div className="inline-actions">
+              <button className="primary-action" onClick={() => void handleFanJoin()}>
+                {isJoiningInvite ? '팬 가입 중...' : '팬으로 가입하고 입장'}
+              </button>
+              {fanSession ? (
+                <button className="secondary-action dark" onClick={() => setCurrentView('fan')}>
+                  가입한 팬방 보기
+                </button>
+              ) : null}
+            </div>
+
+            {fanError ? <p className="feedback-message error">{fanError}</p> : null}
+          </>
+        ) : (
+          <p className="card-intro">초대 링크 정보를 불러오는 중입니다.</p>
+        )}
+      </div>
+    </section>
+  )
+
   return (
     <main className="page-shell app-shell">
       {renderHeader()}
@@ -1982,6 +2276,7 @@ function App() {
       {currentView === 'store' && renderStore()}
       {currentView === 'privacy' && renderPrivacy()}
       {currentView === 'terms' && renderTerms()}
+      {currentView === 'invite' && renderInvite()}
       {currentView === 'fan' && renderFan()}
       {renderFooter()}
     </main>
