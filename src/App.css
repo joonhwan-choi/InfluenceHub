@@ -2038,6 +2038,11 @@
   color: inherit;
 }
 
+.interactive-chip {
+  border: 0;
+  cursor: pointer;
+}
+
 .timeline-row,
 .board-card,
 .catalog-card,

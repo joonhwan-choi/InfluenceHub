@@ -183,6 +183,26 @@ type PublishJobHistoryItem = {
   created_at: string
 }
 
+type CommunityPostItem = {
+  post_id: number
+  post_type: string
+  title: string
+  content: string
+  author_name: string
+  created_at: string
+}
+
+type EventSummaryItem = {
+  title: string
+  detail: string
+}
+
+type StoreItemSummary = {
+  name: string
+  stock: string
+  sales: string
+}
+
 const featureCatalog: FeatureModule[] = [
   {
     name: '팬 커뮤니티',
@@ -500,6 +520,13 @@ const fanShopHighlights = [
   { title: '데스크 매트', detail: '재입고 요청 291명' },
 ]
 
+const postTypeToBadge: Record<string, string> = {
+  NOTICE: 'NEW',
+  EVENT: 'LIVE',
+  FREE: 'POST',
+  QUESTION: 'Q&A',
+}
+
 const roomThemePresets: RoomThemePreset[] = [
   {
     id: 'hub-classic',
@@ -594,6 +621,9 @@ function App() {
   const [isStartingGoogleLogin, setIsStartingGoogleLogin] = useState(false)
   const [authFeedback, setAuthFeedback] = useState('아직 구글 로그인 전')
   const [isCreatorLoggedIn, setIsCreatorLoggedIn] = useState(false)
+  const [communityFeed, setCommunityFeed] = useState<CommunityPostItem[]>([])
+  const [eventBoard, setEventBoard] = useState<EventSummaryItem[]>([])
+  const [storeBoard, setStoreBoard] = useState<StoreItemSummary[]>([])
   const [inviteDashboard, setInviteDashboard] = useState<CreatorInviteDashboardResponse | null>(null)
   const [inviteTitle, setInviteTitle] = useState('영상 설명란 초대')
   const [inviteSourceLabel, setInviteSourceLabel] = useState('영상 설명란')
@@ -633,6 +663,14 @@ function App() {
     })) ?? fanRooms
   const activeFanRoom =
     displayedFanRooms.find((room) => room.id === selectedFanRoomId) ?? displayedFanRooms[0]
+  const visibleFanFeed =
+    isCreatorLoggedIn && communityFeed.length > 0
+      ? communityFeed.slice(0, 3).map((post) => ({
+          title: post.title,
+          text: post.content,
+          badge: postTypeToBadge[post.post_type] ?? 'POST',
+        }))
+      : fanFeed
   const homeStatCards = [
     {
       label: '연결 채널',
@@ -829,6 +867,9 @@ function App() {
       void loadCreatorFanMembers(data.session_token)
       void loadCreatorRoomSettings(data.session_token)
       void loadPublishHistory(data.session_token)
+      void loadCreatorCommunityPosts(data.session_token)
+      void loadEventBoard(data.session_token)
+      void loadStoreBoard(data.session_token)
       if (!uploadTitle.trim()) {
         setUploadTitle(`${connection.channel_title} 새 영상`)
       }
@@ -960,6 +1001,78 @@ function App() {
     } catch (error) {
       const message = error instanceof Error ? error.message : '업로드 이력을 불러오지 못했습니다.'
       setUploadError(message)
+    }
+  }
+
+  const loadCreatorCommunityPosts = async (sessionToken?: string) => {
+    const creatorSessionToken = sessionToken ?? localStorage.getItem(creatorSessionStorageKey)
+    if (!creatorSessionToken) {
+      return
+    }
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/community/mine`, {
+        headers: {
+          Authorization: `Bearer ${creatorSessionToken}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('커뮤니티 글을 불러오지 못했습니다.')
+      }
+
+      const data = (await response.json()) as CommunityPostItem[]
+      setCommunityFeed(data)
+    } catch {
+      setCommunityFeed([])
+    }
+  }
+
+  const loadEventBoard = async (sessionToken?: string) => {
+    const creatorSessionToken = sessionToken ?? localStorage.getItem(creatorSessionStorageKey)
+    if (!creatorSessionToken) {
+      return
+    }
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/events/mine`, {
+        headers: {
+          Authorization: `Bearer ${creatorSessionToken}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('이벤트 보드를 불러오지 못했습니다.')
+      }
+
+      const data = (await response.json()) as EventSummaryItem[]
+      setEventBoard(data)
+    } catch {
+      setEventBoard([])
+    }
+  }
+
+  const loadStoreBoard = async (sessionToken?: string) => {
+    const creatorSessionToken = sessionToken ?? localStorage.getItem(creatorSessionStorageKey)
+    if (!creatorSessionToken) {
+      return
+    }
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/store/mine`, {
+        headers: {
+          Authorization: `Bearer ${creatorSessionToken}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('스토어 보드를 불러오지 못했습니다.')
+      }
+
+      const data = (await response.json()) as StoreItemSummary[]
+      setStoreBoard(data)
+    } catch {
+      setStoreBoard([])
     }
   }
 
@@ -1355,6 +1468,14 @@ function App() {
       setCurrentView(view)
     }
 
+    if (pathname === '/privacy') {
+      setCurrentView('privacy')
+    }
+
+    if (pathname === '/terms') {
+      setCurrentView('terms')
+    }
+
     if (youtubeState === 'connected') {
       if (appToken) {
         persistCreatorSession(appToken)
@@ -1450,6 +1571,20 @@ function App() {
       }
     }
   }, [])
+
+  useEffect(() => {
+    if (currentView === 'privacy' || currentView === 'terms') {
+      const targetPath = currentView === 'privacy' ? '/privacy' : '/terms'
+      if (window.location.pathname !== targetPath) {
+        window.history.replaceState({}, document.title, targetPath)
+      }
+      return
+    }
+
+    if (window.location.pathname === '/privacy' || window.location.pathname === '/terms') {
+      window.history.replaceState({}, document.title, '/')
+    }
+  }, [currentView])
 
   useEffect(() => {
     const storedRoomTheme = localStorage.getItem(roomThemeStorageKey)
@@ -2585,6 +2720,25 @@ function App() {
                   placeholder="예: 라이브 고정 댓글 초대"
                 />
               </div>
+              <div className="chip-row">
+                {[
+                  ['영상 설명란 초대', '영상 설명란'],
+                  ['라이브 고정 댓글 초대', '라이브 고정 댓글'],
+                  ['커뮤니티 탭 초대', '커뮤니티 탭'],
+                ].map(([title, source]) => (
+                  <button
+                    className="info-chip interactive-chip"
+                    key={source}
+                    onClick={() => {
+                      setInviteTitle(title)
+                      setInviteSourceLabel(source)
+                    }}
+                    type="button"
+                  >
+                    {source}
+                  </button>
+                ))}
+              </div>
               <div className="field-block">
                 <span className="mini-label">유입 위치</span>
                 <input
@@ -3213,7 +3367,14 @@ function App() {
           </div>
 
           <div className="board-list">
-            {communityPosts.map((post) => (
+            {(communityFeed.length > 0
+              ? communityFeed.map((post) => ({
+                  label: post.post_type,
+                  title: post.title,
+                  meta: `${post.author_name} · ${new Date(post.created_at).toLocaleString('ko-KR')}`,
+                }))
+              : communityPosts
+            ).map((post) => (
               <article className="board-card" key={post.title}>
                 <span className="board-label">{post.label}</span>
                 <strong>{post.title}</strong>
@@ -3270,7 +3431,7 @@ function App() {
       </div>
 
       <div className="three-grid">
-        {eventSteps.map((step, index) => (
+        {(eventBoard.length > 0 ? eventBoard : eventSteps).map((step, index) => (
           <section className="studio-panel" key={step.title}>
             <span className="step-index">0{index + 1}</span>
             <h3>{step.title}</h3>
@@ -3317,7 +3478,7 @@ function App() {
           </div>
 
           <div className="catalog-list">
-            {storeItems.map((item) => (
+            {(storeBoard.length > 0 ? storeBoard : storeItems).map((item) => (
               <article className="catalog-card" key={item.name}>
                 <strong>{item.name}</strong>
                 <span>{item.stock}</span>
@@ -3503,7 +3664,7 @@ function App() {
 
           {fanTab === 'feed' && (
             <div className="fan-moment-list">
-              {fanFeed.map((moment) => (
+              {visibleFanFeed.map((moment) => (
                 <article className="fan-moment-card" key={moment.title}>
                   <span className="fan-badge">{moment.badge}</span>
                   <strong>{moment.title}</strong>

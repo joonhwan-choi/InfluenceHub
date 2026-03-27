@@ -9,5 +9,7 @@ public interface CreatorRoomRepository extends JpaRepository<CreatorRoom, Long> 
 
     Optional<CreatorRoom> findByOwner(User owner);
 
+    Optional<CreatorRoom> findBySlug(String slug);
+
     boolean existsBySlug(String slug);
 }
