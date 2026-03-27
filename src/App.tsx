@@ -784,6 +784,11 @@ function App() {
     publishComposerMode === 'video' ? platform.supportsVideo : platform.supportsPost,
   )
   const isInstagramSelectedForPublish = selectedPublishPlatforms.includes('Instagram')
+  const youtubePublishHistory = publishHistory.filter((job) => job.platform === 'YOUTUBE')
+  const youtubeShortsCount = youtubePublishHistory.filter((job) =>
+    /shorts|쇼츠/i.test(job.title),
+  ).length
+  const youtubeLongformCount = Math.max(youtubePublishHistory.length - youtubeShortsCount, 0)
   const visibleFanFeed: FanFeedItem[] =
     isCreatorLoggedIn && communityFeed.length > 0
       ? communityFeed.filter((post) => !isTestCommunityPost(post)).slice(0, 3).map((post) => ({
@@ -4390,13 +4395,13 @@ function App() {
           <strong>{connectedChannel ? `${connectedChannel.subscriber_count}명` : '미연결'}</strong>
           <span className="metric-change">{connectedChannel?.channel_title ?? '채널 연결 필요'}</span>
         </article>
-        <article className="metric-card">
-          <span className="mini-label">Instagram</span>
-          <strong>{platformSetup.Instagram.isEnabled ? '연동됨' : '미연결'}</strong>
-          <span className="metric-change">
-            {platformSetup.Instagram.isEnabled ? '팔로워 집계 연동 예정' : '플랫폼 설정 필요'}
-          </span>
-        </article>
+        {platformSetup.Instagram.isEnabled ? (
+          <article className="metric-card">
+            <span className="mini-label">Instagram</span>
+            <strong>연동됨</strong>
+            <span className="metric-change">팔로워 집계 연동 예정</span>
+          </article>
+        ) : null}
         <article className="metric-card">
           <span className="mini-label">활성 채널</span>
           <strong>{enabledPlatforms.length}개</strong>
@@ -4446,6 +4451,14 @@ function App() {
                       <div className="selected-module">
                         <strong>팬방 연결</strong>
                         <span>{connectedChannel?.room_name ?? '연결 대기 중'}</span>
+                      </div>
+                      <div className="selected-module">
+                        <strong>롱폼 업로드</strong>
+                        <span>{youtubeLongformCount}개</span>
+                      </div>
+                      <div className="selected-module">
+                        <strong>숏츠 업로드</strong>
+                        <span>{youtubeShortsCount}개</span>
                       </div>
                     </>
                   ) : null}
