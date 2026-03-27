@@ -21,6 +21,7 @@ type PrivacyStatus = 'private' | 'unlisted' | 'public'
 type AuthMode = 'influencer' | 'fan'
 type AuthMethod = 'social' | 'email'
 type DashboardSection = 'overview' | 'content' | 'community' | 'events' | 'store'
+type RoomThemeId = 'sunset-sand' | 'midnight-gold' | 'mint-pop' | 'berry-cream' | 'sky-blue'
 
 type FeatureModule = {
   name: string
@@ -136,6 +137,17 @@ type CreatorFanMember = {
   fan_nickname: string
   joined_via: string
   tier: string
+}
+
+type RoomThemePreset = {
+  id: RoomThemeId
+  name: string
+  tone: string
+  accent: string
+  heroBackground: string
+  panelBackground: string
+  textColor: string
+  mutedColor: string
 }
 
 const featureCatalog: FeatureModule[] = [
@@ -364,6 +376,7 @@ const youtubeIntegrationSteps = [
 const creatorSessionStorageKey = 'influencehub.creator-session-token'
 const fanSessionStorageKey = 'influencehub.fan-session-token'
 const googleProfileStorageKey = 'influencehub.google-profile'
+const roomThemeStorageKey = 'influencehub.room-theme'
 
 const importedChannelPreview = {
   title: '침착한개발자TV',
@@ -453,6 +466,59 @@ const fanShopHighlights = [
   { title: '데스크 매트', detail: '재입고 요청 291명' },
 ]
 
+const roomThemePresets: RoomThemePreset[] = [
+  {
+    id: 'sunset-sand',
+    name: '선셋 샌드',
+    tone: '밝고 무난한 브랜드형',
+    accent: '#f08a4b',
+    heroBackground: 'linear-gradient(135deg, #fff2df 0%, #f7dcc3 100%)',
+    panelBackground: 'linear-gradient(160deg, #fffaf1 0%, #f1dfcb 100%)',
+    textColor: '#1c2432',
+    mutedColor: 'rgba(28, 36, 50, 0.68)',
+  },
+  {
+    id: 'midnight-gold',
+    name: '미드나잇 골드',
+    tone: '고급스럽고 진한 운영형',
+    accent: '#ffd166',
+    heroBackground: 'linear-gradient(160deg, #13253c 0%, #0a1424 100%)',
+    panelBackground: 'linear-gradient(160deg, #0f1d31 0%, #152a43 100%)',
+    textColor: '#f7edd9',
+    mutedColor: 'rgba(247, 237, 217, 0.72)',
+  },
+  {
+    id: 'mint-pop',
+    name: '민트 팝',
+    tone: '상큼하고 활동적인 커뮤니티형',
+    accent: '#17c3b2',
+    heroBackground: 'linear-gradient(135deg, #e6fff7 0%, #c7f4ea 100%)',
+    panelBackground: 'linear-gradient(160deg, #f4fffb 0%, #d4f4ec 100%)',
+    textColor: '#163130',
+    mutedColor: 'rgba(22, 49, 48, 0.68)',
+  },
+  {
+    id: 'berry-cream',
+    name: '베리 크림',
+    tone: '부드럽고 팬 친화적인 감성형',
+    accent: '#d56aa0',
+    heroBackground: 'linear-gradient(135deg, #fff1f6 0%, #f5dbe7 100%)',
+    panelBackground: 'linear-gradient(160deg, #fff7fa 0%, #eed8e4 100%)',
+    textColor: '#34202b',
+    mutedColor: 'rgba(52, 32, 43, 0.66)',
+  },
+  {
+    id: 'sky-blue',
+    name: '스카이 블루',
+    tone: '깔끔하고 대중적인 방송형',
+    accent: '#4b8ef0',
+    heroBackground: 'linear-gradient(135deg, #ecf5ff 0%, #d8e8ff 100%)',
+    panelBackground: 'linear-gradient(160deg, #f7fbff 0%, #dfe9f8 100%)',
+    textColor: '#1b2a42',
+    mutedColor: 'rgba(27, 42, 66, 0.66)',
+  },
+]
+
 function App() {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080'
   const [currentView, setCurrentView] = useState<View>('home')
@@ -498,6 +564,10 @@ function App() {
   const [isJoiningInvite, setIsJoiningInvite] = useState(false)
   const [isStartingFanGoogleLogin, setIsStartingFanGoogleLogin] = useState(false)
   const [pendingGoogleProfile, setPendingGoogleProfile] = useState<PendingGoogleProfile | null>(null)
+  const [selectedRoomTheme, setSelectedRoomTheme] = useState<RoomThemeId>('sunset-sand')
+
+  const activeRoomTheme =
+    roomThemePresets.find((preset) => preset.id === selectedRoomTheme) ?? roomThemePresets[0]
 
   const displayedFanRooms =
     fanSession?.joined_rooms.map((room) => ({
@@ -572,7 +642,7 @@ function App() {
     ? [
         ['home', '홈'],
         ['content', '내 채널'],
-        ['room', '팬방 정보'],
+        ['room', '설정'],
         ['features', '기능 설정'],
         ['dashboard', '운영 대시보드'],
         ['fan', '팬 화면'],
@@ -1237,6 +1307,17 @@ function App() {
     }
   }, [])
 
+  useEffect(() => {
+    const storedRoomTheme = localStorage.getItem(roomThemeStorageKey)
+    if (storedRoomTheme && roomThemePresets.some((preset) => preset.id === storedRoomTheme)) {
+      setSelectedRoomTheme(storedRoomTheme as RoomThemeId)
+    }
+  }, [])
+
+  useEffect(() => {
+    localStorage.setItem(roomThemeStorageKey, selectedRoomTheme)
+  }, [selectedRoomTheme])
+
   const renderHeader = () => (
     <header className="top-nav">
       <button
@@ -1788,11 +1869,11 @@ function App() {
   const renderRoom = () => (
     <section className="scene-panel">
       <div className="scene-copy">
-        <span className="section-label">STEP 02</span>
-        <h2>{isCreatorLoggedIn ? '팬방 기본 정보를 확인' : '팬방의 첫 인상을 설계'}</h2>
+        <span className="section-label">ROOM SETTINGS</span>
+        <h2>{isCreatorLoggedIn ? '팬방 설정' : '팬방의 첫 인상을 설계'}</h2>
         <p>
           {isCreatorLoggedIn
-            ? '연결된 유튜브 채널 기준으로 팬방 기본 정보가 잡혀 있습니다. 필요하면 기능 설정이나 운영 화면으로 바로 넘어가면 됩니다.'
+            ? '채널 연결 후 팬방 컬러와 분위기를 잡아두면 팬 화면 미리보기와 운영 톤이 한 번에 정리됩니다.'
             : '채널 이름, 팬방 주소, 소개 문구, 운영 톤을 먼저 고정하면 나머지 화면의 카드와 공지 문구가 그에 맞게 정렬됩니다.'}
         </p>
 
@@ -1807,8 +1888,8 @@ function App() {
           <button className="primary-action" onClick={() => setCurrentView('features')}>
             {isCreatorLoggedIn ? '기능 설정으로' : '기능 선택으로'}
           </button>
-          <button className="secondary-action" onClick={() => setCurrentView('signup')}>
-            이전 단계
+          <button className="secondary-action" onClick={() => setCurrentView('content')}>
+            채널 화면으로
           </button>
         </div>
       </div>
@@ -1816,39 +1897,99 @@ function App() {
       <div className="scene-card dark-card">
         <div className="dual-pane">
           <section className="editor-card">
-            <span className="card-kicker">팬방 기본 정보</span>
-            <div className="room-form-preview">
-              <label>
-                채널 이름
-                <div className="field">침착한개발자TV</div>
-              </label>
-              <label>
-                팬방 주소
-                <div className="field muted">influencehub.io/room/devtv</div>
-              </label>
-              <label>
-                방 소개
-                <div className="field multiline">
-                  영상 공지, 팬 소통, 실시간 이벤트, 굿즈 드롭까지 한곳에서
-                  운영합니다.
-                </div>
-              </label>
+            <span className="card-kicker">방 컬러 커스텀</span>
+            <div className="theme-preset-grid">
+              {roomThemePresets.map((preset) => (
+                <button
+                  className={preset.id === selectedRoomTheme ? 'theme-preset-card active' : 'theme-preset-card'}
+                  key={preset.id}
+                  onClick={() => setSelectedRoomTheme(preset.id)}
+                  type="button"
+                >
+                  <div
+                    className="theme-swatch"
+                    style={{
+                      background: preset.heroBackground,
+                      boxShadow: `inset 0 0 0 1px ${preset.accent}33`,
+                    }}
+                  >
+                    <span style={{ backgroundColor: preset.accent }} />
+                    <span style={{ backgroundColor: preset.textColor, opacity: 0.9 }} />
+                    <span style={{ backgroundColor: 'rgba(255, 255, 255, 0.76)' }} />
+                  </div>
+                  <strong>{preset.name}</strong>
+                  <p>{preset.tone}</p>
+                </button>
+              ))}
+            </div>
+
+            <div className="notice-preview settings-save-card">
+              <span className="mini-label">저장된 설정</span>
+              <strong>{activeRoomTheme.name}</strong>
+              <p>선택한 테마는 이 브라우저에 저장되어 다음 접속 때도 그대로 유지됩니다.</p>
             </div>
           </section>
 
           <section className="editor-card accent">
             <span className="card-kicker">미리보기</span>
-            <div className="creator-chip">
-              <span className="chip-avatar">TV</span>
-              <div>
-                <strong>침착한개발자TV</strong>
-                <span>차분한 운영 톤 · 팬과 자주 대화하는 방</span>
+            <div
+              className="settings-room-preview"
+              style={{
+                background: activeRoomTheme.heroBackground,
+                color: activeRoomTheme.textColor,
+              }}
+            >
+              <div className="creator-chip settings-preview-chip">
+                <span className="chip-avatar" style={{ background: activeRoomTheme.accent, color: '#fffaf1' }}>
+                  TV
+                </span>
+                <div>
+                  <strong>{connectedChannel?.channel_title ?? '침착한개발자TV'}</strong>
+                  <span style={{ color: activeRoomTheme.mutedColor }}>
+                    {connectedChannel?.room_name ?? '공식 팬방'} · {activeRoomTheme.name}
+                  </span>
+                </div>
+              </div>
+              <div className="preview-bubbles">
+                <div
+                  className="preview-bubble"
+                  style={{ background: activeRoomTheme.panelBackground, color: activeRoomTheme.textColor }}
+                >
+                  오늘 업로드 알림이 자동 등록됩니다.
+                </div>
+                <div
+                  className="preview-bubble"
+                  style={{ background: activeRoomTheme.panelBackground, color: activeRoomTheme.textColor }}
+                >
+                  이벤트와 굿즈 카드도 같은 톤으로 이어집니다.
+                </div>
+                <div
+                  className="preview-bubble strong"
+                  style={{
+                    background: activeRoomTheme.accent,
+                    color: activeRoomTheme.id === 'midnight-gold' ? '#1b2130' : '#fffaf1',
+                  }}
+                >
+                  팬 입장 전 첫 인상을 여기서 결정합니다.
+                </div>
               </div>
             </div>
-            <div className="preview-bubbles">
-              <div className="preview-bubble">오늘 업로드 알림이 자동 등록됩니다.</div>
-              <div className="preview-bubble">이벤트 탭은 추후 켤 수 있습니다.</div>
-              <div className="preview-bubble strong">팬 입장 전 첫 인상을 여기서 결정합니다.</div>
+
+            <div className="room-form-preview settings-meta-list">
+              <label>
+                채널 이름
+                <div className="field">{connectedChannel?.channel_title ?? '침착한개발자TV'}</div>
+              </label>
+              <label>
+                팬방 주소
+                <div className="field muted">influencehub.io/room/{connectedChannel?.room_slug ?? 'devtv'}</div>
+              </label>
+              <label>
+                적용 테마
+                <div className="field multiline">
+                  {activeRoomTheme.name} · {activeRoomTheme.tone}
+                </div>
+              </label>
             </div>
           </section>
         </div>
@@ -2900,12 +3041,18 @@ function App() {
       </section>
     ) : (
       <section className="fan-scene">
-      <div className="fan-hero">
+      <div
+        className="fan-hero"
+        style={{
+          background: activeRoomTheme.heroBackground,
+          color: activeRoomTheme.textColor,
+        }}
+      >
         <div className="creator-chip">
-          <span className="chip-avatar">TV</span>
+          <span className="chip-avatar" style={{ background: activeRoomTheme.accent, color: '#fffaf1' }}>TV</span>
           <div>
             <strong>{activeFanRoom.label}</strong>
-            <span>{activeFanRoom.meta} · {activeFanRoom.joinedVia}</span>
+            <span style={{ color: activeRoomTheme.mutedColor }}>{activeFanRoom.meta} · {activeFanRoom.joinedVia}</span>
           </div>
         </div>
 
@@ -3129,8 +3276,8 @@ function App() {
         (isCreatorLoggedIn
           ? renderRoom()
           : renderCreatorAccessGuard(
-              '팬방 정보 화면은 크리에이터 전용입니다',
-              '채널명, 팬방 슬러그, 운영 소개 문구는 실제 크리에이터 채널을 연결한 뒤에만 수정하거나 확인할 수 있습니다.',
+              '설정 화면은 인플루언서 전용입니다',
+              '팬방 컬러, 채널 연결 정보, 운영 기본값은 실제 인플루언서 채널을 연결한 뒤에만 조정할 수 있습니다.',
             ))}
       {currentView === 'features' &&
         (isCreatorLoggedIn
