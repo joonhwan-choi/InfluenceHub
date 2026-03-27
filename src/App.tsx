@@ -613,6 +613,7 @@ function App() {
   )
   const [privacyStatus, setPrivacyStatus] = useState<PrivacyStatus>('private')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [uploadPreviewUrl, setUploadPreviewUrl] = useState<string | null>(null)
   const [uploadStatus, setUploadStatus] = useState('아직 업로드 전')
   const [uploadError, setUploadError] = useState('')
   const [isLoadingChannel, setIsLoadingChannel] = useState(false)
@@ -1375,6 +1376,20 @@ function App() {
     const nextFile = event.target.files?.[0] ?? null
     setSelectedFile(nextFile)
   }
+
+  useEffect(() => {
+    if (!selectedFile) {
+      setUploadPreviewUrl(null)
+      return
+    }
+
+    const objectUrl = URL.createObjectURL(selectedFile)
+    setUploadPreviewUrl(objectUrl)
+
+    return () => {
+      URL.revokeObjectURL(objectUrl)
+    }
+  }, [selectedFile])
 
   const handleUpload = async () => {
     if (!selectedFile) {
@@ -3115,12 +3130,49 @@ function App() {
         <section className="studio-panel">
           <div className="panel-head">
             <div>
-              <span className="card-kicker">발행 순서</span>
-              <h3>예약 타임라인</h3>
+              <span className="card-kicker">업로드 전 확인</span>
+              <h3>미리보기와 체크</h3>
+            </div>
+          </div>
+
+          <div className="upload-preview-panel">
+            <div className="upload-preview-stage">
+              {uploadPreviewUrl ? (
+                <video className="upload-preview-video" controls preload="metadata" src={uploadPreviewUrl} />
+              ) : (
+                <div className="upload-preview-empty">
+                  <strong>영상 미리보기</strong>
+                  <p>파일을 고르면 여기서 업로드 전에 바로 확인할 수 있습니다.</p>
+                </div>
+              )}
+            </div>
+
+            <div className="upload-checklist">
+              <article className="upload-check-card">
+                <span className="mini-label">업로드 제목</span>
+                <strong>{uploadTitle.trim() || '제목 미입력'}</strong>
+                <p>{uploadDescription.trim() ? '설명란 입력 완료' : '설명란을 더 적을 수 있습니다.'}</p>
+              </article>
+              <article className="upload-check-card">
+                <span className="mini-label">공개 범위</span>
+                <strong>{privacyStatus}</strong>
+                <p>{privacyStatus === 'private' ? '검수용 업로드에 적합' : privacyStatus === 'unlisted' ? '링크 공유용 업로드' : '즉시 공개 업로드'}</p>
+              </article>
+              <article className="upload-check-card">
+                <span className="mini-label">파일 정보</span>
+                <strong>{selectedFile ? selectedFile.name : '파일 미선택'}</strong>
+                <p>{selectedFile ? `${(selectedFile.size / 1024 / 1024).toFixed(1)}MB · 업로드 준비 완료` : 'mp4 파일을 먼저 선택하세요.'}</p>
+              </article>
             </div>
           </div>
 
           <div className="timeline-list">
+            <div className="panel-head">
+              <div>
+                <span className="card-kicker">발행 순서</span>
+                <h3>예약 타임라인</h3>
+              </div>
+            </div>
             {contentTimeline.map((item) => (
               <article className="timeline-row" key={item.title}>
                 <span className="timeline-time">{item.time}</span>
