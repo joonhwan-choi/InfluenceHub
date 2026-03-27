@@ -57,6 +57,15 @@ public class CreatorRoom extends BaseTimeEntity {
     @Column(nullable = false)
     private boolean discordEnabled;
 
+    @Column(length = 255)
+    private String instagramAccountId;
+
+    @Column(length = 255)
+    private String instagramAccessToken;
+
+    @Column(nullable = false)
+    private boolean instagramEnabled;
+
     protected CreatorRoom() {
     }
 
@@ -72,6 +81,9 @@ public class CreatorRoom extends BaseTimeEntity {
         this.cardDensity = "comfortable";
         this.discordWebhookUrl = null;
         this.discordEnabled = false;
+        this.instagramAccountId = null;
+        this.instagramAccessToken = null;
+        this.instagramEnabled = false;
     }
 
     public Long getId() {
@@ -122,6 +134,18 @@ public class CreatorRoom extends BaseTimeEntity {
         return discordEnabled;
     }
 
+    public String getInstagramAccountId() {
+        return instagramAccountId;
+    }
+
+    public String getInstagramAccessToken() {
+        return instagramAccessToken;
+    }
+
+    public boolean isInstagramEnabled() {
+        return instagramEnabled;
+    }
+
     public void updateProfile(String roomName, String description) {
         this.roomName = roomName;
         this.description = description;
@@ -137,5 +161,11 @@ public class CreatorRoom extends BaseTimeEntity {
     public void updateDiscordSettings(String discordWebhookUrl, boolean discordEnabled) {
         this.discordWebhookUrl = discordWebhookUrl;
         this.discordEnabled = discordEnabled;
+    }
+
+    public void updateInstagramSettings(String instagramAccountId, String instagramAccessToken, boolean instagramEnabled) {
+        this.instagramAccountId = instagramAccountId;
+        this.instagramAccessToken = instagramAccessToken;
+        this.instagramEnabled = instagramEnabled;
     }
 }

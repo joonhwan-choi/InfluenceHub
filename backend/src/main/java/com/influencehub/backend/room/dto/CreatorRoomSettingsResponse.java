@@ -10,6 +10,9 @@ public class CreatorRoomSettingsResponse {
     private final String cardDensity;
     private final String discordWebhookUrl;
     private final boolean discordEnabled;
+    private final String instagramAccountId;
+    private final String instagramAccessToken;
+    private final boolean instagramEnabled;
     private final List<String> selectedFeatures;
 
     public CreatorRoomSettingsResponse(
@@ -19,6 +22,9 @@ public class CreatorRoomSettingsResponse {
         String cardDensity,
         String discordWebhookUrl,
         boolean discordEnabled,
+        String instagramAccountId,
+        String instagramAccessToken,
+        boolean instagramEnabled,
         List<String> selectedFeatures
     ) {
         this.roomThemeId = roomThemeId;
@@ -27,6 +33,9 @@ public class CreatorRoomSettingsResponse {
         this.cardDensity = cardDensity;
         this.discordWebhookUrl = discordWebhookUrl;
         this.discordEnabled = discordEnabled;
+        this.instagramAccountId = instagramAccountId;
+        this.instagramAccessToken = instagramAccessToken;
+        this.instagramEnabled = instagramEnabled;
         this.selectedFeatures = selectedFeatures;
     }
 
@@ -52,6 +61,18 @@ public class CreatorRoomSettingsResponse {
 
     public boolean isDiscordEnabled() {
         return discordEnabled;
+    }
+
+    public String getInstagramAccountId() {
+        return instagramAccountId;
+    }
+
+    public String getInstagramAccessToken() {
+        return instagramAccessToken;
+    }
+
+    public boolean isInstagramEnabled() {
+        return instagramEnabled;
     }
 
     public List<String> getSelectedFeatures() {

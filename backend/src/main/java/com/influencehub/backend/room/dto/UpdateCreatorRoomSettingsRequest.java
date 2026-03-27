@@ -10,6 +10,9 @@ public class UpdateCreatorRoomSettingsRequest {
     private String cardDensity;
     private String discordWebhookUrl;
     private Boolean discordEnabled;
+    private String instagramAccountId;
+    private String instagramAccessToken;
+    private Boolean instagramEnabled;
     private List<String> selectedFeatures;
 
     public String getRoomThemeId() {
@@ -34,6 +37,18 @@ public class UpdateCreatorRoomSettingsRequest {
 
     public Boolean getDiscordEnabled() {
         return discordEnabled;
+    }
+
+    public String getInstagramAccountId() {
+        return instagramAccountId;
+    }
+
+    public String getInstagramAccessToken() {
+        return instagramAccessToken;
+    }
+
+    public Boolean getInstagramEnabled() {
+        return instagramEnabled;
     }
 
     public List<String> getSelectedFeatures() {

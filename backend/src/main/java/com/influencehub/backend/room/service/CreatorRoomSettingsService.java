@@ -26,6 +26,8 @@ public class CreatorRoomSettingsService {
     private static final String DEFAULT_BUTTON = "rounded";
     private static final String DEFAULT_DENSITY = "comfortable";
     private static final String DEFAULT_DISCORD_WEBHOOK = "";
+    private static final String DEFAULT_INSTAGRAM_ACCOUNT_ID = "";
+    private static final String DEFAULT_INSTAGRAM_ACCESS_TOKEN = "";
     private static final List<String> DEFAULT_FEATURES = Arrays.asList("팬 커뮤니티", "이벤트", "멀티 업로드", "굿즈 스토어");
 
     private final CreatorAuthService creatorAuthService;
@@ -56,8 +58,12 @@ public class CreatorRoomSettingsService {
         String cardDensity = defaultIfBlank(request.getCardDensity(), DEFAULT_DENSITY);
         String discordWebhookUrl = defaultIfBlank(request.getDiscordWebhookUrl(), DEFAULT_DISCORD_WEBHOOK);
         boolean discordEnabled = request.getDiscordEnabled() != null && request.getDiscordEnabled();
+        String instagramAccountId = defaultIfBlank(request.getInstagramAccountId(), DEFAULT_INSTAGRAM_ACCOUNT_ID);
+        String instagramAccessToken = defaultIfBlank(request.getInstagramAccessToken(), DEFAULT_INSTAGRAM_ACCESS_TOKEN);
+        boolean instagramEnabled = request.getInstagramEnabled() != null && request.getInstagramEnabled();
         room.updateAppearance(roomThemeId, bannerStyle, buttonStyle, cardDensity);
         room.updateDiscordSettings(discordWebhookUrl, discordEnabled);
+        room.updateInstagramSettings(instagramAccountId, instagramAccessToken, instagramEnabled);
 
         List<String> selectedFeatures = request.getSelectedFeatures() == null || request.getSelectedFeatures().isEmpty()
             ? DEFAULT_FEATURES
@@ -82,6 +88,9 @@ public class CreatorRoomSettingsService {
             defaultIfBlank(room.getCardDensity(), DEFAULT_DENSITY),
             defaultIfBlank(room.getDiscordWebhookUrl(), DEFAULT_DISCORD_WEBHOOK),
             room.isDiscordEnabled(),
+            defaultIfBlank(room.getInstagramAccountId(), DEFAULT_INSTAGRAM_ACCOUNT_ID),
+            defaultIfBlank(room.getInstagramAccessToken(), DEFAULT_INSTAGRAM_ACCESS_TOKEN),
+            room.isInstagramEnabled(),
             selectedFeatures
         );
     }

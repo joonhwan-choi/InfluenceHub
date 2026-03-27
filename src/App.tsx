@@ -189,6 +189,9 @@ type CreatorRoomSettingsResponse = {
   card_density: CardDensity
   discord_webhook_url: string
   discord_enabled: boolean
+  instagram_account_id: string
+  instagram_access_token: string
+  instagram_enabled: boolean
   selected_features: string[]
 }
 
@@ -757,6 +760,8 @@ function App() {
   const [roomSettingsSection, setRoomSettingsSection] = useState<RoomSettingsSection>('theme')
   const [selectedPublishPlatforms, setSelectedPublishPlatforms] = useState<string[]>(['YouTube'])
   const [discordWebhookUrl, setDiscordWebhookUrl] = useState('')
+  const [instagramAccountId, setInstagramAccountId] = useState('')
+  const [instagramAccessToken, setInstagramAccessToken] = useState('')
   const [hasHydratedCreatorSettings, setHasHydratedCreatorSettings] = useState(false)
   const roleMenuRef = useRef<HTMLDivElement | null>(null)
 
@@ -849,6 +854,10 @@ function App() {
     updatePlatformSetup(selectedPlatformName, { statusLabel: 'Ready' })
     if (selectedPlatformName === 'Discord') {
       setDiscordWebhookUrl(selectedPlatformConfig.clientValue)
+    }
+    if (selectedPlatformName === 'Instagram') {
+      setInstagramAccountId(selectedPlatformConfig.clientValue)
+      setInstagramAccessToken(selectedPlatformConfig.secretValue)
     }
   }
 
@@ -1146,6 +1155,8 @@ function App() {
       setButtonStyle(data.button_style)
       setCardDensity(data.card_density)
       setDiscordWebhookUrl(data.discord_webhook_url ?? '')
+      setInstagramAccountId(data.instagram_account_id ?? '')
+      setInstagramAccessToken(data.instagram_access_token ?? '')
       setPlatformSetup((current) => ({
         ...current,
         Discord: {
@@ -1153,6 +1164,13 @@ function App() {
           clientValue: data.discord_webhook_url ?? '',
           isEnabled: data.discord_enabled,
           statusLabel: data.discord_enabled ? 'Connected' : 'Inactive',
+        },
+        Instagram: {
+          ...current.Instagram,
+          clientValue: data.instagram_account_id ?? '',
+          secretValue: data.instagram_access_token ?? '',
+          isEnabled: data.instagram_enabled,
+          statusLabel: data.instagram_enabled ? 'Connected' : 'Inactive',
         },
       }))
       if (data.selected_features.length > 0) {
@@ -2017,6 +2035,9 @@ function App() {
         card_density: cardDensity,
         discord_webhook_url: discordWebhookUrl,
         discord_enabled: platformSetup.Discord.isEnabled,
+        instagram_account_id: instagramAccountId,
+        instagram_access_token: instagramAccessToken,
+        instagram_enabled: platformSetup.Instagram.isEnabled,
         selected_features: selectedFeatures,
       },
       { silent: true },
