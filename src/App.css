@@ -73,6 +73,7 @@
   gap: 8px;
   flex-wrap: wrap;
   justify-content: flex-end;
+  align-items: center;
 }
 
 .nav-tab {
@@ -87,6 +88,18 @@
 .nav-tab.active {
   background: rgba(255, 209, 102, 0.16);
   color: #fff3cb;
+}
+
+.nav-role-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(255, 122, 69, 0.16);
+  color: #ffd9bf;
+  font: 800 0.72rem/1 "Arial Black", "AppleGothic", sans-serif;
+  letter-spacing: 0.08em;
 }
 
 .hero-panel {

@@ -557,6 +557,41 @@ function App() {
     )
   }
 
+  const isFanLoggedIn = fanSession !== null
+  const headerSubtitle = isCreatorLoggedIn
+    ? 'Creator Control Room'
+    : isFanLoggedIn
+      ? 'Fan Membership Pass'
+      : 'Creator Room OS'
+  const headerRoleLabel = isCreatorLoggedIn ? 'CREATOR MODE' : isFanLoggedIn ? 'FAN MODE' : ''
+  const headerTabs: Array<[View, string]> = isCreatorLoggedIn
+    ? [
+        ['home', '홈'],
+        ['content', '내 채널'],
+        ['room', '팬방 정보'],
+        ['features', '기능 설정'],
+        ['dashboard', '운영 대시보드'],
+        ['fan', '팬 화면'],
+      ]
+    : isFanLoggedIn
+      ? [
+          ['home', '홈'],
+          ['fan', '내 팬방'],
+          ['invite', '초대 링크'],
+          ['privacy', '개인정보'],
+          ['terms', '약관'],
+        ]
+      : [
+          ['home', '홈'],
+          ['signup', '가입'],
+          ['room', '팬방 생성'],
+          ['features', '기능 설정'],
+          ['dashboard', '운영 대시보드'],
+          ['privacy', '개인정보'],
+          ['terms', '약관'],
+          ['fan', '팬 화면'],
+        ]
+
   const persistCreatorSession = (sessionToken: string) => {
     localStorage.setItem(creatorSessionStorageKey, sessionToken)
     setIsCreatorLoggedIn(true)
@@ -1045,33 +1080,28 @@ function App() {
 
   const renderHeader = () => (
     <header className="top-nav">
-      <button className="brand-lockup" onClick={() => setCurrentView('home')}>
+      <button
+        className="brand-lockup"
+        onClick={() => setCurrentView(isCreatorLoggedIn ? 'dashboard' : isFanLoggedIn ? 'fan' : 'home')}
+      >
         <span className="brand-badge">IH</span>
         <span className="brand-text">
           <strong>InfluenceHub</strong>
-          <span>Creator Room OS</span>
+          <span>{headerSubtitle}</span>
         </span>
       </button>
 
       <nav className="nav-tabs" aria-label="primary">
-        {[
-          ['home', '홈'],
-          ['signup', isCreatorLoggedIn ? '내 채널' : '가입'],
-          ['room', isCreatorLoggedIn ? '팬방 정보' : '팬방 생성'],
-          ['features', '기능 설정'],
-          ['dashboard', '운영 대시보드'],
-          ['privacy', '개인정보'],
-          ['terms', '약관'],
-          ['fan', fanSession ? '내 팬방' : '팬 화면'],
-        ].map(([id, label]) => (
+        {headerTabs.map(([id, label]) => (
           <button
             className={currentView === id ? 'nav-tab active' : 'nav-tab'}
             key={id}
-            onClick={() => setCurrentView(id as View)}
+            onClick={() => setCurrentView(id)}
           >
             {label}
           </button>
         ))}
+        {headerRoleLabel ? <span className="nav-role-chip">{headerRoleLabel}</span> : null}
       </nav>
     </header>
   )
