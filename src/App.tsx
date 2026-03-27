@@ -2625,19 +2625,13 @@ function App() {
       <section className="scene-panel light">
         <div className="scene-copy">
           <span className="section-label dark">FAN LOGIN</span>
-          <h2>팬도 다시 로그인해서 들어올 수 있어야 합니다</h2>
-          <p>
-            초대 링크로 한 번 가입한 팬은 같은 이메일로 다시 로그인해서 가입한 팬방
-            목록을 바로 불러올 수 있어야 자연스럽습니다.
-          </p>
+          <h2>팬 로그인</h2>
+          <p>가입한 팬방으로 다시 들어오세요.</p>
 
           <div className="highlight-card">
             <span className="mini-label">현재 상태</span>
             <strong>{fanStatus}</strong>
-            <p>
-              먼저 초대 링크로 팬 가입을 한 뒤, 이후에는 이메일만으로 팬 세션을 다시
-              열 수 있게 바꿨습니다.
-            </p>
+            <p>Google 계정으로 바로 이어집니다.</p>
           </div>
 
           <div className="inline-actions">
@@ -2654,7 +2648,7 @@ function App() {
           <div className="card-header">
             <div>
               <span className="card-kicker">Google OAuth</span>
-              <h2>팬도 OAuth로 다시 들어오기</h2>
+              <h2>Google로 계속하기</h2>
             </div>
             <span className="status-badge">Fan Auth</span>
           </div>
@@ -2662,13 +2656,13 @@ function App() {
           <div className="detail-grid">
             <article className="detail-card">
               <span className="mini-label">처음 가입</span>
-              <strong>초대 링크에서 Google로 팬 가입</strong>
-              <p>영상 설명란이나 라이브 링크를 통해 들어오면 Google 로그인 후 바로 팬방에 입장합니다.</p>
+              <strong>초대 링크로 입장</strong>
+              <p>Google 로그인 후 바로 팬방에 들어갑니다.</p>
             </article>
             <article className="detail-card">
               <span className="mini-label">다시 로그인</span>
-              <strong>같은 Google 계정으로 팬방 목록 복원</strong>
-              <p>한 번 가입한 팬은 비밀번호 없이 같은 Google 계정으로 여러 팬방을 다시 불러옵니다.</p>
+              <strong>팬방 목록 복원</strong>
+              <p>같은 Google 계정으로 다시 들어옵니다.</p>
             </article>
           </div>
 
@@ -2824,11 +2818,7 @@ function App() {
       <div className="scene-copy">
         <span className="section-label dark">INVITE</span>
         <h2>{inviteDetail ? `${inviteDetail.creator_name} 팬방 초대` : '팬 초대 링크'}</h2>
-        <p>
-          영상 설명란이나 라이브 고정 댓글의 링크를 누르면 여기로 들어옵니다. 팬 가입을
-          완료하면 해당 팬방에 바로 입장하고, 이후 다른 크리에이터 팬방도 같은 계정으로
-          추가 가입할 수 있습니다.
-        </p>
+        <p>Google로 빠르게 가입하고 바로 입장합니다.</p>
 
         <div className="highlight-card">
           <span className="mini-label">현재 상태</span>
@@ -2871,11 +2861,8 @@ function App() {
 
             <div className="highlight-card compact-highlight">
               <span className="mini-label">가입 방식</span>
-              <strong>초대 링크 진입 후 Google 계정으로 바로 팬 가입</strong>
-              <p>
-                이메일과 비밀번호를 별도로 받지 않고, 같은 Google 계정으로 이후 팬 로그인도
-                이어집니다.
-              </p>
+              <strong>Google 계정으로 바로 시작</strong>
+              <p>한 번 가입하면 다음부터도 같은 계정으로 들어옵니다.</p>
             </div>
 
             <div className="inline-actions">
