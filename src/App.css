@@ -1136,6 +1136,21 @@
   margin-top: 18px;
 }
 
+.settings-meta-list label {
+  color: rgba(245, 241, 232, 0.72);
+}
+
+.settings-meta-list .field {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f5f1e8;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.settings-meta-list .field.muted,
+.settings-meta-list .field.multiline {
+  color: rgba(245, 241, 232, 0.82);
+}
+
 .creator-workspace .scene-copy,
 .creator-workspace .dashboard-sidebar,
 .creator-workspace .studio-header {
