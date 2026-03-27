@@ -31,6 +31,14 @@ type FeatureModule = {
   liveMetric: string
 }
 
+type FanRoom = {
+  id: string
+  creator: string
+  label: string
+  meta: string
+  joinedVia: string
+}
+
 type ChannelConnection = {
   connection_id: number
   channel_id: string
@@ -133,7 +141,7 @@ const dashboardMetrics = [
   { label: '오늘 방문 팬', value: '3,284', change: '+18%' },
   { label: '새 글 반응', value: '1,902', change: '+31%' },
   { label: '굿즈 매출', value: '₩2.8M', change: '+12%' },
-  { label: '자동 공지 생성', value: '14', change: '실시간 동기화' },
+  { label: '초대된 팬 수', value: '842', change: '링크 전환율 37%' },
 ]
 
 const toolCards = [
@@ -178,6 +186,54 @@ const activityFeed = [
     title: '굿즈 드롭 대기열 생성',
     body: '한정 수량 공지로 대기열이 열렸고, 재입고 알림 신청이 붙었습니다.',
     time: '48분 전',
+  },
+]
+
+const invitePerformance = [
+  {
+    title: '오늘 영상 설명란 링크',
+    body: '영상 공개 후 1,124명이 초대 링크를 열었고, 418명이 팬 가입을 완료했습니다.',
+    time: '18:42',
+  },
+  {
+    title: '라이브 고정 댓글 링크',
+    body: '라이브 중 링크 유입 팬 233명 중 129명이 팬방 입장까지 완료했습니다.',
+    time: '어제',
+  },
+  {
+    title: '커뮤니티 탭 이벤트 링크',
+    body: '이벤트 참여 유입으로 92명이 신규 팬방 가입을 마쳤습니다.',
+    time: '이번 주',
+  },
+]
+
+const inviteFunnelCards = [
+  { label: '초대 링크 오픈', value: '1,124', meta: '영상 설명란 + 라이브 고정 댓글' },
+  { label: '팬 가입 완료', value: '418', meta: '신규 팬 전환' },
+  { label: '다른 팬방 추가 가입', value: '126', meta: '멀티 크리에이터 팬' },
+]
+
+const fanRooms: FanRoom[] = [
+  {
+    id: 'salt-toast',
+    creator: '소금토스트',
+    label: '소금토스트 공식 팬방',
+    meta: '오늘 라이브 예고 있음',
+    joinedVia: '라이브 고정 댓글 초대 링크',
+  },
+  {
+    id: 'devtv',
+    creator: '침착한개발자TV',
+    label: '침착한개발자TV 공식 팬방',
+    meta: 'Q&A 공지 새로 올라옴',
+    joinedVia: '영상 설명란 초대 링크',
+  },
+  {
+    id: 'travel-lab',
+    creator: '트래블랩',
+    label: '트래블랩 팬 클럽',
+    meta: '굿즈 선공개 진행 중',
+    joinedVia: '인스타 스토리 초대 링크',
   },
 ]
 
@@ -372,6 +428,7 @@ function App() {
     '굿즈 스토어',
   ])
   const [fanTab, setFanTab] = useState<FanTab>('feed')
+  const [selectedFanRoomId, setSelectedFanRoomId] = useState<string>('salt-toast')
   const [connectedChannel, setConnectedChannel] = useState<ChannelConnection | null>(null)
   const [uploadTitle, setUploadTitle] = useState('누나 서울구경')
   const [uploadDescription, setUploadDescription] = useState(
@@ -390,6 +447,7 @@ function App() {
 
   const selectedSocialDetail =
     socialButtons.find((button) => button.tone === selectedSocial) ?? socialButtons[0]
+  const activeFanRoom = fanRooms.find((room) => room.id === selectedFanRoomId) ?? fanRooms[0]
 
   const toggleFeature = (featureName: string) => {
     setSelectedFeatures((current) =>
@@ -1115,6 +1173,57 @@ function App() {
             </div>
           </section>
         </div>
+
+        <div className="dashboard-panels">
+          <section className="timeline-panel">
+            <div className="panel-head">
+              <div>
+                <span className="card-kicker">팬 초대 링크</span>
+                <h3>초대된 팬 유입 추적</h3>
+              </div>
+            </div>
+
+            <div className="activity-list">
+              {invitePerformance.map((item) => (
+                <article className="activity-card" key={item.title}>
+                  <span className="activity-time">{item.time}</span>
+                  <strong>{item.title}</strong>
+                  <p>{item.body}</p>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section className="summary-panel">
+            <div className="panel-head">
+              <div>
+                <span className="card-kicker">팬 초대 퍼널</span>
+                <h3>링크 성과 요약</h3>
+              </div>
+            </div>
+
+            <div className="selected-module-list">
+              {inviteFunnelCards.map((card) => (
+                <div className="selected-module" key={card.label}>
+                  <div>
+                    <strong>{card.label}</strong>
+                    <span>{card.meta}</span>
+                  </div>
+                  <strong>{card.value}</strong>
+                </div>
+              ))}
+            </div>
+
+            <div className="notice-preview">
+              <span className="mini-label">초대 링크 예시</span>
+              <strong>influencehub.app/invite/salt-toast-live</strong>
+              <p>
+                유튜버가 영상 설명란이나 라이브 고정 댓글에 이 링크를 올리면, 팬은
+                해당 링크로 들어와 팬 가입을 완료하고 바로 팬방에 입장합니다.
+              </p>
+            </div>
+          </section>
+        </div>
       </div>
     </section>
   )
@@ -1727,8 +1836,8 @@ function App() {
         <div className="creator-chip">
           <span className="chip-avatar">TV</span>
           <div>
-            <strong>침착한개발자TV 공식 팬방</strong>
-            <span>구독자 12.4만 · 오늘 라이브 예고 있음</span>
+            <strong>{activeFanRoom.label}</strong>
+            <span>{activeFanRoom.meta} · {activeFanRoom.joinedVia}</span>
           </div>
         </div>
 
@@ -1741,6 +1850,29 @@ function App() {
           </button>
         </div>
       </div>
+
+      <section className="fan-room-switcher">
+        <div className="panel-head">
+          <div>
+            <span className="card-kicker">팬방 선택</span>
+            <h3>가입한 팬방을 오가며 보기</h3>
+          </div>
+        </div>
+
+        <div className="fan-room-grid">
+          {fanRooms.map((room) => (
+            <button
+              className={room.id === selectedFanRoomId ? 'fan-room-card active' : 'fan-room-card'}
+              key={room.id}
+              onClick={() => setSelectedFanRoomId(room.id)}
+            >
+              <span className="mini-label">{room.joinedVia}</span>
+              <strong>{room.creator}</strong>
+              <p>{room.label}</p>
+            </button>
+          ))}
+        </div>
+      </section>
 
       <div className="fan-tab-row">
         <button
@@ -1815,15 +1947,21 @@ function App() {
 
         <aside className="fan-side-panel">
           <div className="mini-board">
-            <span className="mini-label">오늘의 참여 포인트</span>
-            <strong>출석 체크 + Q&A + 이벤트 인증</strong>
-            <p>방문 팬이 자연스럽게 콘텐츠를 따라가도록 동선을 짧게 만들었습니다.</p>
+            <span className="mini-label">팬 입장 방식</span>
+            <strong>{activeFanRoom.joinedVia}</strong>
+            <p>
+              팬은 초대 링크를 통해 들어오고, 가입이 끝나면 여러 크리에이터 팬방 중
+              원하는 방을 선택해 이동할 수 있습니다.
+            </p>
           </div>
 
           <div className="mini-board dark">
             <span className="mini-label">운영자 시점 연결</span>
-            <strong>팬 경험과 방장 운영 화면이 맞물림</strong>
-            <p>대시보드에서 만든 공지와 이벤트가 팬 홈에서 바로 반영되는 구조입니다.</p>
+            <strong>초대된 팬 수와 멀티 팬 가입이 같이 보임</strong>
+            <p>
+              대시보드에서 링크별 유입과 가입 수를 확인하고, 팬은 같은 계정으로 여러
+              인플루언서 팬방에 입장합니다.
+            </p>
           </div>
         </aside>
       </div>
