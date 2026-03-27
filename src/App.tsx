@@ -53,6 +53,12 @@ type AuthUrlResponse = {
   redirect_uri: string
 }
 
+type SessionSnapshot = {
+  channelId: string
+  roomName: string
+  savedAt: string
+}
+
 const statCards = [
   { label: '활성 팬방', value: '126', meta: '유튜버별 독립 공간' },
   { label: '자동 공지율', value: '92%', meta: '업로드와 연동' },
@@ -259,6 +265,8 @@ const youtubeIntegrationSteps = [
   },
 ]
 
+const creatorSessionStorageKey = 'influencehub.creator-session'
+
 const importedChannelPreview = {
   title: '침착한개발자TV',
   handle: '@devtv',
@@ -372,6 +380,7 @@ function App() {
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null)
   const [isStartingGoogleLogin, setIsStartingGoogleLogin] = useState(false)
   const [authFeedback, setAuthFeedback] = useState('아직 구글 로그인 전')
+  const [isCreatorLoggedIn, setIsCreatorLoggedIn] = useState(false)
 
   const selectedSocialDetail =
     socialButtons.find((button) => button.tone === selectedSocial) ?? socialButtons[0]
@@ -391,9 +400,29 @@ function App() {
     setCurrentView('dashboard')
   }
 
-  const loadLatestConnection = async () => {
+  const persistCreatorSession = (connection: ChannelConnection) => {
+    const snapshot: SessionSnapshot = {
+      channelId: connection.channel_id,
+      roomName: connection.room_name,
+      savedAt: new Date().toISOString(),
+    }
+
+    localStorage.setItem(creatorSessionStorageKey, JSON.stringify(snapshot))
+    setIsCreatorLoggedIn(true)
+  }
+
+  const clearCreatorSession = () => {
+    localStorage.removeItem(creatorSessionStorageKey)
+    setConnectedChannel(null)
+    setIsCreatorLoggedIn(false)
+    setAuthFeedback('로그아웃됨')
+  }
+
+  const loadLatestConnection = async (options?: { silent?: boolean }) => {
     setIsLoadingChannel(true)
-    setUploadError('')
+    if (!options?.silent) {
+      setUploadError('')
+    }
 
     try {
       const response = await fetch(`${apiBaseUrl}/api/v1/youtube/latest-connection`)
@@ -403,12 +432,18 @@ function App() {
 
       const data = (await response.json()) as ChannelConnection
       setConnectedChannel(data)
+      persistCreatorSession(data)
+      setAuthFeedback(`로그인 유지 중 · ${data.channel_title} 채널이 연결되어 있습니다.`)
       if (!uploadTitle.trim()) {
         setUploadTitle(`${data.channel_title} 새 영상`)
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : '채널 정보를 불러오지 못했습니다.'
-      setUploadError(message)
+      setIsCreatorLoggedIn(false)
+      localStorage.removeItem(creatorSessionStorageKey)
+      if (!options?.silent) {
+        setUploadError(message)
+      }
     } finally {
       setIsLoadingChannel(false)
     }
@@ -511,6 +546,15 @@ function App() {
 
     if (view || youtubeState || message) {
       window.history.replaceState({}, document.title, window.location.pathname)
+    }
+
+    if (!youtubeState) {
+      const storedSession = localStorage.getItem(creatorSessionStorageKey)
+      if (storedSession) {
+        setCurrentView('content')
+        setAuthFeedback('이전 로그인 상태를 복원하는 중')
+        void loadLatestConnection({ silent: true })
+      }
     }
   }, [])
 
@@ -731,9 +775,15 @@ function App() {
         </div>
 
         <div className="inline-actions">
-          <button className="primary-action" onClick={() => void startCreatorGoogleLogin()}>
-            {isStartingGoogleLogin ? 'Google로 이동 중...' : 'Google로 로그인하고 채널 가져오기'}
-          </button>
+          {isCreatorLoggedIn ? (
+            <button className="primary-action" onClick={() => setCurrentView('content')}>
+              연결된 채널 보러가기
+            </button>
+          ) : (
+            <button className="primary-action" onClick={() => void startCreatorGoogleLogin()}>
+              {isStartingGoogleLogin ? 'Google로 이동 중...' : 'Google로 로그인하고 채널 가져오기'}
+            </button>
+          )}
           <button className="secondary-action dark" onClick={() => setCurrentView('home')}>
             홈으로
           </button>
@@ -1131,9 +1181,15 @@ function App() {
             </div>
 
             <div className="inline-actions">
-              <button className="primary-action" onClick={() => void startCreatorGoogleLogin()}>
-                {isStartingGoogleLogin ? 'Google로 이동 중...' : '구글 로그인 다시 하기'}
-              </button>
+              {isCreatorLoggedIn ? (
+                <button className="secondary-action dark" onClick={clearCreatorSession}>
+                  로그아웃
+                </button>
+              ) : (
+                <button className="primary-action" onClick={() => void startCreatorGoogleLogin()}>
+                  {isStartingGoogleLogin ? 'Google로 이동 중...' : '구글 로그인 다시 하기'}
+                </button>
+              )}
               <button className="secondary-action small" onClick={() => void loadLatestConnection()}>
                 {isLoadingChannel ? '채널 불러오는 중...' : '내 채널 다시 불러오기'}
               </button>
