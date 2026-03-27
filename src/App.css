@@ -13,6 +13,13 @@
   color: #f5f1e8;
 }
 
+.page-shell.room-themed {
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--room-theme-accent) 18%, transparent), transparent 28%),
+    linear-gradient(180deg, color-mix(in srgb, var(--room-theme-panel) 72%, #ffffff 28%), color-mix(in srgb, var(--room-theme-hero) 78%, #ffffff 22%));
+  color: var(--room-theme-text);
+}
+
 .top-nav {
   display: flex;
   align-items: center;
@@ -24,6 +31,12 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(18px);
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
+}
+
+.page-shell.room-themed .top-nav {
+  background: color-mix(in srgb, var(--room-theme-panel) 82%, rgba(255, 255, 255, 0.82));
+  border-color: color-mix(in srgb, var(--room-theme-accent) 18%, rgba(28, 36, 50, 0.08));
+  box-shadow: 0 20px 50px color-mix(in srgb, var(--room-theme-accent) 10%, rgba(0, 0, 0, 0.12));
 }
 
 .brand-lockup,
@@ -68,6 +81,17 @@
   font: 600 0.78rem/1.2 "Arial", "AppleGothic", sans-serif;
 }
 
+.page-shell.room-themed .brand-lockup,
+.page-shell.room-themed .brand-text strong,
+.page-shell.room-themed .nav-tab,
+.page-shell.room-themed .header-logout {
+  color: var(--room-theme-text);
+}
+
+.page-shell.room-themed .brand-text span {
+  color: var(--room-theme-muted);
+}
+
 .nav-tabs {
   display: flex;
   gap: 8px;
@@ -98,6 +122,15 @@
   color: #fff3cb;
 }
 
+.page-shell.room-themed .nav-tab {
+  background: color-mix(in srgb, var(--room-theme-text) 8%, rgba(255, 255, 255, 0.56));
+}
+
+.page-shell.room-themed .nav-tab.active {
+  background: color-mix(in srgb, var(--room-theme-accent) 22%, rgba(255, 255, 255, 0.86));
+  color: var(--room-theme-text);
+}
+
 .nav-role-chip {
   display: inline-flex;
   align-items: center;
@@ -110,6 +143,11 @@
   letter-spacing: 0.08em;
 }
 
+.page-shell.room-themed .nav-role-chip {
+  background: color-mix(in srgb, var(--room-theme-accent) 24%, rgba(255, 255, 255, 0.82));
+  color: var(--room-theme-text);
+}
+
 .header-logout {
   border: 0;
   min-height: 40px;
@@ -119,6 +157,11 @@
   color: #f5f1e8;
   cursor: pointer;
   font: 700 0.84rem/1 "Arial", "AppleGothic", sans-serif;
+}
+
+.page-shell.room-themed .header-logout {
+  background: color-mix(in srgb, var(--room-theme-text) 8%, rgba(255, 255, 255, 0.64));
+  border: 1px solid color-mix(in srgb, var(--room-theme-accent) 12%, rgba(28, 36, 50, 0.08));
 }
 
 .hero-panel {
@@ -274,16 +317,34 @@
   box-shadow: 0 20px 40px rgba(255, 122, 69, 0.28);
 }
 
+.page-shell.room-themed .primary-action {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--room-theme-accent) 42%, #ffe1a8), var(--room-theme-accent));
+  color: color-mix(in srgb, var(--room-theme-text) 92%, #171923);
+  box-shadow: 0 20px 40px color-mix(in srgb, var(--room-theme-accent) 24%, rgba(0, 0, 0, 0.12));
+}
+
 .secondary-action {
   background: rgba(255, 255, 255, 0.08);
   color: #f5f1e8;
   border: 1px solid rgba(255, 255, 255, 0.14);
 }
 
+.page-shell.room-themed .secondary-action {
+  background: color-mix(in srgb, var(--room-theme-text) 6%, rgba(255, 255, 255, 0.68));
+  color: var(--room-theme-text);
+  border-color: color-mix(in srgb, var(--room-theme-accent) 14%, rgba(28, 36, 50, 0.12));
+}
+
 .secondary-action.dark {
   background: rgba(28, 36, 50, 0.08);
   color: #1c2432;
   border-color: rgba(28, 36, 50, 0.14);
+}
+
+.page-shell.room-themed .secondary-action.dark {
+  background: color-mix(in srgb, var(--room-theme-panel) 72%, rgba(255, 255, 255, 0.56));
+  color: var(--room-theme-text);
+  border-color: color-mix(in srgb, var(--room-theme-accent) 12%, rgba(28, 36, 50, 0.12));
 }
 
 .primary-action:hover,

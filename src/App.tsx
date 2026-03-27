@@ -1,4 +1,4 @@
-import { useEffect, useState, type ChangeEvent } from 'react'
+import { useEffect, useState, type ChangeEvent, type CSSProperties } from 'react'
 import './App.css'
 
 type View =
@@ -3267,8 +3267,19 @@ function App() {
     </section>
   )
 
+  const useRoomThemeSurface = currentView === 'fan' || currentView === 'room'
+  const themedPageStyle = useRoomThemeSurface
+    ? ({
+        '--room-theme-hero': activeRoomTheme.heroBackground,
+        '--room-theme-panel': activeRoomTheme.panelBackground,
+        '--room-theme-accent': activeRoomTheme.accent,
+        '--room-theme-text': activeRoomTheme.textColor,
+        '--room-theme-muted': activeRoomTheme.mutedColor,
+      } as CSSProperties)
+    : undefined
+
   return (
-    <main className="page-shell app-shell">
+    <main className={`page-shell app-shell${useRoomThemeSurface ? ' room-themed' : ''}`} style={themedPageStyle}>
       {renderHeader()}
       {currentView === 'home' && renderHome()}
       {currentView === 'signup' && renderSignup()}
