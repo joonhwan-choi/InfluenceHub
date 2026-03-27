@@ -1,9 +1,13 @@
 package com.influencehub.backend.community.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+
 public class CreateCommunityPostRequest {
 
     private String title;
     private String content;
+
+    @JsonAlias({"imageUrl", "image_url"})
     private String imageUrl;
 
     public String getTitle() {
