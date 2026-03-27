@@ -910,7 +910,7 @@
 }
 
 .scene-panel {
-  grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.1fr);
+  grid-template-columns: minmax(280px, 0.72fr) minmax(0, 1.28fr);
 }
 
 .auth-shell {
@@ -924,6 +924,10 @@
   background:
     radial-gradient(circle at top left, rgba(255, 122, 69, 0.2), transparent 28%),
     linear-gradient(165deg, rgba(13, 41, 65, 0.92), rgba(8, 16, 31, 0.96));
+}
+
+.settings-platform-panel {
+  margin-top: 8px;
 }
 
 .scene-panel.light .scene-copy {
@@ -1858,6 +1862,11 @@
 .post-preview-card p {
   margin: 0;
   color: rgba(28, 36, 50, 0.72);
+}
+
+.compact-preview {
+  min-height: 140px;
+  margin-top: 4px;
 }
 
 .result-link {

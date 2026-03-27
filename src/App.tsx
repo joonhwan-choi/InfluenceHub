@@ -2654,104 +2654,6 @@ function App() {
               <p>테마와 운영 옵션은 저장되어 다음 접속 때도 그대로 유지됩니다.</p>
             </div>
 
-            <section className="settings-platform-panel">
-              <div className="panel-head">
-                <div>
-                  <span className="card-kicker">배포 채널 관리</span>
-                  <h3>확장 가능한 배포 채널</h3>
-                </div>
-              </div>
-
-              <div className="platform-management-grid">
-                <div className="platform-grid">
-                  {platformCatalog.map((platform) => {
-                    const state = platformSetup[platform.name]
-
-                    return (
-                      <button
-                        className={
-                          platform.name === selectedPlatformName
-                            ? `platform-card ${platform.tone} active-selection`
-                            : `platform-card ${platform.tone}`
-                        }
-                        key={platform.name}
-                        onClick={() => setSelectedPlatformName(platform.name)}
-                        type="button"
-                      >
-                        <span className="platform-status">{state?.statusLabel ?? platform.status}</span>
-                        <strong>{platform.name}</strong>
-                        <p>{platform.detail}</p>
-                      </button>
-                    )
-                  })}
-                </div>
-
-                <section className="platform-config-panel">
-                  <div className="panel-head">
-                    <div>
-                      <span className="card-kicker">선택된 채널</span>
-                      <h3>{selectedPlatformName} 연결 설정</h3>
-                    </div>
-                    <span className={selectedPlatformConfig.isEnabled ? 'status-badge' : 'status-badge muted'}>
-                      {selectedPlatformConfig.statusLabel}
-                    </span>
-                  </div>
-
-                  <div className="credential-grid">
-                    <div className="field-block">
-                      <span className="mini-label">{selectedPlatformLabels.client}</span>
-                      <input
-                        className="text-input"
-                        value={selectedPlatformConfig.clientValue}
-                        onChange={(event) =>
-                          updatePlatformSetup(selectedPlatformName, { clientValue: event.target.value })
-                        }
-                        placeholder={`${selectedPlatformName} ${selectedPlatformLabels.client}`}
-                      />
-                    </div>
-                    <div className="field-block">
-                      <span className="mini-label">{selectedPlatformLabels.secret}</span>
-                      <input
-                        className="text-input"
-                        value={selectedPlatformConfig.secretValue}
-                        onChange={(event) =>
-                          updatePlatformSetup(selectedPlatformName, { secretValue: event.target.value })
-                        }
-                        placeholder={`${selectedPlatformName} ${selectedPlatformLabels.secret}`}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="chip-row">
-                    <span className="info-chip">
-                      {selectedPlatformConfig.isEnabled ? '현재 활성화됨' : '현재 비활성화'}
-                    </span>
-                    <span className="info-chip">
-                      {selectedPlatformConfig.supportsVideo ? '영상 배포 가능' : '영상 API 미지원'}
-                    </span>
-                    <span className="info-chip">
-                      {selectedPlatformConfig.supportsPost ? '게시글 배포 가능' : '게시글 API 미지원'}
-                    </span>
-                  </div>
-
-                  <div className="inline-actions">
-                    <button className="secondary-action" onClick={handleTestPlatformConnection} type="button">
-                      연결 테스트
-                    </button>
-                    <button className="primary-action" onClick={handleTogglePlatformActivation} type="button">
-                      {selectedPlatformConfig.isEnabled ? '비활성화' : '활성화'}
-                    </button>
-                  </div>
-
-                  <div className="notice-preview compact-highlight">
-                    <span className="mini-label">운영 메모</span>
-                    <strong>{selectedPlatformName}은 필요한 값이 들어간 뒤에만 활성화하세요.</strong>
-                    <p>콘텐츠 배포 센터에서는 여기서 활성화한 채널만 선택해서 한번에 배포할 수 있습니다.</p>
-                  </div>
-                </section>
-              </div>
-            </section>
-
             <div className="settings-option-grid">
               <section className="settings-option-group">
                 <span className="mini-label">배너 스타일</span>
@@ -2885,6 +2787,104 @@ function App() {
           </section>
         </div>
       </div>
+
+      <section className="scene-card dark-card settings-platform-panel">
+        <div className="panel-head">
+          <div>
+            <span className="card-kicker">배포 채널 관리</span>
+            <h3>확장 가능한 배포 채널</h3>
+          </div>
+        </div>
+
+        <div className="platform-management-grid">
+          <div className="platform-grid">
+            {platformCatalog.map((platform) => {
+              const state = platformSetup[platform.name]
+
+              return (
+                <button
+                  className={
+                    platform.name === selectedPlatformName
+                      ? `platform-card ${platform.tone} active-selection`
+                      : `platform-card ${platform.tone}`
+                  }
+                  key={platform.name}
+                  onClick={() => setSelectedPlatformName(platform.name)}
+                  type="button"
+                >
+                  <span className="platform-status">{state?.statusLabel ?? platform.status}</span>
+                  <strong>{platform.name}</strong>
+                  <p>{platform.detail}</p>
+                </button>
+              )
+            })}
+          </div>
+
+          <section className="platform-config-panel">
+            <div className="panel-head">
+              <div>
+                <span className="card-kicker">선택된 채널</span>
+                <h3>{selectedPlatformName} 연결 설정</h3>
+              </div>
+              <span className={selectedPlatformConfig.isEnabled ? 'status-badge' : 'status-badge muted'}>
+                {selectedPlatformConfig.statusLabel}
+              </span>
+            </div>
+
+            <div className="credential-grid">
+              <div className="field-block">
+                <span className="mini-label">{selectedPlatformLabels.client}</span>
+                <input
+                  className="text-input"
+                  value={selectedPlatformConfig.clientValue}
+                  onChange={(event) =>
+                    updatePlatformSetup(selectedPlatformName, { clientValue: event.target.value })
+                  }
+                  placeholder={`${selectedPlatformName} ${selectedPlatformLabels.client}`}
+                />
+              </div>
+              <div className="field-block">
+                <span className="mini-label">{selectedPlatformLabels.secret}</span>
+                <input
+                  className="text-input"
+                  value={selectedPlatformConfig.secretValue}
+                  onChange={(event) =>
+                    updatePlatformSetup(selectedPlatformName, { secretValue: event.target.value })
+                  }
+                  placeholder={`${selectedPlatformName} ${selectedPlatformLabels.secret}`}
+                />
+              </div>
+            </div>
+
+            <div className="chip-row">
+              <span className="info-chip">
+                {selectedPlatformConfig.isEnabled ? '현재 활성화됨' : '현재 비활성화'}
+              </span>
+              <span className="info-chip">
+                {selectedPlatformConfig.supportsVideo ? '영상 배포 가능' : '영상 API 미지원'}
+              </span>
+              <span className="info-chip">
+                {selectedPlatformConfig.supportsPost ? '게시글 배포 가능' : '게시글 API 미지원'}
+              </span>
+            </div>
+
+            <div className="inline-actions">
+              <button className="secondary-action" onClick={handleTestPlatformConnection} type="button">
+                연결 테스트
+              </button>
+              <button className="primary-action" onClick={handleTogglePlatformActivation} type="button">
+                {selectedPlatformConfig.isEnabled ? '비활성화' : '활성화'}
+              </button>
+            </div>
+
+            <div className="notice-preview compact-highlight">
+              <span className="mini-label">운영 메모</span>
+              <strong>{selectedPlatformName}은 필요한 값이 들어간 뒤에만 활성화하세요.</strong>
+              <p>콘텐츠 배포 센터에서는 여기서 활성화한 채널만 선택해서 한번에 배포할 수 있습니다.</p>
+            </div>
+          </section>
+        </div>
+      </section>
     </section>
   )
 
