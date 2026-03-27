@@ -100,6 +100,23 @@ type InviteDetailResponse = {
   room_description: string
 }
 
+type InviteLinkSummary = {
+  invite_link_id: number
+  invite_code: string
+  title: string
+  source_label: string
+  open_count: number
+  join_count: number
+  invite_url: string
+}
+
+type CreatorInviteDashboardResponse = {
+  total_open_count: number
+  total_join_count: number
+  multi_room_fan_count: number
+  invite_links: InviteLinkSummary[]
+}
+
 const statCards = [
   { label: '활성 팬방', value: '126', meta: '유튜버별 독립 공간' },
   { label: '자동 공지율', value: '92%', meta: '업로드와 연동' },
@@ -472,6 +489,11 @@ function App() {
   const [isStartingGoogleLogin, setIsStartingGoogleLogin] = useState(false)
   const [authFeedback, setAuthFeedback] = useState('아직 구글 로그인 전')
   const [isCreatorLoggedIn, setIsCreatorLoggedIn] = useState(false)
+  const [inviteDashboard, setInviteDashboard] = useState<CreatorInviteDashboardResponse | null>(null)
+  const [inviteTitle, setInviteTitle] = useState('영상 설명란 초대')
+  const [inviteSourceLabel, setInviteSourceLabel] = useState('영상 설명란')
+  const [inviteStatus, setInviteStatus] = useState('초대 링크 생성 전')
+  const [isCreatingInvite, setIsCreatingInvite] = useState(false)
   const [fanSession, setFanSession] = useState<FanAuthResponse | null>(null)
   const [inviteDetail, setInviteDetail] = useState<InviteDetailResponse | null>(null)
   const [inviteCode, setInviteCode] = useState('')
@@ -580,6 +602,7 @@ function App() {
       setConnectedChannel(connection)
       persistCreatorSession(data.session_token)
       setAuthFeedback(`로그인 유지 중 · ${data.channel_title} 채널이 연결되어 있습니다.`)
+      void loadCreatorInviteDashboard(data.session_token)
       if (!uploadTitle.trim()) {
         setUploadTitle(`${connection.channel_title} 새 영상`)
       }
@@ -605,6 +628,77 @@ function App() {
     }
 
     await fetchCurrentCreatorSession(sessionToken, options)
+  }
+
+  const loadCreatorInviteDashboard = async (sessionToken?: string) => {
+    const creatorSessionToken = sessionToken ?? localStorage.getItem(creatorSessionStorageKey)
+    if (!creatorSessionToken) {
+      return
+    }
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/invites/mine`, {
+        headers: {
+          Authorization: `Bearer ${creatorSessionToken}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('초대 링크 대시보드를 불러오지 못했습니다.')
+      }
+
+      const data = (await response.json()) as CreatorInviteDashboardResponse
+      setInviteDashboard(data)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '초대 링크 대시보드를 불러오지 못했습니다.'
+      setInviteStatus(message)
+    }
+  }
+
+  const handleCreateInviteLink = async () => {
+    const creatorSessionToken = localStorage.getItem(creatorSessionStorageKey)
+    if (!creatorSessionToken) {
+      setInviteStatus('먼저 크리에이터 로그인이 필요합니다.')
+      return
+    }
+
+    if (!inviteTitle.trim() || !inviteSourceLabel.trim()) {
+      setInviteStatus('링크 제목과 유입 위치를 입력하세요.')
+      return
+    }
+
+    setIsCreatingInvite(true)
+    setInviteStatus('초대 링크 생성 중')
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/invites`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${creatorSessionToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: inviteTitle.trim(),
+          sourceLabel: inviteSourceLabel.trim(),
+        }),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || '초대 링크 생성에 실패했습니다.')
+      }
+
+      const createdInvite = (await response.json()) as InviteLinkSummary
+      setInviteStatus(`초대 링크 생성 완료 · ${createdInvite.invite_code}`)
+      setInviteTitle('')
+      setInviteSourceLabel('')
+      void loadCreatorInviteDashboard(creatorSessionToken)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '초대 링크 생성에 실패했습니다.'
+      setInviteStatus(message)
+    } finally {
+      setIsCreatingInvite(false)
+    }
   }
 
   const fetchFanSession = async (sessionToken: string, options?: { silent?: boolean }) => {
@@ -1281,7 +1375,16 @@ function App() {
 
       <div className="dashboard-main">
         <div className="metrics-grid">
-          {dashboardMetrics.map((metric) => (
+          {[
+            ...dashboardMetrics.slice(0, 3),
+            {
+              label: '초대된 팬 수',
+              value: inviteDashboard ? `${inviteDashboard.total_join_count}` : '842',
+              change: inviteDashboard
+                ? `멀티 팬 ${inviteDashboard.multi_room_fan_count}명`
+                : '링크 전환율 37%',
+            },
+          ].map((metric) => (
             <article className="metric-card" key={metric.label}>
               <span className="mini-label">{metric.label}</span>
               <strong>{metric.value}</strong>
@@ -1361,7 +1464,14 @@ function App() {
             </div>
 
             <div className="activity-list">
-              {invitePerformance.map((item) => (
+              {(inviteDashboard?.invite_links.length
+                ? inviteDashboard.invite_links.map((link) => ({
+                    title: link.title,
+                    body: `${link.source_label} · 열림 ${link.open_count}명 · 가입 ${link.join_count}명`,
+                    time: link.invite_code,
+                  }))
+                : invitePerformance
+              ).map((item) => (
                 <article className="activity-card" key={item.title}>
                   <span className="activity-time">{item.time}</span>
                   <strong>{item.title}</strong>
@@ -1380,7 +1490,26 @@ function App() {
             </div>
 
             <div className="selected-module-list">
-              {inviteFunnelCards.map((card) => (
+              {(inviteDashboard
+                ? [
+                    {
+                      label: '초대 링크 오픈',
+                      value: `${inviteDashboard.total_open_count}`,
+                      meta: '전체 링크 합산',
+                    },
+                    {
+                      label: '팬 가입 완료',
+                      value: `${inviteDashboard.total_join_count}`,
+                      meta: '초대 링크 가입 수',
+                    },
+                    {
+                      label: '다른 팬방 추가 가입',
+                      value: `${inviteDashboard.multi_room_fan_count}`,
+                      meta: '멀티 팬 계정',
+                    },
+                  ]
+                : inviteFunnelCards
+              ).map((card) => (
                 <div className="selected-module" key={card.label}>
                   <div>
                     <strong>{card.label}</strong>
@@ -1393,11 +1522,40 @@ function App() {
 
             <div className="notice-preview">
               <span className="mini-label">초대 링크 예시</span>
-              <strong>influencehub.app/invite/salt-toast-live</strong>
+              <strong>
+                {inviteDashboard?.invite_links[0]?.invite_url ?? 'influencehub.app/invite/salt-toast-live'}
+              </strong>
               <p>
                 유튜버가 영상 설명란이나 라이브 고정 댓글에 이 링크를 올리면, 팬은
                 해당 링크로 들어와 팬 가입을 완료하고 바로 팬방에 입장합니다.
               </p>
+            </div>
+
+            <div className="form-stack">
+              <div className="field-block">
+                <span className="mini-label">링크 제목</span>
+                <input
+                  className="text-input"
+                  value={inviteTitle}
+                  onChange={(event) => setInviteTitle(event.target.value)}
+                  placeholder="예: 라이브 고정 댓글 초대"
+                />
+              </div>
+              <div className="field-block">
+                <span className="mini-label">유입 위치</span>
+                <input
+                  className="text-input"
+                  value={inviteSourceLabel}
+                  onChange={(event) => setInviteSourceLabel(event.target.value)}
+                  placeholder="예: 영상 설명란"
+                />
+              </div>
+              <div className="inline-actions">
+                <button className="primary-action" onClick={() => void handleCreateInviteLink()}>
+                  {isCreatingInvite ? '링크 생성 중...' : '초대 링크 만들기'}
+                </button>
+                <span className="helper-copy">{inviteStatus}</span>
+              </div>
             </div>
           </section>
         </div>
