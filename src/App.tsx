@@ -490,33 +490,11 @@ const platformFieldLabels: Record<string, { client: string; secret: string }> = 
   Twitch: { client: 'Client ID', secret: 'OAuth Token' },
 }
 
-const youtubeIntegrationSteps = [
-  {
-    title: '채널 API 키 등록',
-    body: 'Google Cloud에서 발급한 API key와 업로드 권한을 InfluenceHub에 등록합니다.',
-  },
-  {
-    title: '업로드 템플릿 저장',
-    body: '제목 규칙, 설명란, 기본 태그, 썸네일 규칙을 한 번 저장합니다.',
-  },
-  {
-    title: '한 번 업로드하면 자동 배포',
-    body: 'InfluenceHub에 파일을 올리면 YouTube 업로드, 팬방 공지, 푸시 발송까지 묶어서 실행합니다.',
-  },
-]
-
 const creatorSessionStorageKey = 'influencehub.creator-session-token'
 const fanSessionStorageKey = 'influencehub.fan-session-token'
 const googleProfileStorageKey = 'influencehub.google-profile'
 const roomThemeStorageKey = 'influencehub.room-theme'
 const creatorAppearanceStorageKey = 'influencehub.creator-appearance'
-
-const importedChannelPreview = {
-  title: '침착한개발자TV',
-  handle: '@devtv',
-  description:
-    '개발과 제품을 쉽게 풀어 설명하는 채널입니다. 본편 업로드 후 팬방에서 Q&A와 비하인드 글을 함께 운영합니다.',
-}
 
 const communityPosts = [
   {
@@ -717,7 +695,6 @@ function App() {
   const [uploadStatus, setUploadStatus] = useState('아직 업로드 전')
   const [uploadError, setUploadError] = useState('')
   const [scheduleStatus, setScheduleStatus] = useState('예약 등록 전')
-  const [isLoadingChannel, setIsLoadingChannel] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null)
   const [publishHistory, setPublishHistory] = useState<PublishJobHistoryItem[]>([])
@@ -1029,7 +1006,6 @@ function App() {
     sessionToken: string,
     options?: { silent?: boolean },
   ) => {
-    setIsLoadingChannel(true)
     if (!options?.silent) {
       setUploadError('')
     }
@@ -1075,8 +1051,6 @@ function App() {
       if (!options?.silent) {
         setUploadError(message)
       }
-    } finally {
-      setIsLoadingChannel(false)
     }
   }
 
@@ -3496,143 +3470,13 @@ function App() {
         <div>
           <span className="section-label">PUBLISHING STUDIO</span>
           <h2>콘텐츠 배포 센터</h2>
-          <p>
-            유튜브를 먼저 연결하고, 나중에 다른 플랫폼도 같은 업로드 흐름에
-            붙일 수 있게 설계한 멀티 배포 센터입니다.
-          </p>
+          <p>활성화된 채널을 선택해서 영상과 게시글을 한 번에 배포합니다.</p>
         </div>
         <div className="inline-actions compact">
           <button className="secondary-action" onClick={() => setCurrentView('fan')}>
             팬 화면 미리보기
           </button>
         </div>
-      </div>
-
-      <div className="studio-layout">
-        <section className="studio-panel dark-surface">
-          <div className="panel-head">
-            <div>
-              <span className="card-kicker">유튜브 우선 연동</span>
-              <h3>YouTube 채널 연결</h3>
-            </div>
-            <span className="status-badge">Connected</span>
-          </div>
-
-          <div className="integration-stack">
-            <article className="integration-hero">
-              <span className="mini-label">등록된 채널</span>
-              {connectedChannel ? (
-                <>
-                  <strong>{connectedChannel.channel_title}</strong>
-                  <p>
-                    구독자 {connectedChannel.subscriber_count}명 · 팬방 `{connectedChannel.room_name}`에
-                    연결된 크리에이터 채널입니다.
-                  </p>
-                </>
-              ) : (
-                <>
-                  <strong>침착한개발자TV · @devtv</strong>
-                  <p>
-                    Google OAuth 연결과 YouTube Data API 설정이 끝난 상태입니다.
-                    업로드용 권한과 공개 상태 기본값도 저장돼 있습니다.
-                  </p>
-                </>
-              )}
-            </article>
-
-            <article className="channel-import-card">
-              <span className="mini-label">채널 불러오기 결과</span>
-              {connectedChannel ? (
-                <>
-                  <strong>
-                    {connectedChannel.channel_title}{' '}
-                    <span>{connectedChannel.subscriber_count} subscribers</span>
-                  </strong>
-                  <p>{connectedChannel.channel_description || '채널 설명이 아직 비어 있습니다.'}</p>
-                </>
-              ) : (
-                <>
-                  <strong>
-                    {importedChannelPreview.title} <span>{importedChannelPreview.handle}</span>
-                  </strong>
-                  <p>{importedChannelPreview.description}</p>
-                </>
-              )}
-            </article>
-
-            {connectedChannel ? (
-              <div className="channel-facts-grid">
-                <article className="detail-card">
-                  <span className="mini-label">채널 ID</span>
-                  <strong>{connectedChannel.channel_id}</strong>
-                  <p>Google 로그인 이후 선택된 실제 YouTube 채널 식별자입니다.</p>
-                </article>
-                <article className="detail-card">
-                  <span className="mini-label">팬방 슬러그</span>
-                  <strong>{connectedChannel.room_slug}</strong>
-                  <p>채널명 기준으로 생성된 크리에이터 팬방 주소입니다.</p>
-                </article>
-              </div>
-            ) : null}
-
-            <div className="credential-grid">
-              <div className="field-block">
-                <span className="mini-label">Client ID</span>
-                <div className="field masked">yt-client-8f3c••••••••••</div>
-              </div>
-              <div className="field-block">
-                <span className="mini-label">API Key</span>
-                <div className="field masked">AIzaSyD9••••••••••••••••</div>
-              </div>
-            </div>
-
-            <div className="chip-row">
-              <span className="info-chip">Upload API 연결</span>
-              <span className="info-chip">기본 공개값: 예약</span>
-              <span className="info-chip">팬방 공지 연동</span>
-              <span className="info-chip">푸시 발송 ON</span>
-            </div>
-
-            <div className="inline-actions">
-              {!isCreatorLoggedIn ? (
-                <button className="primary-action" onClick={() => void startCreatorGoogleLogin()}>
-                  {isStartingGoogleLogin ? 'Google로 이동 중...' : '구글 로그인 다시 하기'}
-                </button>
-              ) : null}
-              <button className="secondary-action small" onClick={() => void loadLatestConnection()}>
-                {isLoadingChannel ? '채널 불러오는 중...' : '내 채널 다시 불러오기'}
-              </button>
-              {connectedChannel ? (
-                <span className="helper-copy">
-                  팬방 `{connectedChannel.room_name}`과 연결된 최신 채널을 기준으로 업로드합니다.
-                </span>
-              ) : (
-                <span className="helper-copy">아직 프론트에 채널 정보를 불러오지 않았습니다.</span>
-              )}
-            </div>
-          </div>
-        </section>
-
-        <section className="studio-panel">
-          <div className="panel-head">
-            <div>
-              <span className="card-kicker">업로드 한번으로 실행</span>
-              <h3>자동 배포 플로우</h3>
-            </div>
-          </div>
-
-          <div className="autopublish-list">
-            {youtubeIntegrationSteps.map((step, index) => (
-              <article className="autopublish-card" key={step.title}>
-                <span className="autopublish-index">0{index + 1}</span>
-                <div>
-                  <strong>{step.title}</strong>
-                  <p>{step.body}</p>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
       </div>
 
       <div className="composer-switch-row">
