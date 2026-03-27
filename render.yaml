@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: influencehub-backend
+    runtime: docker
+    rootDir: backend
+    plan: free
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: APP_FRONTEND_URL
+        value: https://influence-hub-six.vercel.app
+      - key: APP_CORS_ALLOWED_ORIGINS
+        value: https://influence-hub-six.vercel.app

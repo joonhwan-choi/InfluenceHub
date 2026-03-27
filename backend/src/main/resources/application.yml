@@ -18,10 +18,12 @@ spring:
       max-request-size: 512MB
 
 server:
-  port: 8080
+  port: ${PORT:8080}
 
 app:
   frontend-url: ${APP_FRONTEND_URL:https://influence-hub-six.vercel.app}
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173,https://influence-hub-six.vercel.app}
 
 logging:
   level:
