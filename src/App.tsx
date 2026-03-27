@@ -20,6 +20,7 @@ type FanTab = 'feed' | 'calendar' | 'shop'
 type PrivacyStatus = 'private' | 'unlisted' | 'public'
 type AuthMode = 'influencer' | 'fan'
 type AuthMethod = 'social' | 'email'
+type DashboardSection = 'overview' | 'content' | 'community' | 'events' | 'store'
 
 type FeatureModule = {
   name: string
@@ -1912,33 +1913,7 @@ function App() {
 
   const renderDashboard = () => (
     <section className="dashboard-shell">
-      <div className="dashboard-sidebar">
-        <span className="section-label">CREATOR ROOM</span>
-        <h2>운영 대시보드</h2>
-        <p>
-          업로드, 공지, 이벤트, 매출, 팬 반응을 하나의 패널에서 보는 흐름으로
-          정리했습니다.
-        </p>
-
-        <div className="sidebar-menu">
-          <button className="sidebar-link active">개요</button>
-          <button className="sidebar-link" onClick={() => setCurrentView('content')}>
-            콘텐츠 배포
-          </button>
-          <button className="sidebar-link" onClick={() => setCurrentView('community')}>
-            팬 커뮤니티
-          </button>
-          <button className="sidebar-link" onClick={() => setCurrentView('events')}>
-            이벤트 운영
-          </button>
-          <button className="sidebar-link" onClick={() => setCurrentView('store')}>
-            굿즈 관리
-          </button>
-          <button className="sidebar-link" onClick={() => setCurrentView('fan')}>
-            팬 화면 보기
-          </button>
-        </div>
-      </div>
+      {renderDashboardSidebar('overview')}
 
       <div className="dashboard-main">
         <div className="metrics-grid">
@@ -2238,7 +2213,51 @@ function App() {
     </section>
   )
 
-  const renderContent = () => (
+  const renderDashboardSidebar = (activeSection: DashboardSection) => (
+    <div className="dashboard-sidebar">
+      <span className="section-label">INFLUENCER ROOM</span>
+      <h2>운영 대시보드</h2>
+      <p>메뉴는 고정하고, 오른쪽 작업 패널만 바뀌게 정리했습니다.</p>
+
+      <div className="sidebar-menu">
+        <button
+          className={activeSection === 'overview' ? 'sidebar-link active' : 'sidebar-link'}
+          onClick={() => setCurrentView('dashboard')}
+        >
+          개요
+        </button>
+        <button
+          className={activeSection === 'content' ? 'sidebar-link active' : 'sidebar-link'}
+          onClick={() => setCurrentView('content')}
+        >
+          콘텐츠 배포
+        </button>
+        <button
+          className={activeSection === 'community' ? 'sidebar-link active' : 'sidebar-link'}
+          onClick={() => setCurrentView('community')}
+        >
+          팬 커뮤니티
+        </button>
+        <button
+          className={activeSection === 'events' ? 'sidebar-link active' : 'sidebar-link'}
+          onClick={() => setCurrentView('events')}
+        >
+          이벤트 운영
+        </button>
+        <button
+          className={activeSection === 'store' ? 'sidebar-link active' : 'sidebar-link'}
+          onClick={() => setCurrentView('store')}
+        >
+          굿즈 관리
+        </button>
+        <button className="sidebar-link" onClick={() => setCurrentView('fan')}>
+          팬 화면 보기
+        </button>
+      </div>
+    </div>
+  )
+
+  const renderContentMain = () => (
     <section className="studio-shell">
       <div className="studio-header">
         <div>
@@ -2250,9 +2269,6 @@ function App() {
           </p>
         </div>
         <div className="inline-actions compact">
-          <button className="primary-action" onClick={() => setCurrentView('dashboard')}>
-            대시보드로
-          </button>
           <button className="secondary-action" onClick={() => setCurrentView('fan')}>
             팬 화면 미리보기
           </button>
@@ -2516,6 +2532,13 @@ function App() {
     </section>
   )
 
+  const renderContent = () => (
+    <section className="dashboard-shell">
+      {renderDashboardSidebar('content')}
+      <div className="dashboard-main">{renderContentMain()}</div>
+    </section>
+  )
+
   const renderPrivacy = () => (
     <section className="doc-shell">
       <div className="doc-hero">
@@ -2658,7 +2681,7 @@ function App() {
     </footer>
   )
 
-  const renderCommunity = () => (
+  const renderCommunityMain = () => (
     <section className="studio-shell">
       <div className="studio-header">
         <div>
@@ -2669,9 +2692,6 @@ function App() {
         <div className="inline-actions compact">
           <button className="primary-action" onClick={() => setCurrentView('fan')}>
             팬 홈에서 보기
-          </button>
-          <button className="secondary-action" onClick={() => setCurrentView('dashboard')}>
-            대시보드로
           </button>
         </div>
       </div>
@@ -2720,7 +2740,14 @@ function App() {
     </section>
   )
 
-  const renderEvents = () => (
+  const renderCommunity = () => (
+    <section className="dashboard-shell">
+      {renderDashboardSidebar('community')}
+      <div className="dashboard-main">{renderCommunityMain()}</div>
+    </section>
+  )
+
+  const renderEventsMain = () => (
     <section className="studio-shell">
       <div className="studio-header">
         <div>
@@ -2731,9 +2758,6 @@ function App() {
         <div className="inline-actions compact">
           <button className="primary-action" onClick={() => setCurrentView('fan')}>
             팬 참여 화면 보기
-          </button>
-          <button className="secondary-action" onClick={() => setCurrentView('dashboard')}>
-            대시보드로
           </button>
         </div>
       </div>
@@ -2754,7 +2778,14 @@ function App() {
     </section>
   )
 
-  const renderStore = () => (
+  const renderEvents = () => (
+    <section className="dashboard-shell">
+      {renderDashboardSidebar('events')}
+      <div className="dashboard-main">{renderEventsMain()}</div>
+    </section>
+  )
+
+  const renderStoreMain = () => (
     <section className="studio-shell">
       <div className="studio-header">
         <div>
@@ -2765,9 +2796,6 @@ function App() {
         <div className="inline-actions compact">
           <button className="primary-action" onClick={() => setCurrentView('fan')}>
             팬 스토어 보기
-          </button>
-          <button className="secondary-action" onClick={() => setCurrentView('dashboard')}>
-            대시보드로
           </button>
         </div>
       </div>
@@ -2811,6 +2839,13 @@ function App() {
           </div>
         </section>
       </div>
+    </section>
+  )
+
+  const renderStore = () => (
+    <section className="dashboard-shell">
+      {renderDashboardSidebar('store')}
+      <div className="dashboard-main">{renderStoreMain()}</div>
     </section>
   )
 

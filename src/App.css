@@ -1308,7 +1308,8 @@
 }
 
 .dashboard-shell {
-  grid-template-columns: minmax(280px, 0.72fr) minmax(0, 1.28fr);
+  align-items: start;
+  grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
 }
 
 .metrics-grid {
@@ -1335,6 +1336,12 @@
 .dashboard-main {
   display: grid;
   gap: 18px;
+}
+
+.dashboard-sidebar {
+  position: sticky;
+  top: 24px;
+  align-self: start;
 }
 
 .studio-shell {
