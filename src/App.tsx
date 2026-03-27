@@ -11,6 +11,7 @@ type View =
   | 'community'
   | 'events'
   | 'store'
+  | 'platforms'
   | 'privacy'
   | 'terms'
   | 'invite'
@@ -21,7 +22,7 @@ type PrivacyStatus = 'private' | 'unlisted' | 'public'
 type PublishComposerMode = 'video' | 'post'
 type AuthMode = 'influencer' | 'fan'
 type AuthMethod = 'social' | 'email'
-type DashboardSection = 'overview' | 'content' | 'community' | 'events' | 'store'
+type DashboardSection = 'overview' | 'content' | 'community' | 'events' | 'store' | 'platforms'
 type BannerStyle = 'focus' | 'soft' | 'broadcast'
 type ButtonStyle = 'rounded' | 'solid' | 'outlined'
 type CardDensity = 'compact' | 'comfortable' | 'airy'
@@ -3471,19 +3472,6 @@ function App() {
       <h2>운영 대시보드</h2>
       <p>채널 운영, 플랫폼 연결, 배포 작업을 같은 허브 안에서 관리합니다.</p>
 
-      <div className="sidebar-platform-summary">
-        <div className="sidebar-platform-card">
-          <span className="mini-label">YouTube 구독자</span>
-          <strong>{connectedChannel ? `${connectedChannel.subscriber_count}명` : '미연결'}</strong>
-          <p>{connectedChannel?.channel_title ?? '채널 연결 필요'}</p>
-        </div>
-        <div className="sidebar-platform-card">
-          <span className="mini-label">Instagram 팔로워</span>
-          <strong>{platformSetup.Instagram.isEnabled ? '연동됨' : '미연결'}</strong>
-          <p>{platformSetup.Instagram.isEnabled ? '팔로워 집계 연동 예정' : '플랫폼 설정 필요'}</p>
-        </div>
-      </div>
-
       <div className="sidebar-menu">
         <button
           className={activeSection === 'overview' ? 'sidebar-link active' : 'sidebar-link'}
@@ -3516,8 +3504,8 @@ function App() {
           굿즈 관리
         </button>
         <button
-          className={currentView === 'room' && roomSettingsSection === 'platforms' ? 'sidebar-link active' : 'sidebar-link'}
-          onClick={() => openRoomSettingsSection('platforms')}
+          className={activeSection === 'platforms' ? 'sidebar-link active' : 'sidebar-link'}
+          onClick={() => setCurrentView('platforms')}
         >
           플랫폼 관리
         </button>
@@ -4378,6 +4366,150 @@ function App() {
     </section>
   )
 
+  const renderPlatformsMain = () => (
+    <section className={`studio-shell creator-workspace ${creatorExperienceClasses}`}>
+      <div className="studio-header">
+        <div>
+          <span className="section-label">PLATFORM BOARD</span>
+          <h2>플랫폼 관리</h2>
+          <p>연결된 플랫폼 상태, 지표, 활성화 여부를 한 화면에서 관리합니다.</p>
+        </div>
+        <div className="inline-actions compact">
+          <button className="secondary-action" onClick={() => setCurrentView('content')}>
+            콘텐츠 배포로
+          </button>
+        </div>
+      </div>
+
+      <div className="metrics-grid">
+        <article className="metric-card">
+          <span className="mini-label">YouTube 구독자</span>
+          <strong>{connectedChannel ? `${connectedChannel.subscriber_count}명` : '미연결'}</strong>
+          <span className="metric-change">{connectedChannel?.channel_title ?? '채널 연결 필요'}</span>
+        </article>
+        <article className="metric-card">
+          <span className="mini-label">Instagram</span>
+          <strong>{platformSetup.Instagram.isEnabled ? '연동됨' : '미연결'}</strong>
+          <span className="metric-change">
+            {platformSetup.Instagram.isEnabled ? '팔로워 집계 연동 예정' : '플랫폼 설정 필요'}
+          </span>
+        </article>
+        <article className="metric-card">
+          <span className="mini-label">활성 채널</span>
+          <strong>{enabledPlatforms.length}개</strong>
+          <span className="metric-change">
+            {enabledPlatforms.length > 0 ? enabledPlatforms.map((platform) => platform.name).join(' · ') : '아직 없음'}
+          </span>
+        </article>
+      </div>
+
+      <section className="studio-panel dark-surface">
+        <div className="panel-head">
+          <div>
+            <span className="card-kicker">배포 채널 관리</span>
+            <h3>연결된 플랫폼 현황</h3>
+          </div>
+        </div>
+
+        <div className="platform-management-grid">
+          <div className="platform-grid">
+            {platformCatalog.map((platform) => {
+              const state = platformSetup[platform.name]
+
+              return (
+                <button
+                  className={
+                    platform.name === selectedPlatformName
+                      ? `platform-card ${platform.tone} active-selection`
+                      : `platform-card ${platform.tone}`
+                  }
+                  key={platform.name}
+                  onClick={() => setSelectedPlatformName(platform.name)}
+                  type="button"
+                >
+                  <span className="platform-status">{state?.statusLabel ?? platform.status}</span>
+                  <strong>{platform.name}</strong>
+                  <p>{platform.detail}</p>
+                </button>
+              )
+            })}
+          </div>
+
+          <section className="platform-config-panel">
+            <div className="panel-head">
+              <div>
+                <span className="card-kicker">선택된 채널</span>
+                <h3>{selectedPlatformName} 연결 정보</h3>
+              </div>
+              <span className={selectedPlatformConfig.isEnabled ? 'status-badge' : 'status-badge muted'}>
+                {selectedPlatformConfig.statusLabel}
+              </span>
+            </div>
+
+            <div className="credential-grid">
+              <div className="field-block">
+                <span className="mini-label">{selectedPlatformLabels.client}</span>
+                <input
+                  className="text-input"
+                  value={selectedPlatformConfig.clientValue}
+                  onChange={(event) =>
+                    updatePlatformSetup(selectedPlatformName, { clientValue: event.target.value })
+                  }
+                  placeholder={`${selectedPlatformName} ${selectedPlatformLabels.client}`}
+                />
+              </div>
+              <div className="field-block">
+                <span className="mini-label">{selectedPlatformLabels.secret}</span>
+                <input
+                  className="text-input"
+                  value={selectedPlatformConfig.secretValue}
+                  onChange={(event) =>
+                    updatePlatformSetup(selectedPlatformName, { secretValue: event.target.value })
+                  }
+                  placeholder={`${selectedPlatformName} ${selectedPlatformLabels.secret}`}
+                />
+              </div>
+            </div>
+
+            <div className="chip-row">
+              <span className="info-chip">
+                {selectedPlatformConfig.isEnabled ? '현재 활성화됨' : '현재 비활성화'}
+              </span>
+              <span className="info-chip">
+                {selectedPlatformConfig.supportsVideo ? '영상 배포 가능' : '영상 API 미지원'}
+              </span>
+              <span className="info-chip">
+                {selectedPlatformConfig.supportsPost ? '게시글 배포 가능' : '게시글 API 미지원'}
+              </span>
+            </div>
+
+            <div className="inline-actions">
+              <button className="secondary-action" onClick={handleTestPlatformConnection} type="button">
+                연결 테스트
+              </button>
+              <button className="primary-action" onClick={handleTogglePlatformActivation} type="button">
+                {selectedPlatformConfig.isEnabled ? '비활성화' : '활성화'}
+              </button>
+            </div>
+
+            <div className="notice-preview compact-highlight">
+              <span className="mini-label">운영 메모</span>
+              <strong>{selectedPlatformName} 연결 상태와 입력값을 여기서 관리합니다.</strong>
+              <p>콘텐츠 배포에서는 이 화면에서 활성화한 채널만 선택해서 한번에 배포합니다.</p>
+            </div>
+          </section>
+        </div>
+      </section>
+    </section>
+  )
+
+  const renderPlatforms = () => (
+    <section className="dashboard-shell">
+      {renderDashboardSidebar('platforms')}
+      <div className="dashboard-main">{renderPlatformsMain()}</div>
+    </section>
+  )
+
   const renderFan = () =>
     !fanSession && !isCreatorLoggedIn ? (
       <section className="scene-panel light">
@@ -4748,6 +4880,13 @@ function App() {
           : renderCreatorAccessGuard(
               '굿즈 관리 보드는 크리에이터 전용입니다',
               '상품 재고와 드롭 관리 정보는 팬에게 그대로 노출되기보다 운영자 보드에서 관리되는 편이 자연스럽습니다.',
+            ))}
+      {currentView === 'platforms' &&
+        (isCreatorLoggedIn
+          ? renderPlatforms()
+          : renderCreatorAccessGuard(
+              '플랫폼 관리는 크리에이터 전용입니다',
+              '채널 연결, 상태 확인, 활성화 관리는 운영자 역할에서만 다루는 것이 자연스럽습니다.',
             ))}
       {currentView === 'privacy' && renderPrivacy()}
       {currentView === 'terms' && renderTerms()}
