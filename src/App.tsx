@@ -18,6 +18,7 @@ type View =
 
 type FanTab = 'feed' | 'calendar' | 'shop'
 type PrivacyStatus = 'private' | 'unlisted' | 'public'
+type PublishComposerMode = 'video' | 'post'
 type AuthMode = 'influencer' | 'fan'
 type AuthMethod = 'social' | 'email'
 type DashboardSection = 'overview' | 'content' | 'community' | 'events' | 'store'
@@ -44,6 +45,13 @@ type FanRoom = {
   label: string
   meta: string
   joinedVia: string
+}
+
+type FanFeedItem = {
+  title: string
+  text: string
+  badge: string
+  imageUrl?: string
 }
 
 type ChannelConnection = {
@@ -191,6 +199,7 @@ type CommunityPostItem = {
   content: string
   author_name: string
   created_at: string
+  image_url?: string
 }
 
 type EventSummaryItem = {
@@ -519,7 +528,7 @@ const storeItems = [
   },
 ]
 
-const fanFeed = [
+const fanFeed: FanFeedItem[] = [
   {
     title: '방장 공지',
     text: '오늘 저녁 8시 업로드 영상 공개 후, 팬방 Q&A도 바로 열릴 예정입니다.',
@@ -639,6 +648,7 @@ function App() {
   const [uploadDescription, setUploadDescription] = useState(
     'InfluenceHub에서 테스트 업로드한 영상입니다.',
   )
+  const [publishComposerMode, setPublishComposerMode] = useState<PublishComposerMode>('video')
   const [privacyStatus, setPrivacyStatus] = useState<PrivacyStatus>('private')
   const [useScheduledPublish, setUseScheduledPublish] = useState(false)
   const [scheduledPublishAt, setScheduledPublishAt] = useState(() => {
@@ -650,6 +660,13 @@ function App() {
   })
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [uploadPreviewUrl, setUploadPreviewUrl] = useState<string | null>(null)
+  const [postTitle, setPostTitle] = useState('오늘 팬방 선공개 컷')
+  const [postBody, setPostBody] = useState(
+    '본편 올라가기 전에 현장 스틸 먼저 올립니다. 오늘 밤 라이브에서 비하인드 더 풀게요.',
+  )
+  const [selectedPostImage, setSelectedPostImage] = useState<File | null>(null)
+  const [postPreviewUrl, setPostPreviewUrl] = useState<string | null>(null)
+  const [postStatus, setPostStatus] = useState('아직 게시 전')
   const [uploadStatus, setUploadStatus] = useState('아직 업로드 전')
   const [uploadError, setUploadError] = useState('')
   const [scheduleStatus, setScheduleStatus] = useState('예약 등록 전')
@@ -724,12 +741,13 @@ function App() {
     client: '연결 값',
     secret: '보안 값',
   }
-  const visibleFanFeed =
+  const visibleFanFeed: FanFeedItem[] =
     isCreatorLoggedIn && communityFeed.length > 0
       ? communityFeed.slice(0, 3).map((post) => ({
           title: post.title,
           text: post.content,
           badge: postTypeToBadge[post.post_type] ?? 'POST',
+          imageUrl: post.image_url,
         }))
       : fanFeed
   const homeStatCards = [
@@ -1463,6 +1481,11 @@ function App() {
     setSelectedFile(nextFile)
   }
 
+  const handlePostImageChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const nextFile = event.target.files?.[0] ?? null
+    setSelectedPostImage(nextFile)
+  }
+
   useEffect(() => {
     if (!selectedFile) {
       setUploadPreviewUrl(null)
@@ -1476,6 +1499,49 @@ function App() {
       URL.revokeObjectURL(objectUrl)
     }
   }, [selectedFile])
+
+  useEffect(() => {
+    if (!selectedPostImage) {
+      setPostPreviewUrl(null)
+      return
+    }
+
+    const objectUrl = URL.createObjectURL(selectedPostImage)
+    setPostPreviewUrl(objectUrl)
+
+    return () => {
+      URL.revokeObjectURL(objectUrl)
+    }
+  }, [selectedPostImage])
+
+  const handlePublishPost = () => {
+    if (!postTitle.trim()) {
+      setUploadError('게시글 제목을 입력하세요.')
+      return
+    }
+
+    if (!postBody.trim()) {
+      setUploadError('게시글 본문을 입력하세요.')
+      return
+    }
+
+    const createdAt = new Date().toISOString()
+    const draftPost: CommunityPostItem = {
+      post_id: Date.now(),
+      post_type: 'FREE',
+      title: postTitle.trim(),
+      content: postBody.trim(),
+      author_name: connectedChannel?.channel_title ?? '운영자',
+      created_at: createdAt,
+      image_url: postPreviewUrl ?? undefined,
+    }
+
+    setCommunityFeed((current) => [draftPost, ...current])
+    setPostStatus('팬방 게시글 등록 완료')
+    setUploadError('')
+    setFanTab('feed')
+    setCurrentView('content')
+  }
 
   const handleUpload = async () => {
     if (!selectedFile) {
@@ -3185,73 +3251,127 @@ function App() {
         </section>
       </div>
 
+      <div className="composer-switch-row">
+        <button
+          className={publishComposerMode === 'video' ? 'privacy-toggle active' : 'privacy-toggle'}
+          onClick={() => setPublishComposerMode('video')}
+          type="button"
+        >
+          영상 배포
+        </button>
+        <button
+          className={publishComposerMode === 'post' ? 'privacy-toggle active' : 'privacy-toggle'}
+          onClick={() => setPublishComposerMode('post')}
+          type="button"
+        >
+          게시글 배포
+        </button>
+      </div>
+
       <div className="split-grid">
         <section className="studio-panel">
           <div className="panel-head">
             <div>
               <span className="card-kicker">인플루언스허브 업로드</span>
-              <h3>오늘의 메인 영상</h3>
+              <h3>{publishComposerMode === 'video' ? '오늘의 메인 영상' : '팬방 게시글 작성'}</h3>
             </div>
-            <span className="status-badge">Queued</span>
+            <span className="status-badge">{publishComposerMode === 'video' ? 'Queued' : 'Post Ready'}</span>
           </div>
 
           <div className="form-stack">
-            <div className="field-block">
-              <span className="mini-label">제목</span>
-              <input
-                className="text-input"
-                value={uploadTitle}
-                onChange={(event) => setUploadTitle(event.target.value)}
-                placeholder="영상 제목을 입력하세요"
-              />
-            </div>
-            <div className="field-block">
-              <span className="mini-label">설명란</span>
-              <textarea
-                className="text-area"
-                value={uploadDescription}
-                onChange={(event) => setUploadDescription(event.target.value)}
-                placeholder="영상 설명을 입력하세요"
-              />
-            </div>
-            <div className="field-block">
-              <span className="mini-label">영상 파일</span>
-              <label className="upload-dropzone">
-                <input accept="video/mp4" className="file-input" onChange={handleFileChange} type="file" />
-                <strong>{selectedFile ? selectedFile.name : 'mp4 파일 선택'}</strong>
-                <span>
-                  {selectedFile
-                    ? `${(selectedFile.size / 1024 / 1024).toFixed(1)}MB · 업로드 준비 완료`
-                    : '260MB 안팎 대용량 영상도 바로 전송할 수 있습니다.'}
-                </span>
-              </label>
-            </div>
-            <div className="field-block">
-              <span className="mini-label">공개 범위</span>
-              <div className="privacy-toggle-row">
-                {(['private', 'unlisted', 'public'] as PrivacyStatus[]).map((option) => (
+            {publishComposerMode === 'video' ? (
+              <>
+                <div className="field-block">
+                  <span className="mini-label">제목</span>
+                  <input
+                    className="text-input"
+                    value={uploadTitle}
+                    onChange={(event) => setUploadTitle(event.target.value)}
+                    placeholder="영상 제목을 입력하세요"
+                  />
+                </div>
+                <div className="field-block">
+                  <span className="mini-label">설명란</span>
+                  <textarea
+                    className="text-area"
+                    value={uploadDescription}
+                    onChange={(event) => setUploadDescription(event.target.value)}
+                    placeholder="영상 설명을 입력하세요"
+                  />
+                </div>
+                <div className="field-block">
+                  <span className="mini-label">영상 파일</span>
+                  <label className="upload-dropzone">
+                    <input accept="video/mp4" className="file-input" onChange={handleFileChange} type="file" />
+                    <strong>{selectedFile ? selectedFile.name : 'mp4 파일 선택'}</strong>
+                    <span>
+                      {selectedFile
+                        ? `${(selectedFile.size / 1024 / 1024).toFixed(1)}MB · 업로드 준비 완료`
+                        : '260MB 안팎 대용량 영상도 바로 전송할 수 있습니다.'}
+                    </span>
+                  </label>
+                </div>
+                <div className="field-block">
+                  <span className="mini-label">공개 범위</span>
+                  <div className="privacy-toggle-row">
+                    {(['private', 'unlisted', 'public'] as PrivacyStatus[]).map((option) => (
+                      <button
+                        className={privacyStatus === option ? 'privacy-toggle active' : 'privacy-toggle'}
+                        key={option}
+                        onClick={() => setPrivacyStatus(option)}
+                        type="button"
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="field-block">
+                  <span className="mini-label">추가 옵션</span>
                   <button
-                    className={privacyStatus === option ? 'privacy-toggle active' : 'privacy-toggle'}
-                    key={option}
-                    onClick={() => setPrivacyStatus(option)}
+                    className={useScheduledPublish ? 'privacy-toggle active' : 'privacy-toggle'}
+                    onClick={() => setUseScheduledPublish((current) => !current)}
                     type="button"
                   >
-                    {option}
+                    {useScheduledPublish ? '예약 배포 사용 중' : '예약 배포 사용'}
                   </button>
-                ))}
-              </div>
-            </div>
-            <div className="field-block">
-              <span className="mini-label">추가 옵션</span>
-              <button
-                className={useScheduledPublish ? 'privacy-toggle active' : 'privacy-toggle'}
-                onClick={() => setUseScheduledPublish((current) => !current)}
-                type="button"
-              >
-                {useScheduledPublish ? '예약 배포 사용 중' : '예약 배포 사용'}
-              </button>
-            </div>
-            {useScheduledPublish ? (
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="field-block">
+                  <span className="mini-label">게시글 제목</span>
+                  <input
+                    className="text-input"
+                    value={postTitle}
+                    onChange={(event) => setPostTitle(event.target.value)}
+                    placeholder="팬방에 보여줄 제목을 입력하세요"
+                  />
+                </div>
+                <div className="field-block">
+                  <span className="mini-label">게시글 본문</span>
+                  <textarea
+                    className="text-area"
+                    value={postBody}
+                    onChange={(event) => setPostBody(event.target.value)}
+                    placeholder="공지, 사진 설명, 근황 글을 적어보세요"
+                  />
+                </div>
+                <div className="field-block">
+                  <span className="mini-label">첨부 사진</span>
+                  <label className="upload-dropzone">
+                    <input accept="image/*" className="file-input" onChange={handlePostImageChange} type="file" />
+                    <strong>{selectedPostImage ? selectedPostImage.name : '사진 파일 선택'}</strong>
+                    <span>
+                      {selectedPostImage
+                        ? `${(selectedPostImage.size / 1024 / 1024).toFixed(1)}MB · 게시 준비 완료`
+                        : '팬방 공지, 비하인드 컷, 티저 이미지를 함께 올릴 수 있습니다.'}
+                    </span>
+                  </label>
+                </div>
+              </>
+            )}
+            {publishComposerMode === 'video' && useScheduledPublish ? (
               <div className="field-block">
                 <span className="mini-label">예약 시간</span>
                 <input
@@ -3263,24 +3383,52 @@ function App() {
               </div>
             ) : null}
             <div className="chip-row">
-              <span className="info-chip">업로드 파일 1개</span>
-              <span className="info-chip">썸네일 자동 첨부</span>
-              <span className="info-chip">공지 초안 자동 생성</span>
+              {publishComposerMode === 'video' ? (
+                <>
+                  <span className="info-chip">업로드 파일 1개</span>
+                  <span className="info-chip">썸네일 자동 첨부</span>
+                  <span className="info-chip">공지 초안 자동 생성</span>
+                </>
+              ) : (
+                <>
+                  <span className="info-chip">사진 첨부 가능</span>
+                  <span className="info-chip">팬 피드 즉시 반영</span>
+                  <span className="info-chip">공지/근황/티저 활용</span>
+                </>
+              )}
             </div>
             <div className="upload-action-row">
-              {useScheduledPublish ? (
+              {publishComposerMode === 'video' && useScheduledPublish ? (
                 <button className="secondary-action" onClick={() => void handleSchedulePublish()} type="button">
                   예약 타임라인 등록
                 </button>
               ) : null}
-              <button className="primary-action" onClick={() => void handleUpload()} type="button">
-                {isUploading ? '업로드 중...' : 'YouTube 업로드'}
+              <button
+                className="primary-action"
+                onClick={() => {
+                  if (publishComposerMode === 'video') {
+                    void handleUpload()
+                    return
+                  }
+                  handlePublishPost()
+                }}
+                type="button"
+              >
+                {publishComposerMode === 'video'
+                  ? isUploading
+                    ? '업로드 중...'
+                    : 'YouTube 업로드'
+                  : '팬방 게시글 배포'}
               </button>
-              <span className="helper-copy">{uploadStatus}</span>
+              <span className="helper-copy">
+                {publishComposerMode === 'video' ? uploadStatus : postStatus}
+              </span>
             </div>
-            {useScheduledPublish ? <span className="helper-copy">{scheduleStatus}</span> : null}
+            {publishComposerMode === 'video' && useScheduledPublish ? (
+              <span className="helper-copy">{scheduleStatus}</span>
+            ) : null}
             {uploadError ? <p className="feedback-message error">{uploadError}</p> : null}
-            {uploadResult ? (
+            {publishComposerMode === 'video' && uploadResult ? (
               <article className="upload-result-card">
                 <span className="mini-label">업로드 결과</span>
                 <strong>{uploadResult.title}</strong>
@@ -3291,6 +3439,14 @@ function App() {
                 </a>
               </article>
             ) : null}
+            {publishComposerMode === 'post' ? (
+              <article className="upload-result-card">
+                <span className="mini-label">게시 상태</span>
+                <strong>{postTitle.trim() || '게시글 제목 미입력'}</strong>
+                <p>{postStatus}</p>
+                <p>{selectedPostImage ? '사진 1장 첨부 준비 완료' : '텍스트만으로도 게시 가능합니다.'}</p>
+              </article>
+            ) : null}
           </div>
         </section>
 
@@ -3298,115 +3454,189 @@ function App() {
           <div className="panel-head">
             <div>
               <span className="card-kicker">업로드 전 확인</span>
-              <h3>미리보기와 체크</h3>
+              <h3>{publishComposerMode === 'video' ? '미리보기와 체크' : '게시글 미리보기'}</h3>
             </div>
           </div>
 
           <div className="upload-preview-panel">
             <div className="upload-preview-stage">
-              {uploadPreviewUrl ? (
+              {publishComposerMode === 'video' && uploadPreviewUrl ? (
                 <video className="upload-preview-video" controls preload="metadata" src={uploadPreviewUrl} />
-              ) : (
-                <div className="upload-preview-empty">
-                  <strong>영상 미리보기</strong>
-                  <p>파일을 고르면 여기서 업로드 전에 바로 확인할 수 있습니다.</p>
+              ) : null}
+              {publishComposerMode === 'post' && postPreviewUrl ? (
+                <div className="post-preview-stage">
+                  <img alt={postTitle || '게시글 첨부 이미지'} className="post-preview-image" src={postPreviewUrl} />
                 </div>
-              )}
+              ) : null}
+              {(publishComposerMode === 'video' && !uploadPreviewUrl) ||
+              (publishComposerMode === 'post' && !postPreviewUrl) ? (
+                <div className="upload-preview-empty">
+                  <strong>{publishComposerMode === 'video' ? '영상 미리보기' : '게시글 대표 이미지'}</strong>
+                  <p>
+                    {publishComposerMode === 'video'
+                      ? '파일을 고르면 여기서 업로드 전에 바로 확인할 수 있습니다.'
+                      : '사진을 고르면 팬방에 올라갈 대표 이미지를 먼저 볼 수 있습니다.'}
+                  </p>
+                </div>
+              ) : null}
             </div>
 
             <div className="upload-checklist">
-              <article className="upload-check-card">
-                <span className="mini-label">업로드 제목</span>
-                <strong>{uploadTitle.trim() || '제목 미입력'}</strong>
-                <p>{uploadDescription.trim() ? '설명란 입력 완료' : '설명란을 더 적을 수 있습니다.'}</p>
-              </article>
-              <article className="upload-check-card">
-                <span className="mini-label">공개 범위</span>
-                <strong>{privacyStatus}</strong>
-                <p>{privacyStatus === 'private' ? '검수용 업로드에 적합' : privacyStatus === 'unlisted' ? '링크 공유용 업로드' : '즉시 공개 업로드'}</p>
-              </article>
-              {useScheduledPublish ? (
-                <article className="upload-check-card">
-                  <span className="mini-label">예약 시간</span>
-                  <strong>{scheduledPublishAt ? new Date(scheduledPublishAt).toLocaleString('ko-KR') : '미정'}</strong>
-                  <p>예약 타임라인 등록 시 이 시간이 기준으로 저장됩니다.</p>
-                </article>
-              ) : null}
-              <article className="upload-check-card">
-                <span className="mini-label">파일 정보</span>
-                <strong>{selectedFile ? selectedFile.name : '파일 미선택'}</strong>
-                <p>{selectedFile ? `${(selectedFile.size / 1024 / 1024).toFixed(1)}MB · 업로드 준비 완료` : 'mp4 파일을 먼저 선택하세요.'}</p>
-              </article>
-            </div>
-          </div>
-
-          <div className="timeline-list">
-            <div className="panel-head">
-              <div>
-                <span className="card-kicker">발행 순서</span>
-                <h3>예약 타임라인</h3>
-              </div>
-            </div>
-            {contentTimeline.map((item) => (
-              <article className="timeline-row" key={item.title}>
-                <span className="timeline-time">{item.time}</span>
-                <div>
-                  <strong>{item.title}</strong>
-                  <p>{item.body}</p>
-                </div>
-              </article>
-            ))}
-            {publishHistory
-              .filter((job) => job.status === 'READY' || job.status === 'PROCESSING')
-              .slice(0, 4)
-              .map((job) => (
-                <article className="timeline-row" key={`scheduled-${job.publish_job_id}`}>
-                  <span className="timeline-time">
-                    {new Date(job.scheduled_at).toLocaleString('ko-KR', {
-                      month: 'numeric',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </span>
-                  <div>
-                    <strong>{job.title}</strong>
-                    <p>{job.platform} · {job.status === 'READY' ? '예약 대기 중' : '처리 중'}</p>
-                  </div>
-                </article>
-              ))}
-          </div>
-
-          <div className="timeline-list">
-            <div className="panel-head">
-              <div>
-                <span className="card-kicker">최근 발행 이력</span>
-                <h3>업로드 기록</h3>
-              </div>
-            </div>
-            {publishHistory.length > 0 ? (
-              publishHistory.map((job) => (
-                <article className="timeline-row" key={job.publish_job_id}>
-                  <span className="timeline-time">{job.platform}</span>
-                  <div>
-                    <strong>{job.title}</strong>
+              {publishComposerMode === 'video' ? (
+                <>
+                  <article className="upload-check-card">
+                    <span className="mini-label">업로드 제목</span>
+                    <strong>{uploadTitle.trim() || '제목 미입력'}</strong>
+                    <p>{uploadDescription.trim() ? '설명란 입력 완료' : '설명란을 더 적을 수 있습니다.'}</p>
+                  </article>
+                  <article className="upload-check-card">
+                    <span className="mini-label">공개 범위</span>
+                    <strong>{privacyStatus}</strong>
                     <p>
-                      {job.status} · {new Date(job.created_at).toLocaleString('ko-KR')}
+                      {privacyStatus === 'private'
+                        ? '검수용 업로드에 적합'
+                        : privacyStatus === 'unlisted'
+                          ? '링크 공유용 업로드'
+                          : '즉시 공개 업로드'}
                     </p>
-                    {job.target_url ? (
-                      <a className="result-link" href={job.target_url} rel="noreferrer" target="_blank">
-                        결과 보기
-                      </a>
-                    ) : null}
+                  </article>
+                  {useScheduledPublish ? (
+                    <article className="upload-check-card">
+                      <span className="mini-label">예약 시간</span>
+                      <strong>{scheduledPublishAt ? new Date(scheduledPublishAt).toLocaleString('ko-KR') : '미정'}</strong>
+                      <p>예약 타임라인 등록 시 이 시간이 기준으로 저장됩니다.</p>
+                    </article>
+                  ) : null}
+                  <article className="upload-check-card">
+                    <span className="mini-label">파일 정보</span>
+                    <strong>{selectedFile ? selectedFile.name : '파일 미선택'}</strong>
+                    <p>
+                      {selectedFile
+                        ? `${(selectedFile.size / 1024 / 1024).toFixed(1)}MB · 업로드 준비 완료`
+                        : 'mp4 파일을 먼저 선택하세요.'}
+                    </p>
+                  </article>
+                </>
+              ) : (
+                <>
+                  <article className="upload-check-card">
+                    <span className="mini-label">게시글 제목</span>
+                    <strong>{postTitle.trim() || '제목 미입력'}</strong>
+                    <p>{postBody.trim() ? '본문 입력 완료' : '본문을 더 적을 수 있습니다.'}</p>
+                  </article>
+                  <article className="upload-check-card">
+                    <span className="mini-label">본문 요약</span>
+                    <strong>{postBody.trim().slice(0, 26) || '본문 미입력'}</strong>
+                    <p>{postBody.trim().length > 26 ? '팬 피드에서는 요약으로 노출됩니다.' : '짧은 공지도 바로 올릴 수 있습니다.'}</p>
+                  </article>
+                  <article className="upload-check-card">
+                    <span className="mini-label">첨부 이미지</span>
+                    <strong>{selectedPostImage ? selectedPostImage.name : '이미지 미선택'}</strong>
+                    <p>
+                      {selectedPostImage
+                        ? `${(selectedPostImage.size / 1024 / 1024).toFixed(1)}MB · 게시 준비 완료`
+                        : '사진 없이 텍스트 게시글만 올려도 됩니다.'}
+                    </p>
+                  </article>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="timeline-list">
+            <div className="panel-head">
+              <div>
+                <span className="card-kicker">
+                  {publishComposerMode === 'video' ? '발행 순서' : '게시글 미리보기'}
+                </span>
+                <h3>{publishComposerMode === 'video' ? '예약 타임라인' : '팬 피드에 보이는 방식'}</h3>
+              </div>
+            </div>
+            {publishComposerMode === 'video' ? (
+              <>
+                {contentTimeline.map((item) => (
+                  <article className="timeline-row" key={item.title}>
+                    <span className="timeline-time">{item.time}</span>
+                    <div>
+                      <strong>{item.title}</strong>
+                      <p>{item.body}</p>
+                    </div>
+                  </article>
+                ))}
+                {publishHistory
+                  .filter((job) => job.status === 'READY' || job.status === 'PROCESSING')
+                  .slice(0, 4)
+                  .map((job) => (
+                    <article className="timeline-row" key={`scheduled-${job.publish_job_id}`}>
+                      <span className="timeline-time">
+                        {new Date(job.scheduled_at).toLocaleString('ko-KR', {
+                          month: 'numeric',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </span>
+                      <div>
+                        <strong>{job.title}</strong>
+                        <p>{job.platform} · {job.status === 'READY' ? '예약 대기 중' : '처리 중'}</p>
+                      </div>
+                    </article>
+                  ))}
+              </>
+            ) : (
+              <article className="post-preview-card">
+                {postPreviewUrl ? (
+                  <img alt={postTitle || '게시글 미리보기'} className="post-preview-card-image" src={postPreviewUrl} />
+                ) : null}
+                <span className="fan-badge">POST</span>
+                <strong>{postTitle.trim() || '게시글 제목을 입력하세요'}</strong>
+                <p>{postBody.trim() || '팬방에 올라갈 본문이 여기에 미리 보입니다.'}</p>
+              </article>
+            )}
+          </div>
+
+          <div className="timeline-list">
+            <div className="panel-head">
+              <div>
+                <span className="card-kicker">
+                  {publishComposerMode === 'video' ? '최근 발행 이력' : '최근 게시 흐름'}
+                </span>
+                <h3>{publishComposerMode === 'video' ? '업로드 기록' : '게시글 반영 상태'}</h3>
+              </div>
+            </div>
+            {publishComposerMode === 'video' ? (
+              publishHistory.length > 0 ? (
+                publishHistory.map((job) => (
+                  <article className="timeline-row" key={job.publish_job_id}>
+                    <span className="timeline-time">{job.platform}</span>
+                    <div>
+                      <strong>{job.title}</strong>
+                      <p>
+                        {job.status} · {new Date(job.created_at).toLocaleString('ko-KR')}
+                      </p>
+                      {job.target_url ? (
+                        <a className="result-link" href={job.target_url} rel="noreferrer" target="_blank">
+                          결과 보기
+                        </a>
+                      ) : null}
+                    </div>
+                  </article>
+                ))
+              ) : (
+                <article className="timeline-row">
+                  <span className="timeline-time">READY</span>
+                  <div>
+                    <strong>아직 업로드 이력이 없습니다</strong>
+                    <p>첫 업로드를 실행하면 최근 발행 기록이 여기에 쌓입니다.</p>
                   </div>
                 </article>
-              ))
+              )
             ) : (
               <article className="timeline-row">
-                <span className="timeline-time">READY</span>
+                <span className="timeline-time">POST</span>
                 <div>
-                  <strong>아직 업로드 이력이 없습니다</strong>
-                  <p>첫 업로드를 실행하면 최근 발행 기록이 여기에 쌓입니다.</p>
+                  <strong>{postStatus}</strong>
+                  <p>게시글 배포를 누르면 팬 피드에 새 카드가 바로 추가됩니다.</p>
                 </div>
               </article>
             )}
@@ -4013,6 +4243,7 @@ function App() {
             <div className="fan-moment-list">
               {visibleFanFeed.map((moment) => (
                 <article className="fan-moment-card" key={moment.title}>
+                  {moment.imageUrl ? <img alt={moment.title} className="fan-moment-media" src={moment.imageUrl} /> : null}
                   <span className="fan-badge">{moment.badge}</span>
                   <strong>{moment.title}</strong>
                   <p>{moment.text}</p>
