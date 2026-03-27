@@ -578,17 +578,10 @@ function App() {
           ['home', '홈'],
           ['fan', '내 팬방'],
           ['invite', '초대 링크'],
-          ['privacy', '개인정보'],
-          ['terms', '약관'],
         ]
       : [
           ['home', '홈'],
           ['signup', '가입'],
-          ['room', '팬방 생성'],
-          ['features', '기능 설정'],
-          ['dashboard', '운영 대시보드'],
-          ['privacy', '개인정보'],
-          ['terms', '약관'],
           ['fan', '팬 화면'],
         ]
 
