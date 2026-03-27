@@ -925,9 +925,8 @@ function App() {
   const headerTabs: Array<[View, string]> = isCreatorLoggedIn
     ? [
         ['home', '홈'],
-        ['content', '내 채널'],
         ['room', '설정'],
-        ['dashboard', '운영 대시보드'],
+        ['dashboard', '운영'],
         ['fan', '팬 화면'],
       ]
     : isFanLoggedIn
@@ -3470,7 +3469,20 @@ function App() {
     <div className="dashboard-sidebar">
       <span className="section-label">INFLUENCER ROOM</span>
       <h2>운영 대시보드</h2>
-      <p>메뉴는 고정하고, 오른쪽 작업 패널만 바뀌게 정리했습니다.</p>
+      <p>채널 운영, 플랫폼 연결, 배포 작업을 같은 허브 안에서 관리합니다.</p>
+
+      <div className="sidebar-platform-summary">
+        <div className="sidebar-platform-card">
+          <span className="mini-label">YouTube 구독자</span>
+          <strong>{connectedChannel ? `${connectedChannel.subscriber_count}명` : '미연결'}</strong>
+          <p>{connectedChannel?.channel_title ?? '채널 연결 필요'}</p>
+        </div>
+        <div className="sidebar-platform-card">
+          <span className="mini-label">Instagram 팔로워</span>
+          <strong>{platformSetup.Instagram.isEnabled ? '연동됨' : '미연결'}</strong>
+          <p>{platformSetup.Instagram.isEnabled ? '팔로워 집계 연동 예정' : '플랫폼 설정 필요'}</p>
+        </div>
+      </div>
 
       <div className="sidebar-menu">
         <button
@@ -3502,6 +3514,12 @@ function App() {
           onClick={() => setCurrentView('store')}
         >
           굿즈 관리
+        </button>
+        <button
+          className={currentView === 'room' && roomSettingsSection === 'platforms' ? 'sidebar-link active' : 'sidebar-link'}
+          onClick={() => openRoomSettingsSection('platforms')}
+        >
+          플랫폼 관리
         </button>
         <button className="sidebar-link" onClick={() => setCurrentView('fan')}>
           팬 화면 보기
