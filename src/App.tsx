@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent } from 'react'
+import { useEffect, useState, type ChangeEvent } from 'react'
 import './App.css'
 
 type View =
@@ -46,6 +46,11 @@ type UploadResult = {
   title: string
   privacy_status: string
   watch_url: string
+}
+
+type AuthUrlResponse = {
+  auth_url: string
+  redirect_uri: string
 }
 
 const statCards = [
@@ -365,6 +370,8 @@ function App() {
   const [isLoadingChannel, setIsLoadingChannel] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null)
+  const [isStartingGoogleLogin, setIsStartingGoogleLogin] = useState(false)
+  const [authFeedback, setAuthFeedback] = useState('아직 구글 로그인 전')
 
   const selectedSocialDetail =
     socialButtons.find((button) => button.tone === selectedSocial) ?? socialButtons[0]
@@ -459,6 +466,53 @@ function App() {
       setIsUploading(false)
     }
   }
+
+  const startCreatorGoogleLogin = async () => {
+    setIsStartingGoogleLogin(true)
+    setUploadError('')
+    setAuthFeedback('Google 로그인 페이지로 이동 중')
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/youtube/auth-url`)
+      if (!response.ok) {
+        throw new Error('구글 로그인 주소를 만들지 못했습니다.')
+      }
+
+      const data = (await response.json()) as AuthUrlResponse
+      window.location.assign(data.auth_url)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '구글 로그인을 시작하지 못했습니다.'
+      setAuthFeedback(message)
+      setUploadError(message)
+      setIsStartingGoogleLogin(false)
+    }
+  }
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const view = params.get('view')
+    const youtubeState = params.get('youtube')
+    const message = params.get('message')
+
+    if (view === 'content' || view === 'signup' || view === 'dashboard') {
+      setCurrentView(view)
+    }
+
+    if (youtubeState === 'connected') {
+      setCurrentView('content')
+      setAuthFeedback('구글 로그인 완료, 연결된 유튜브 채널 정보를 불러왔습니다.')
+      void loadLatestConnection()
+    }
+
+    if (youtubeState === 'error') {
+      setCurrentView('signup')
+      setAuthFeedback(message || '구글 로그인 중 오류가 발생했습니다.')
+    }
+
+    if (view || youtubeState || message) {
+      window.history.replaceState({}, document.title, window.location.pathname)
+    }
+  }, [])
 
   const renderHeader = () => (
     <header className="top-nav">
@@ -667,9 +721,18 @@ function App() {
           <p>{selectedSocialDetail.detail}</p>
         </div>
 
+        <div className="notice-preview">
+          <span className="mini-label">OAuth2 상태</span>
+          <strong>{authFeedback}</strong>
+          <p>
+            크리에이터가 구글로 로그인하면 YouTube 채널을 연결하고, 돌아오자마자
+            채널명, 설명, 구독자 수가 운영 화면에 채워집니다.
+          </p>
+        </div>
+
         <div className="inline-actions">
-          <button className="primary-action" onClick={() => setCurrentView('room')}>
-            팬방 만들기 계속
+          <button className="primary-action" onClick={() => void startCreatorGoogleLogin()}>
+            {isStartingGoogleLogin ? 'Google로 이동 중...' : 'Google로 로그인하고 채널 가져오기'}
           </button>
           <button className="secondary-action dark" onClick={() => setCurrentView('home')}>
             홈으로
@@ -706,13 +769,13 @@ function App() {
         <div className="detail-grid">
           <article className="detail-card">
             <span className="mini-label">권장 이유</span>
-            <strong>초기 유입을 끊기지 않게 설계</strong>
-            <p>버튼 하나만 눌러도 다음 단계 미리보기가 살아 있어 이탈이 적습니다.</p>
+            <strong>구글 로그인과 유튜브 채널 연결을 한 번에 처리</strong>
+            <p>로그인 후 바로 앱으로 돌아오고, 최신 채널 정보를 콘텐츠 센터에 채워 넣습니다.</p>
           </article>
           <article className="detail-card">
             <span className="mini-label">다음 연결</span>
             <strong>팬방 주소 자동 제안</strong>
-            <p>선택된 로그인 채널명 기반으로 방 이름과 주소 후보를 미리 보여줍니다.</p>
+            <p>연결된 채널명과 설명을 기준으로 방 이름, 소개, 운영 카드가 이어집니다.</p>
           </article>
         </div>
 
@@ -995,11 +1058,23 @@ function App() {
           <div className="integration-stack">
             <article className="integration-hero">
               <span className="mini-label">등록된 채널</span>
-              <strong>침착한개발자TV · @devtv</strong>
-              <p>
-                Google OAuth 연결과 YouTube Data API 설정이 끝난 상태입니다.
-                업로드용 권한과 공개 상태 기본값도 저장돼 있습니다.
-              </p>
+              {connectedChannel ? (
+                <>
+                  <strong>{connectedChannel.channel_title}</strong>
+                  <p>
+                    구독자 {connectedChannel.subscriber_count}명 · 팬방 `{connectedChannel.room_name}`에
+                    연결된 크리에이터 채널입니다.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <strong>침착한개발자TV · @devtv</strong>
+                  <p>
+                    Google OAuth 연결과 YouTube Data API 설정이 끝난 상태입니다.
+                    업로드용 권한과 공개 상태 기본값도 저장돼 있습니다.
+                  </p>
+                </>
+              )}
             </article>
 
             <article className="channel-import-card">
@@ -1022,6 +1097,21 @@ function App() {
               )}
             </article>
 
+            {connectedChannel ? (
+              <div className="channel-facts-grid">
+                <article className="detail-card">
+                  <span className="mini-label">채널 ID</span>
+                  <strong>{connectedChannel.channel_id}</strong>
+                  <p>Google 로그인 이후 선택된 실제 YouTube 채널 식별자입니다.</p>
+                </article>
+                <article className="detail-card">
+                  <span className="mini-label">팬방 슬러그</span>
+                  <strong>{connectedChannel.room_slug}</strong>
+                  <p>채널명 기준으로 생성된 크리에이터 팬방 주소입니다.</p>
+                </article>
+              </div>
+            ) : null}
+
             <div className="credential-grid">
               <div className="field-block">
                 <span className="mini-label">Client ID</span>
@@ -1041,6 +1131,9 @@ function App() {
             </div>
 
             <div className="inline-actions">
+              <button className="primary-action" onClick={() => void startCreatorGoogleLogin()}>
+                {isStartingGoogleLogin ? 'Google로 이동 중...' : '구글 로그인 다시 하기'}
+              </button>
               <button className="secondary-action small" onClick={() => void loadLatestConnection()}>
                 {isLoadingChannel ? '채널 불러오는 중...' : '내 채널 다시 불러오기'}
               </button>
