@@ -2850,7 +2850,7 @@ function App() {
   )
 
   const renderFan = () =>
-    !fanSession ? (
+    !fanSession && !isCreatorLoggedIn ? (
       <section className="scene-panel light">
         <div className="scene-copy">
           <span className="section-label dark">FAN LOGIN</span>
@@ -2910,12 +2910,16 @@ function App() {
         </div>
 
         <div className="fan-actions">
-          <button className="primary-action" onClick={() => setCurrentView(fanSession ? 'home' : 'signup')}>
-            {fanSession ? '팬 홈으로' : '크리에이터 흐름 보기'}
+          <button className="primary-action" onClick={() => setCurrentView('home')}>
+            {fanSession ? '팬 홈으로' : '인플루언서 홈으로'}
           </button>
           {fanSession ? (
             <button className="secondary-action" onClick={handleFanLogout}>
               팬 로그아웃
+            </button>
+          ) : isCreatorLoggedIn ? (
+            <button className="secondary-action" onClick={() => setCurrentView('content')}>
+              운영 화면으로
             </button>
           ) : (
             <button className="secondary-action" onClick={() => setCurrentView('home')}>
