@@ -21,7 +21,13 @@ type PrivacyStatus = 'private' | 'unlisted' | 'public'
 type AuthMode = 'influencer' | 'fan'
 type AuthMethod = 'social' | 'email'
 type DashboardSection = 'overview' | 'content' | 'community' | 'events' | 'store'
-type RoomThemeId = 'sunset-sand' | 'midnight-gold' | 'mint-pop' | 'berry-cream' | 'sky-blue'
+type RoomThemeId =
+  | 'hub-classic'
+  | 'sunset-sand'
+  | 'midnight-gold'
+  | 'mint-pop'
+  | 'berry-cream'
+  | 'sky-blue'
 
 type FeatureModule = {
   name: string
@@ -468,6 +474,16 @@ const fanShopHighlights = [
 
 const roomThemePresets: RoomThemePreset[] = [
   {
+    id: 'hub-classic',
+    name: '허브 클래식',
+    tone: '기본 InfluenceHub 톤',
+    accent: '#ff7a45',
+    heroBackground: 'linear-gradient(160deg, #13263f 0%, #0e182a 100%)',
+    panelBackground: 'linear-gradient(160deg, #182d47 0%, #111b2d 100%)',
+    textColor: '#f5f1e8',
+    mutedColor: 'rgba(245, 241, 232, 0.68)',
+  },
+  {
     id: 'sunset-sand',
     name: '선셋 샌드',
     tone: '밝고 무난한 브랜드형',
@@ -481,11 +497,11 @@ const roomThemePresets: RoomThemePreset[] = [
     id: 'midnight-gold',
     name: '미드나잇 골드',
     tone: '고급스럽고 진한 운영형',
-    accent: '#ffd166',
-    heroBackground: 'linear-gradient(160deg, #13253c 0%, #0a1424 100%)',
-    panelBackground: 'linear-gradient(160deg, #0f1d31 0%, #152a43 100%)',
-    textColor: '#f7edd9',
-    mutedColor: 'rgba(247, 237, 217, 0.72)',
+    accent: '#d4a84f',
+    heroBackground: 'linear-gradient(160deg, #261d18 0%, #141113 100%)',
+    panelBackground: 'linear-gradient(160deg, #34271f 0%, #1a1718 100%)',
+    textColor: '#f6e9ce',
+    mutedColor: 'rgba(246, 233, 206, 0.74)',
   },
   {
     id: 'mint-pop',
@@ -564,7 +580,7 @@ function App() {
   const [isJoiningInvite, setIsJoiningInvite] = useState(false)
   const [isStartingFanGoogleLogin, setIsStartingFanGoogleLogin] = useState(false)
   const [pendingGoogleProfile, setPendingGoogleProfile] = useState<PendingGoogleProfile | null>(null)
-  const [selectedRoomTheme, setSelectedRoomTheme] = useState<RoomThemeId>('sunset-sand')
+  const [selectedRoomTheme, setSelectedRoomTheme] = useState<RoomThemeId>('hub-classic')
 
   const activeRoomTheme =
     roomThemePresets.find((preset) => preset.id === selectedRoomTheme) ?? roomThemePresets[0]
