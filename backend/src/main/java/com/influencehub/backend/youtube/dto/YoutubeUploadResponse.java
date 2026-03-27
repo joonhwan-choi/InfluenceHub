@@ -6,12 +6,14 @@ public class YoutubeUploadResponse {
     private final String title;
     private final String privacyStatus;
     private final String watchUrl;
+    private final String noticeTitle;
 
-    public YoutubeUploadResponse(String videoId, String title, String privacyStatus, String watchUrl) {
+    public YoutubeUploadResponse(String videoId, String title, String privacyStatus, String watchUrl, String noticeTitle) {
         this.videoId = videoId;
         this.title = title;
         this.privacyStatus = privacyStatus;
         this.watchUrl = watchUrl;
+        this.noticeTitle = noticeTitle;
     }
 
     public String getVideoId() {
@@ -28,5 +30,9 @@ public class YoutubeUploadResponse {
 
     public String getWatchUrl() {
         return watchUrl;
+    }
+
+    public String getNoticeTitle() {
+        return noticeTitle;
     }
 }

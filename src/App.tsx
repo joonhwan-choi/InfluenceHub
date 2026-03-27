@@ -61,6 +61,7 @@ type UploadResult = {
   title: string
   privacy_status: string
   watch_url: string
+  notice_title: string
 }
 
 type AuthUrlResponse = {
@@ -1412,6 +1413,7 @@ function App() {
       setUploadResult(data)
       setUploadStatus('업로드 완료')
       void loadPublishHistory()
+      void loadCreatorCommunityPosts()
       if (!connectedChannel) {
         void loadLatestConnection()
       }
@@ -3101,6 +3103,7 @@ function App() {
                 <span className="mini-label">업로드 결과</span>
                 <strong>{uploadResult.title}</strong>
                 <p>공개 상태: {uploadResult.privacy_status}</p>
+                <p>자동 공지: {uploadResult.notice_title}</p>
                 <a className="result-link" href={uploadResult.watch_url} rel="noreferrer" target="_blank">
                   유튜브에서 보기
                 </a>

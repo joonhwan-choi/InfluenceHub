@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.influencehub.backend.auth.dto.CreatorAuthResponse;
 import com.influencehub.backend.auth.service.CreatorAuthService;
+import com.influencehub.backend.community.service.CommunityAutomationService;
 import com.influencehub.backend.publish.domain.PlatformType;
 import com.influencehub.backend.publish.domain.PublishJob;
 import com.influencehub.backend.publish.domain.PublishStatus;
@@ -61,6 +62,7 @@ public class YoutubeIntegrationService {
     private final PublishJobRepository publishJobRepository;
     private final YoutubeChannelConnectionRepository youtubeChannelConnectionRepository;
     private final CreatorAuthService creatorAuthService;
+    private final CommunityAutomationService communityAutomationService;
     private final String clientId;
     private final String clientSecret;
     private final String redirectUri;
@@ -73,6 +75,7 @@ public class YoutubeIntegrationService {
         PublishJobRepository publishJobRepository,
         YoutubeChannelConnectionRepository youtubeChannelConnectionRepository,
         CreatorAuthService creatorAuthService,
+        CommunityAutomationService communityAutomationService,
         @Value("${youtube.client-id:}") String clientId,
         @Value("${youtube.client-secret:}") String clientSecret,
         @Value("${youtube.redirect-uri:}") String redirectUri
@@ -84,6 +87,7 @@ public class YoutubeIntegrationService {
         this.publishJobRepository = publishJobRepository;
         this.youtubeChannelConnectionRepository = youtubeChannelConnectionRepository;
         this.creatorAuthService = creatorAuthService;
+        this.communityAutomationService = communityAutomationService;
         this.clientId = clientId;
         this.clientSecret = clientSecret;
         this.redirectUri = redirectUri;
@@ -257,12 +261,20 @@ public class YoutubeIntegrationService {
             String watchUrl = videoId.isBlank() ? "" : "https://www.youtube.com/watch?v=" + urlEncode(videoId);
 
             publishJob.markSuccess(watchUrl);
+            String noticeTitle = communityAutomationService.createUploadNotice(
+                context.getRoom(),
+                context.getUser(),
+                uploadedTitle,
+                watchUrl,
+                uploadedPrivacyStatus
+            ).getTitle();
 
             return new YoutubeUploadResponse(
                 videoId,
                 uploadedTitle,
                 uploadedPrivacyStatus,
-                watchUrl
+                watchUrl,
+                noticeTitle
             );
         } catch (RuntimeException ex) {
             publishJob.markFailed();
