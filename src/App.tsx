@@ -4372,11 +4372,11 @@ function App() {
         <div>
           <span className="section-label">PLATFORM BOARD</span>
           <h2>플랫폼 관리</h2>
-          <p>연결된 플랫폼 상태, 지표, 활성화 여부를 한 화면에서 관리합니다.</p>
+          <p>설정에서 연결한 플랫폼의 상태와 채널 정보를 한 화면에서 확인합니다.</p>
         </div>
         <div className="inline-actions compact">
-          <button className="secondary-action" onClick={() => setCurrentView('content')}>
-            콘텐츠 배포로
+          <button className="secondary-action" onClick={() => openRoomSettingsSection('platforms')}>
+            설정으로
           </button>
         </div>
       </div>
@@ -4406,99 +4406,94 @@ function App() {
       <section className="studio-panel dark-surface">
         <div className="panel-head">
           <div>
-            <span className="card-kicker">배포 채널 관리</span>
+            <span className="card-kicker">연결된 채널</span>
             <h3>연결된 플랫폼 현황</h3>
           </div>
         </div>
 
-        <div className="platform-management-grid">
-          <div className="platform-grid">
-            {platformCatalog.map((platform) => {
-              const state = platformSetup[platform.name]
+        {enabledPlatforms.length > 0 ? (
+          <div className="platform-overview-grid">
+            {enabledPlatforms.map((platform) => (
+              <article className="platform-overview-card" key={platform.name}>
+                <div className="panel-head">
+                  <div>
+                    <span className="card-kicker">{platform.name}</span>
+                    <h3>
+                      {platform.name === 'YouTube'
+                        ? connectedChannel?.channel_title ?? '채널 연결됨'
+                        : platform.name === 'Instagram'
+                          ? 'Instagram 채널 연결됨'
+                          : `${platform.name} 연결됨`}
+                    </h3>
+                  </div>
+                  <span className="status-badge">Connected</span>
+                </div>
 
-              return (
-                <button
-                  className={
-                    platform.name === selectedPlatformName
-                      ? `platform-card ${platform.tone} active-selection`
-                      : `platform-card ${platform.tone}`
-                  }
-                  key={platform.name}
-                  onClick={() => setSelectedPlatformName(platform.name)}
-                  type="button"
-                >
-                  <span className="platform-status">{state?.statusLabel ?? platform.status}</span>
-                  <strong>{platform.name}</strong>
-                  <p>{platform.detail}</p>
-                </button>
-              )
-            })}
+                <div className="selected-module-list">
+                  {platform.name === 'YouTube' ? (
+                    <>
+                      <div className="selected-module">
+                        <strong>구독자</strong>
+                        <span>{connectedChannel ? `${connectedChannel.subscriber_count}명` : '집계 대기 중'}</span>
+                      </div>
+                      <div className="selected-module">
+                        <strong>채널 설명</strong>
+                        <span>{connectedChannel?.channel_description?.trim() || '채널 설명 없음'}</span>
+                      </div>
+                      <div className="selected-module">
+                        <strong>팬방 연결</strong>
+                        <span>{connectedChannel?.room_name ?? '연결 대기 중'}</span>
+                      </div>
+                    </>
+                  ) : null}
+
+                  {platform.name === 'Instagram' ? (
+                    <>
+                      <div className="selected-module">
+                        <strong>연결 상태</strong>
+                        <span>정상 연결됨</span>
+                      </div>
+                      <div className="selected-module">
+                        <strong>계정 식별자</strong>
+                        <span>{instagramAccountId || '설정값 없음'}</span>
+                      </div>
+                      <div className="selected-module">
+                        <strong>팔로워</strong>
+                        <span>집계 연동 예정</span>
+                      </div>
+                    </>
+                  ) : null}
+
+                  {platform.name !== 'YouTube' && platform.name !== 'Instagram' ? (
+                    <>
+                      <div className="selected-module">
+                        <strong>상태</strong>
+                        <span>{platformSetup[platform.name]?.statusLabel ?? 'Connected'}</span>
+                      </div>
+                      <div className="selected-module">
+                        <strong>배포 지원</strong>
+                        <span>
+                          {platform.supportsVideo ? '영상 가능' : '영상 미지원'} ·{' '}
+                          {platform.supportsPost ? '게시글 가능' : '게시글 미지원'}
+                        </span>
+                      </div>
+                      <div className="selected-module">
+                        <strong>설명</strong>
+                        <span>{platform.detail}</span>
+                      </div>
+                    </>
+                  ) : null}
+                </div>
+              </article>
+            ))}
           </div>
-
-          <section className="platform-config-panel">
-            <div className="panel-head">
-              <div>
-                <span className="card-kicker">선택된 채널</span>
-                <h3>{selectedPlatformName} 연결 정보</h3>
-              </div>
-              <span className={selectedPlatformConfig.isEnabled ? 'status-badge' : 'status-badge muted'}>
-                {selectedPlatformConfig.statusLabel}
-              </span>
-            </div>
-
-            <div className="credential-grid">
-              <div className="field-block">
-                <span className="mini-label">{selectedPlatformLabels.client}</span>
-                <input
-                  className="text-input"
-                  value={selectedPlatformConfig.clientValue}
-                  onChange={(event) =>
-                    updatePlatformSetup(selectedPlatformName, { clientValue: event.target.value })
-                  }
-                  placeholder={`${selectedPlatformName} ${selectedPlatformLabels.client}`}
-                />
-              </div>
-              <div className="field-block">
-                <span className="mini-label">{selectedPlatformLabels.secret}</span>
-                <input
-                  className="text-input"
-                  value={selectedPlatformConfig.secretValue}
-                  onChange={(event) =>
-                    updatePlatformSetup(selectedPlatformName, { secretValue: event.target.value })
-                  }
-                  placeholder={`${selectedPlatformName} ${selectedPlatformLabels.secret}`}
-                />
-              </div>
-            </div>
-
-            <div className="chip-row">
-              <span className="info-chip">
-                {selectedPlatformConfig.isEnabled ? '현재 활성화됨' : '현재 비활성화'}
-              </span>
-              <span className="info-chip">
-                {selectedPlatformConfig.supportsVideo ? '영상 배포 가능' : '영상 API 미지원'}
-              </span>
-              <span className="info-chip">
-                {selectedPlatformConfig.supportsPost ? '게시글 배포 가능' : '게시글 API 미지원'}
-              </span>
-            </div>
-
-            <div className="inline-actions">
-              <button className="secondary-action" onClick={handleTestPlatformConnection} type="button">
-                연결 테스트
-              </button>
-              <button className="primary-action" onClick={handleTogglePlatformActivation} type="button">
-                {selectedPlatformConfig.isEnabled ? '비활성화' : '활성화'}
-              </button>
-            </div>
-
-            <div className="notice-preview compact-highlight">
-              <span className="mini-label">운영 메모</span>
-              <strong>{selectedPlatformName} 연결 상태와 입력값을 여기서 관리합니다.</strong>
-              <p>콘텐츠 배포에서는 이 화면에서 활성화한 채널만 선택해서 한번에 배포합니다.</p>
-            </div>
-          </section>
-        </div>
+        ) : (
+          <div className="notice-preview compact-highlight">
+            <span className="mini-label">연결된 플랫폼 없음</span>
+            <strong>아직 활성화된 플랫폼이 없습니다.</strong>
+            <p>설정에서 플랫폼을 연결하고 활성화하면 이 화면에 정보가 나타납니다.</p>
+          </div>
+        )}
       </section>
     </section>
   )
