@@ -612,6 +612,7 @@ function App() {
     'InfluenceHub에서 테스트 업로드한 영상입니다.',
   )
   const [privacyStatus, setPrivacyStatus] = useState<PrivacyStatus>('private')
+  const [useScheduledPublish, setUseScheduledPublish] = useState(false)
   const [scheduledPublishAt, setScheduledPublishAt] = useState(() => {
     const date = new Date()
     date.setHours(date.getHours() + 2)
@@ -3164,29 +3165,43 @@ function App() {
               </div>
             </div>
             <div className="field-block">
-              <span className="mini-label">예약 시간</span>
-              <input
-                className="text-input"
-                type="datetime-local"
-                value={scheduledPublishAt}
-                onChange={(event) => setScheduledPublishAt(event.target.value)}
-              />
+              <span className="mini-label">추가 옵션</span>
+              <button
+                className={useScheduledPublish ? 'privacy-toggle active' : 'privacy-toggle'}
+                onClick={() => setUseScheduledPublish((current) => !current)}
+                type="button"
+              >
+                {useScheduledPublish ? '예약 배포 사용 중' : '예약 배포 사용'}
+              </button>
             </div>
+            {useScheduledPublish ? (
+              <div className="field-block">
+                <span className="mini-label">예약 시간</span>
+                <input
+                  className="text-input"
+                  type="datetime-local"
+                  value={scheduledPublishAt}
+                  onChange={(event) => setScheduledPublishAt(event.target.value)}
+                />
+              </div>
+            ) : null}
             <div className="chip-row">
               <span className="info-chip">업로드 파일 1개</span>
               <span className="info-chip">썸네일 자동 첨부</span>
               <span className="info-chip">공지 초안 자동 생성</span>
             </div>
             <div className="upload-action-row">
-              <button className="secondary-action" onClick={() => void handleSchedulePublish()} type="button">
-                예약 타임라인 등록
-              </button>
+              {useScheduledPublish ? (
+                <button className="secondary-action" onClick={() => void handleSchedulePublish()} type="button">
+                  예약 타임라인 등록
+                </button>
+              ) : null}
               <button className="primary-action" onClick={() => void handleUpload()} type="button">
                 {isUploading ? '업로드 중...' : 'YouTube 업로드'}
               </button>
               <span className="helper-copy">{uploadStatus}</span>
             </div>
-            <span className="helper-copy">{scheduleStatus}</span>
+            {useScheduledPublish ? <span className="helper-copy">{scheduleStatus}</span> : null}
             {uploadError ? <p className="feedback-message error">{uploadError}</p> : null}
             {uploadResult ? (
               <article className="upload-result-card">
@@ -3233,11 +3248,13 @@ function App() {
                 <strong>{privacyStatus}</strong>
                 <p>{privacyStatus === 'private' ? '검수용 업로드에 적합' : privacyStatus === 'unlisted' ? '링크 공유용 업로드' : '즉시 공개 업로드'}</p>
               </article>
-              <article className="upload-check-card">
-                <span className="mini-label">예약 시간</span>
-                <strong>{scheduledPublishAt ? new Date(scheduledPublishAt).toLocaleString('ko-KR') : '미정'}</strong>
-                <p>예약 타임라인 등록 시 이 시간이 기준으로 저장됩니다.</p>
-              </article>
+              {useScheduledPublish ? (
+                <article className="upload-check-card">
+                  <span className="mini-label">예약 시간</span>
+                  <strong>{scheduledPublishAt ? new Date(scheduledPublishAt).toLocaleString('ko-KR') : '미정'}</strong>
+                  <p>예약 타임라인 등록 시 이 시간이 기준으로 저장됩니다.</p>
+                </article>
+              ) : null}
               <article className="upload-check-card">
                 <span className="mini-label">파일 정보</span>
                 <strong>{selectedFile ? selectedFile.name : '파일 미선택'}</strong>
