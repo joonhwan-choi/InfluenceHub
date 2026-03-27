@@ -326,24 +326,6 @@ const toolCards = [
   },
 ]
 
-const activityFeed = [
-  {
-    title: '새 영상 업로드 감지',
-    body: 'YouTube 영상이 올라오자 30초 안에 팬방 공지 초안이 자동 생성됐습니다.',
-    time: '방금 전',
-  },
-  {
-    title: '이벤트 참여 급상승',
-    body: '사전 알림을 받은 팬 482명이 미션 인증 이벤트에 바로 진입했습니다.',
-    time: '12분 전',
-  },
-  {
-    title: '굿즈 드롭 대기열 생성',
-    body: '한정 수량 공지로 대기열이 열렸고, 재입고 알림 신청이 붙었습니다.',
-    time: '48분 전',
-  },
-]
-
 const invitePerformance = [
   {
     title: '오늘 영상 설명란 링크',
@@ -3188,34 +3170,15 @@ function App() {
         </div>
 
         <div className="dashboard-panels">
-          <section className="timeline-panel">
+          <section className="summary-panel">
             <div className="panel-head">
               <div>
-                <span className="card-kicker">실시간 운영 로그</span>
-                <h3>오늘 자동화된 흐름</h3>
+                <span className="card-kicker">팬방 스냅샷</span>
+                <h3>지금 운영 중인 구성</h3>
               </div>
               <button className="tiny-action" onClick={() => openRoomSettingsSection('modules')}>
                 운영 구성 수정
               </button>
-            </div>
-
-            <div className="activity-list">
-              {activityFeed.map((item) => (
-                <article className="activity-card" key={item.title}>
-                  <span className="activity-time">{item.time}</span>
-                  <strong>{item.title}</strong>
-                  <p>{item.body}</p>
-                </article>
-              ))}
-            </div>
-          </section>
-
-          <section className="summary-panel">
-            <div className="panel-head">
-              <div>
-                <span className="card-kicker">현재 팬방 구성</span>
-                <h3>선택된 모듈</h3>
-              </div>
             </div>
 
             <div className="selected-module-list">
@@ -3228,78 +3191,19 @@ function App() {
             </div>
 
             <div className="notice-preview">
-              <span className="mini-label">자동 공지 미리보기</span>
-              <strong>새 영상 업로드: 팬방 공지 초안 생성 완료</strong>
+              <span className="mini-label">자동 공지 상태</span>
+              <strong>새 영상 업로드 시 팬방 공지가 같이 생성됩니다</strong>
               <p>
-                YouTube 업로드 감지 후 제목, 썸네일, 링크가 반영된 공지 카드가
-                만들어졌습니다.
+                YouTube 업로드 감지 후 제목과 링크가 반영된 공지 카드가 자동으로 붙습니다.
               </p>
-            </div>
-          </section>
-        </div>
-
-        <div className="dashboard-panels">
-          <section className="timeline-panel">
-            <div className="panel-head">
-              <div>
-                <span className="card-kicker">팬 초대 링크</span>
-                <h3>초대된 팬 유입 추적</h3>
-              </div>
-            </div>
-
-            <div className="activity-list">
-              {(inviteDashboard?.invite_links.length
-                ? inviteDashboard.invite_links.map((link) => ({
-                    ...link,
-                  }))
-                : invitePerformance
-              ).map((item) => {
-                if ('invite_link_id' in item) {
-                  return (
-                    <article className="activity-card" key={item.invite_link_id}>
-                      <span className="activity-time">{item.invite_code}</span>
-                      <strong>
-                        {item.title} {item.active ? '' : '(비활성)'}
-                      </strong>
-                      <p>
-                        {item.source_label} · 열림 {item.open_count}명 · 가입 {item.join_count}명
-                      </p>
-                      <div className="inline-actions compact-actions">
-                        <button
-                          className="tiny-action"
-                          onClick={() => void handleCopyInviteLink(item.invite_url)}
-                        >
-                          링크 복사
-                        </button>
-                        {item.active ? (
-                          <button
-                            className="tiny-action"
-                            onClick={() => void handleDeactivateInviteLink(item.invite_link_id)}
-                          >
-                            비활성화
-                          </button>
-                        ) : null}
-                      </div>
-                    </article>
-                  )
-                }
-
-                return (
-                  <article className="activity-card" key={item.title}>
-                    <span className="activity-time">{item.time}</span>
-                    <strong>{item.title}</strong>
-                    <p>{item.body}</p>
-                  </article>
-                )
-              })}
             </div>
           </section>
 
           <section className="summary-panel">
             <div className="panel-head">
               <div>
-                <span className="card-kicker">팬 초대 퍼널</span>
-                <h3>링크 성과 요약</h3>
+                <span className="card-kicker">팬 초대</span>
+                <h3>링크 성과와 빠른 생성</h3>
               </div>
             </div>
 
@@ -3332,17 +3236,6 @@ function App() {
                   <strong>{card.value}</strong>
                 </div>
               ))}
-            </div>
-
-            <div className="notice-preview">
-              <span className="mini-label">초대 링크 예시</span>
-              <strong>
-                {inviteDashboard?.invite_links[0]?.invite_url ?? 'influencehub.app/invite/salt-toast-live'}
-              </strong>
-              <p>
-                유튜버가 영상 설명란이나 라이브 고정 댓글에 이 링크를 올리면, 팬은
-                해당 링크로 들어와 팬 가입을 완료하고 바로 팬방에 입장합니다.
-              </p>
             </div>
 
             <div className="form-stack">
@@ -3397,14 +3290,66 @@ function App() {
           <section className="timeline-panel">
             <div className="panel-head">
               <div>
-                <span className="card-kicker">팬 분류 보드</span>
-                <h3>VIP · 큰손 · 침철단 같은 코어 팬 관리</h3>
+                <span className="card-kicker">최근 초대 링크</span>
+                <h3>바로 확인할 링크 목록</h3>
+              </div>
+            </div>
+
+            <div className="activity-list">
+              {(inviteDashboard?.invite_links.length
+                ? inviteDashboard.invite_links.slice(0, 3)
+                : invitePerformance
+              ).map((item) => {
+                if ('invite_link_id' in item) {
+                  return (
+                    <article className="activity-card" key={item.invite_link_id}>
+                      <span className="activity-time">{item.invite_code}</span>
+                      <strong>{item.title}</strong>
+                      <p>
+                        {item.source_label} · 열림 {item.open_count}명 · 가입 {item.join_count}명
+                      </p>
+                      <div className="inline-actions compact-actions">
+                        <button
+                          className="tiny-action"
+                          onClick={() => void handleCopyInviteLink(item.invite_url)}
+                        >
+                          링크 복사
+                        </button>
+                        {item.active ? (
+                          <button
+                            className="tiny-action"
+                            onClick={() => void handleDeactivateInviteLink(item.invite_link_id)}
+                          >
+                            비활성화
+                          </button>
+                        ) : null}
+                      </div>
+                    </article>
+                  )
+                }
+
+                return (
+                  <article className="activity-card" key={item.title}>
+                    <span className="activity-time">{item.time}</span>
+                    <strong>{item.title}</strong>
+                    <p>{item.body}</p>
+                  </article>
+                )
+              })}
+            </div>
+          </section>
+
+          <section className="summary-panel">
+            <div className="panel-head">
+              <div>
+                <span className="card-kicker">팬 등급</span>
+                <h3>핵심 팬 그룹 현황</h3>
               </div>
             </div>
 
             <div className="activity-list">
               {(fanMembers.length
-                ? fanMembers
+                ? fanMembers.slice(0, 4)
                 : [
                     {
                       membership_id: 0,
@@ -3417,10 +3362,8 @@ function App() {
               ).map((fanMember) => (
                 <article className="activity-card" key={fanMember.membership_id || fanMember.fan_email}>
                   <span className="activity-time">{fanMember.joined_via}</span>
-                  <strong>
-                    {fanMember.fan_nickname} · {fanMember.tier}
-                  </strong>
-                  <p>{fanMember.fan_email}</p>
+                  <strong>{fanMember.fan_nickname}</strong>
+                  <p>{fanMember.tier} · {fanMember.fan_email}</p>
                   <div className="inline-actions compact-actions">
                     {['GENERAL', 'VIP', 'BIG_SPENDER', 'CORE_CREW'].map((tier) => (
                       <button
@@ -3436,37 +3379,11 @@ function App() {
                 </article>
               ))}
             </div>
-          </section>
-
-          <section className="summary-panel">
-            <div className="panel-head">
-              <div>
-                <span className="card-kicker">등급 운영 메모</span>
-                <h3>팬 레벨링 기준</h3>
-              </div>
-            </div>
-
-            <div className="selected-module-list">
-              {[
-                ['GENERAL', '기본 팬'],
-                ['VIP', '자주 참여하는 팬'],
-                ['BIG_SPENDER', '굿즈/후원 전환이 큰 팬'],
-                ['CORE_CREW', '침철단처럼 이름 붙인 핵심 팬 그룹'],
-              ].map(([label, meta]) => (
-                <div className="selected-module" key={label}>
-                  <strong>{label}</strong>
-                  <span>{meta}</span>
-                </div>
-              ))}
-            </div>
 
             <div className="notice-preview">
-              <span className="mini-label">최근 등급 변경</span>
+              <span className="mini-label">등급 운영 메모</span>
               <strong>{fanTierStatus}</strong>
-              <p>
-                팬 등급을 나누면 이벤트 우선 초대, 굿즈 선오픈, 멤버십 공지 대상을 쉽게
-                분리할 수 있습니다.
-              </p>
+              <p>VIP, 큰손, 코어 팬 그룹을 나눠두면 이벤트와 굿즈 오픈 대상을 더 쉽게 나눌 수 있습니다.</p>
             </div>
           </section>
         </div>
