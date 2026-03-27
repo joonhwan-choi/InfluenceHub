@@ -51,6 +51,12 @@ public class CreatorRoom extends BaseTimeEntity {
     @Column(nullable = false, length = 20)
     private String cardDensity;
 
+    @Column(length = 1000)
+    private String discordWebhookUrl;
+
+    @Column(nullable = false)
+    private boolean discordEnabled;
+
     protected CreatorRoom() {
     }
 
@@ -64,6 +70,8 @@ public class CreatorRoom extends BaseTimeEntity {
         this.bannerStyle = "focus";
         this.buttonStyle = "rounded";
         this.cardDensity = "comfortable";
+        this.discordWebhookUrl = null;
+        this.discordEnabled = false;
     }
 
     public Long getId() {
@@ -106,6 +114,14 @@ public class CreatorRoom extends BaseTimeEntity {
         return cardDensity;
     }
 
+    public String getDiscordWebhookUrl() {
+        return discordWebhookUrl;
+    }
+
+    public boolean isDiscordEnabled() {
+        return discordEnabled;
+    }
+
     public void updateProfile(String roomName, String description) {
         this.roomName = roomName;
         this.description = description;
@@ -116,5 +132,10 @@ public class CreatorRoom extends BaseTimeEntity {
         this.bannerStyle = bannerStyle;
         this.buttonStyle = buttonStyle;
         this.cardDensity = cardDensity;
+    }
+
+    public void updateDiscordSettings(String discordWebhookUrl, boolean discordEnabled) {
+        this.discordWebhookUrl = discordWebhookUrl;
+        this.discordEnabled = discordEnabled;
     }
 }

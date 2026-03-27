@@ -25,6 +25,7 @@ public class CreatorRoomSettingsService {
     private static final String DEFAULT_BANNER = "focus";
     private static final String DEFAULT_BUTTON = "rounded";
     private static final String DEFAULT_DENSITY = "comfortable";
+    private static final String DEFAULT_DISCORD_WEBHOOK = "";
     private static final List<String> DEFAULT_FEATURES = Arrays.asList("팬 커뮤니티", "이벤트", "멀티 업로드", "굿즈 스토어");
 
     private final CreatorAuthService creatorAuthService;
@@ -53,7 +54,10 @@ public class CreatorRoomSettingsService {
         String bannerStyle = defaultIfBlank(request.getBannerStyle(), DEFAULT_BANNER);
         String buttonStyle = defaultIfBlank(request.getButtonStyle(), DEFAULT_BUTTON);
         String cardDensity = defaultIfBlank(request.getCardDensity(), DEFAULT_DENSITY);
+        String discordWebhookUrl = defaultIfBlank(request.getDiscordWebhookUrl(), DEFAULT_DISCORD_WEBHOOK);
+        boolean discordEnabled = request.getDiscordEnabled() != null && request.getDiscordEnabled();
         room.updateAppearance(roomThemeId, bannerStyle, buttonStyle, cardDensity);
+        room.updateDiscordSettings(discordWebhookUrl, discordEnabled);
 
         List<String> selectedFeatures = request.getSelectedFeatures() == null || request.getSelectedFeatures().isEmpty()
             ? DEFAULT_FEATURES
@@ -76,6 +80,8 @@ public class CreatorRoomSettingsService {
             defaultIfBlank(room.getBannerStyle(), DEFAULT_BANNER),
             defaultIfBlank(room.getButtonStyle(), DEFAULT_BUTTON),
             defaultIfBlank(room.getCardDensity(), DEFAULT_DENSITY),
+            defaultIfBlank(room.getDiscordWebhookUrl(), DEFAULT_DISCORD_WEBHOOK),
+            room.isDiscordEnabled(),
             selectedFeatures
         );
     }

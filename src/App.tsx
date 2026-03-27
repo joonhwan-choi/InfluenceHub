@@ -187,6 +187,8 @@ type CreatorRoomSettingsResponse = {
   banner_style: BannerStyle
   button_style: ButtonStyle
   card_density: CardDensity
+  discord_webhook_url: string
+  discord_enabled: boolean
   selected_features: string[]
 }
 
@@ -754,6 +756,7 @@ function App() {
   const [cardDensity, setCardDensity] = useState<CardDensity>('comfortable')
   const [roomSettingsSection, setRoomSettingsSection] = useState<RoomSettingsSection>('theme')
   const [selectedPublishPlatforms, setSelectedPublishPlatforms] = useState<string[]>(['YouTube'])
+  const [discordWebhookUrl, setDiscordWebhookUrl] = useState('')
   const [hasHydratedCreatorSettings, setHasHydratedCreatorSettings] = useState(false)
   const roleMenuRef = useRef<HTMLDivElement | null>(null)
 
@@ -833,12 +836,20 @@ function App() {
   }
 
   const handleTestPlatformConnection = () => {
-    if (!selectedPlatformConfig.clientValue.trim() || !selectedPlatformConfig.secretValue.trim()) {
+    if (!selectedPlatformConfig.clientValue.trim()) {
+      updatePlatformSetup(selectedPlatformName, { statusLabel: '값 필요' })
+      return
+    }
+
+    if (selectedPlatformName !== 'Discord' && !selectedPlatformConfig.secretValue.trim()) {
       updatePlatformSetup(selectedPlatformName, { statusLabel: '값 필요' })
       return
     }
 
     updatePlatformSetup(selectedPlatformName, { statusLabel: 'Ready' })
+    if (selectedPlatformName === 'Discord') {
+      setDiscordWebhookUrl(selectedPlatformConfig.clientValue)
+    }
   }
 
   const handleTogglePlatformActivation = () => {
@@ -1134,6 +1145,16 @@ function App() {
       setBannerStyle(data.banner_style)
       setButtonStyle(data.button_style)
       setCardDensity(data.card_density)
+      setDiscordWebhookUrl(data.discord_webhook_url ?? '')
+      setPlatformSetup((current) => ({
+        ...current,
+        Discord: {
+          ...current.Discord,
+          clientValue: data.discord_webhook_url ?? '',
+          isEnabled: data.discord_enabled,
+          statusLabel: data.discord_enabled ? 'Connected' : 'Inactive',
+        },
+      }))
       if (data.selected_features.length > 0) {
         setSelectedFeatures(data.selected_features)
       }
@@ -1683,6 +1704,28 @@ function App() {
       const data = (await response.json()) as UploadResult
       setUploadResult(data)
       setUploadStatus('업로드 완료')
+      if (selectedPublishPlatforms.includes('Discord')) {
+        const creatorSessionToken = localStorage.getItem(creatorSessionStorageKey)
+        if (creatorSessionToken) {
+          const discordResponse = await fetch(`${apiBaseUrl}/api/v1/discord/publish`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${creatorSessionToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              title: `${data.title} 업로드 완료`,
+              body: `${data.privacy_status} 상태로 업로드되었습니다.`,
+              targetUrl: data.watch_url,
+            }),
+          })
+
+          if (!discordResponse.ok) {
+            const discordPayload = (await discordResponse.json().catch(() => null)) as { message?: string } | null
+            setUploadError(discordPayload?.message ?? 'Discord 동시 배포에 실패했습니다.')
+          }
+        }
+      }
       setPublishHistory((current) => [
         {
           publish_job_id: Date.now(),
@@ -1972,6 +2015,8 @@ function App() {
         banner_style: bannerStyle,
         button_style: buttonStyle,
         card_density: cardDensity,
+        discord_webhook_url: discordWebhookUrl,
+        discord_enabled: platformSetup.Discord.isEnabled,
         selected_features: selectedFeatures,
       },
       { silent: true },
@@ -2906,6 +2951,13 @@ function App() {
               <strong>{selectedPlatformName}은 필요한 값이 들어간 뒤에만 활성화하세요.</strong>
               <p>콘텐츠 배포 센터에서는 여기서 활성화한 채널만 선택해서 한번에 배포할 수 있습니다.</p>
             </div>
+            {selectedPlatformName === 'Discord' ? (
+              <div className="notice-preview compact-highlight">
+                <span className="mini-label">Discord 웹훅</span>
+                <strong>Discord는 Webhook URL 하나로 바로 연결합니다.</strong>
+                <p>Webhook URL을 넣고 연결 테스트 후 활성화하면, 콘텐츠 배포에서 선택해서 같이 보낼 수 있습니다.</p>
+              </div>
+            ) : null}
           </section>
         </div>
       </section>

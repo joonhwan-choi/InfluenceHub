@@ -8,6 +8,8 @@ public class UpdateCreatorRoomSettingsRequest {
     private String bannerStyle;
     private String buttonStyle;
     private String cardDensity;
+    private String discordWebhookUrl;
+    private Boolean discordEnabled;
     private List<String> selectedFeatures;
 
     public String getRoomThemeId() {
@@ -24,6 +26,14 @@ public class UpdateCreatorRoomSettingsRequest {
 
     public String getCardDensity() {
         return cardDensity;
+    }
+
+    public String getDiscordWebhookUrl() {
+        return discordWebhookUrl;
+    }
+
+    public Boolean getDiscordEnabled() {
+        return discordEnabled;
     }
 
     public List<String> getSelectedFeatures() {
