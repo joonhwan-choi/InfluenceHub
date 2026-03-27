@@ -1700,9 +1700,8 @@ function App() {
           </h1>
 
           <p className="hero-description">
-            InfluenceHub는 인플루언서의 콘텐츠, 커뮤니티, 이벤트, 굿즈, 팬 초대 흐름을
-            하나로 묶는 팬 운영 플랫폼입니다. 업로드 이후의 팬 경험까지 직접 설계하고
-            운영할 수 있습니다.
+            InfluenceHub는 콘텐츠 공개 이후의 팬 유입, 커뮤니티, 이벤트, 굿즈 운영을
+            한 화면으로 묶는 인플루언서 운영 허브입니다.
           </p>
 
           <div className="hero-actions">
@@ -1710,7 +1709,7 @@ function App() {
               {isCreatorLoggedIn ? '내 채널 관리하기' : '지금 시작하기'}
             </button>
             <button className="secondary-action" onClick={() => setCurrentView('signup')}>
-              서비스 둘러보기
+              로그인
             </button>
           </div>
 
@@ -1730,15 +1729,15 @@ function App() {
             <div className="card-header">
               <div>
                 <span className="card-kicker">WHY INFLUENCEHUB</span>
-                <h2>팬 운영을 한 화면으로 모읍니다</h2>
+                <h2>운영 흐름을 한곳에 모읍니다</h2>
               </div>
               <span className="status-badge">MVP</span>
             </div>
 
             <p className="card-intro">
               {isCreatorLoggedIn
-                ? '이미 연결된 계정 기준으로 채널 관리와 운영 흐름을 바로 이어갈 수 있습니다.'
-                : '업로드 이후 공지, 초대 링크, 팬 등급 운영, 굿즈와 이벤트까지 이어지는 흐름을 하나의 서비스에서 관리합니다.'}
+                ? '연결된 채널 기준으로 팬 운영과 배포 흐름을 바로 이어갈 수 있습니다.'
+                : '콘텐츠 공개 후 팬이 들어오고 다시 돌아오는 흐름까지 한 번에 관리합니다.'}
             </p>
 
             <div className="journey-list">
@@ -1770,7 +1769,7 @@ function App() {
                 </div>
               </div>
               <button className="tiny-action" onClick={openCreatorStart}>
-                {isCreatorLoggedIn ? '운영 계속하기' : '가입 흐름 열기'}
+                {isCreatorLoggedIn ? '운영 계속하기' : '시작하기'}
               </button>
             </div>
 
@@ -1779,8 +1778,8 @@ function App() {
                 <span className="section-label">서비스 미리보기</span>
                 <h3>업로드 뒤의 운영까지 이어집니다</h3>
                 <p>
-                  영상 공개, 팬방 공지, 라이브 예고, 초대 링크 공유, 굿즈 오픈까지
-                  끊기지 않게 설계된 운영 경험을 한 곳에서 다룹니다.
+                  영상 공개, 팬 공지, 라이브 예고, 초대 링크, 굿즈 오픈까지 같은 흐름 안에서
+                  이어집니다.
                 </p>
                 <div className="platform-tags">
                   <span>YouTube</span>
@@ -1818,19 +1817,19 @@ function App() {
       <section className="workflow-panel">
         <div className="workflow-copy">
             <span className="section-label">PLATFORM OVERVIEW</span>
-            <h2>인플루언서 운영에 필요한 흐름을 연결합니다</h2>
+            <h2>콘텐츠 이후의 운영을 연결합니다</h2>
           <p>
-            팬이 콘텐츠를 본 뒤 어디로 들어오고, 어떤 경험을 하며, 어떻게 다시 돌아오는지까지
-            서비스 전체 관점에서 설계할 수 있습니다.
+            팬이 어디로 들어오고, 무엇을 보고, 어떻게 다시 돌아오는지까지 하나의 흐름으로
+            설계할 수 있습니다.
           </p>
         </div>
 
         <div className="step-list">
           {[
-            '콘텐츠 공개 후 팬 유입을 끌어옵니다',
-            '초대 링크로 팬방 가입을 연결합니다',
-            '커뮤니티와 이벤트로 참여를 쌓습니다',
-            '굿즈와 멤버십으로 관계를 확장합니다',
+            '콘텐츠 공개 뒤 팬 유입 연결',
+            '초대 링크로 팬방 입장 전환',
+            '커뮤니티와 이벤트로 참여 축적',
+            '굿즈와 멤버십으로 관계 확장',
           ].map((step, index) => (
             <article className="step-card" key={step}>
               <span className="step-index">0{index + 1}</span>
@@ -1877,7 +1876,7 @@ function App() {
                 <button className="primary-action auth-main-button" onClick={() => void startUnifiedGoogleLogin()}>
                   {isStartingGoogleLogin ? 'Google로 이동 중...' : 'Google로 로그인'}
                 </button>
-                <p className="auth-helper-copy">로그인 후 인플루언서 또는 팬 모드를 고를 수 있습니다.</p>
+                <p className="auth-helper-copy">로그인 뒤 인플루언서 또는 팬 모드를 고릅니다.</p>
               </div>
             ) : (
               <div className="form-stack auth-form-stack">
@@ -1944,7 +1943,7 @@ function App() {
         <div className="notice-preview auth-status-card">
           <span className="mini-label">상태</span>
           <strong>{isCreatorLoggedIn ? authFeedback : fanStatus}</strong>
-          <p>{authFeedback}</p>
+          <p>{pendingGoogleProfile ? '모드를 고르면 다음 화면으로 바로 이어집니다.' : 'Google 또는 일반 로그인으로 시작할 수 있습니다.'}</p>
         </div>
 
         <div className="inline-actions">
@@ -1956,10 +1955,9 @@ function App() {
 
       <div className="scene-copy auth-visual-panel">
         <span className="section-label dark">INFLUENCEHUB</span>
-        <h2>인플루언서와 팬이 다시 만나는 공간</h2>
+        <h2>콘텐츠 밖의 관계를 이어가는 공간</h2>
         <p>
-          콘텐츠가 끝난 뒤에도 공지, 초대 링크, 커뮤니티, 이벤트, 굿즈까지 하나의 흐름으로
-          이어집니다.
+          공지, 초대 링크, 커뮤니티, 이벤트, 굿즈까지 같은 흐름으로 이어집니다.
         </p>
 
         <div className="auth-visual-stage">
@@ -1998,11 +1996,11 @@ function App() {
     <section className={`scene-panel creator-workspace ${creatorExperienceClasses}`}>
       <div className="scene-copy">
         <span className="section-label">ROOM SETTINGS</span>
-        <h2>{isCreatorLoggedIn ? '팬방 설정' : '팬방의 첫 인상을 설계'}</h2>
+        <h2>{isCreatorLoggedIn ? '팬방 설정' : '팬방의 첫 인상을 정리합니다'}</h2>
         <p>
           {isCreatorLoggedIn
-            ? '채널 연결 후 팬방 컬러와 분위기를 잡아두면 팬 화면 미리보기와 운영 톤이 한 번에 정리됩니다.'
-            : '채널 이름, 팬방 주소, 소개 문구, 운영 톤을 먼저 고정하면 나머지 화면의 카드와 공지 문구가 그에 맞게 정렬됩니다.'}
+            ? '채널에 맞는 테마와 운영 옵션을 먼저 잡아두면 팬 화면과 운영 화면이 같은 톤으로 맞춰집니다.'
+            : '채널 이름, 팬방 주소, 소개 톤을 먼저 정리하면 이후 화면이 그 기준으로 이어집니다.'}
         </p>
 
         <div className="progress-strip">
@@ -2014,10 +2012,10 @@ function App() {
 
         <div className="inline-actions">
           <button className="primary-action" onClick={() => setCurrentView('features')}>
-            {isCreatorLoggedIn ? '다음: 기능 설정' : '다음: 기능 선택'}
+            {isCreatorLoggedIn ? '기능 설정으로' : '기능 선택으로'}
           </button>
           <button className="secondary-action" onClick={() => setCurrentView('content')}>
-            채널 화면으로
+            채널로 돌아가기
           </button>
         </div>
       </div>
@@ -2054,7 +2052,7 @@ function App() {
             <div className="notice-preview settings-save-card">
               <span className="mini-label">저장된 설정</span>
               <strong>{activeRoomTheme.name}</strong>
-              <p>테마와 운영 옵션은 이 브라우저에 저장되어 다음 접속 때도 그대로 유지됩니다.</p>
+              <p>테마와 운영 옵션은 저장되어 다음 접속 때도 그대로 유지됩니다.</p>
             </div>
 
             <div className="settings-option-grid">
@@ -2197,10 +2195,9 @@ function App() {
     <section className={`scene-panel creator-workspace ${creatorExperienceClasses}`}>
       <div className="scene-copy">
         <span className="section-label">MODULE SETUP</span>
-        <h2>운영 방식에 맞는 기능 모듈 선택</h2>
+        <h2>운영 방식에 맞는 기능 선택</h2>
         <p>
-          인플루언서 운영 흐름에 맞는 모듈만 남겨서 대시보드와 팬 화면을 더 선명하게
-          구성합니다.
+          필요한 기능만 남겨 대시보드와 팬 화면을 더 선명하게 구성합니다.
         </p>
 
         <div className="selection-summary">
@@ -2211,10 +2208,10 @@ function App() {
 
         <div className="inline-actions">
           <button className="primary-action" onClick={goToDashboard}>
-            이 설정으로 대시보드 열기
+            대시보드 시작하기
           </button>
           <button className="secondary-action" onClick={() => setCurrentView('room')}>
-            이전: 팬방 설정
+            팬방 설정으로
           </button>
         </div>
       </div>
