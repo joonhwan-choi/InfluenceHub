@@ -1427,6 +1427,18 @@ function App() {
       const data = (await response.json()) as UploadResult
       setUploadResult(data)
       setUploadStatus('업로드 완료')
+      setPublishHistory((current) => [
+        {
+          publish_job_id: Date.now(),
+          platform: 'YOUTUBE',
+          status: 'SUCCESS',
+          title: data.title,
+          target_url: data.watch_url,
+          scheduled_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+        },
+        ...current.filter((job) => job.title !== data.title || job.target_url !== data.watch_url),
+      ].slice(0, 10))
       void loadPublishHistory()
       void loadCreatorCommunityPosts()
       if (!connectedChannel) {
