@@ -16,15 +16,9 @@ type View =
   | 'invite'
   | 'fan'
 
-type SocialTone = 'google' | 'youtube' | 'kakao'
 type FanTab = 'feed' | 'calendar' | 'shop'
 type PrivacyStatus = 'private' | 'unlisted' | 'public'
-
-type SocialButton = {
-  label: string
-  tone: SocialTone
-  detail: string
-}
+type AuthMode = 'influencer' | 'fan'
 
 type FeatureModule = {
   name: string
@@ -135,24 +129,6 @@ const statCards = [
   { label: '활성 팬방', value: '126', meta: '유튜버별 독립 공간' },
   { label: '자동 공지율', value: '92%', meta: '업로드와 연동' },
   { label: '평균 체류 시간', value: '18m', meta: '팬 콘텐츠 소비 지표' },
-]
-
-const socialButtons: SocialButton[] = [
-  {
-    label: 'Google로 시작',
-    tone: 'google',
-    detail: '구글 채널 운영자에게 익숙한 가장 빠른 시작 방식',
-  },
-  {
-    label: 'YouTube로 연결',
-    tone: 'youtube',
-    detail: '채널 업로드 흐름과 팬방 공지를 직접 연결하는 진입',
-  },
-  {
-    label: 'Kakao로 시작',
-    tone: 'kakao',
-    detail: '국내 팬 커뮤니티 전환에 유리한 간편 로그인',
-  },
 ]
 
 const onboardingSteps = [
@@ -479,7 +455,7 @@ const fanShopHighlights = [
 function App() {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080'
   const [currentView, setCurrentView] = useState<View>('home')
-  const [selectedSocial, setSelectedSocial] = useState<SocialTone>('youtube')
+  const [authMode, setAuthMode] = useState<AuthMode>('influencer')
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>([
     '팬 커뮤니티',
     '이벤트',
@@ -518,8 +494,6 @@ function App() {
   const [isJoiningInvite, setIsJoiningInvite] = useState(false)
   const [isStartingFanGoogleLogin, setIsStartingFanGoogleLogin] = useState(false)
 
-  const selectedSocialDetail =
-    socialButtons.find((button) => button.tone === selectedSocial) ?? socialButtons[0]
   const displayedFanRooms =
     fanSession?.joined_rooms.map((room) => ({
       id: room.room_slug,
@@ -547,7 +521,7 @@ function App() {
   }
 
   const openCreatorStart = () => {
-    setCurrentView(isCreatorLoggedIn ? 'content' : 'signup')
+    setCurrentView(isCreatorLoggedIn ? 'content' : isFanLoggedIn ? 'fan' : 'signup')
   }
 
   const openCreatorOnboardingStep = (index: number) => {
@@ -563,11 +537,11 @@ function App() {
 
   const isFanLoggedIn = fanSession !== null
   const headerSubtitle = isCreatorLoggedIn
-    ? 'Creator Control Room'
+    ? 'Influencer Control Room'
     : isFanLoggedIn
       ? 'Fan Membership Pass'
-      : 'Creator Room OS'
-  const headerRoleLabel = isCreatorLoggedIn ? 'CREATOR MODE' : isFanLoggedIn ? 'FAN MODE' : ''
+      : 'Influencer Room OS'
+  const headerRoleLabel = isCreatorLoggedIn ? 'INFLUENCER MODE' : isFanLoggedIn ? 'FAN MODE' : ''
   const headerTabs: Array<[View, string]> = isCreatorLoggedIn
     ? [
         ['home', '홈'],
@@ -585,9 +559,18 @@ function App() {
         ]
       : [
           ['home', '홈'],
-          ['signup', '가입'],
+          ['signup', '로그인'],
           ['fan', '팬 화면'],
         ]
+
+  const startSelectedAuthFlow = async () => {
+    if (authMode === 'influencer') {
+      await startCreatorGoogleLogin()
+      return
+    }
+
+    await startFanGoogleLogin()
+  }
 
   const persistCreatorSession = (sessionToken: string) => {
     localStorage.setItem(creatorSessionStorageKey, sessionToken)
@@ -1357,23 +1340,23 @@ function App() {
           </div>
 
           <h1>
-            유튜버가 방장이 되는
+            인플루언서가 방장이 되는
             <br />
             팬 커뮤니티 운영 허브
           </h1>
 
           <p className="hero-description">
             유튜브 밖에서 흩어진 팬 경험을 하나의 공식 공간으로 모읍니다.
-            크리에이터는 팬방을 만들고, 필요한 운영 모듈만 붙여 직접 수익과
+            인플루언서는 팬방을 만들고, 필요한 운영 모듈만 붙여 직접 수익과
             소통 흐름을 관리합니다.
           </p>
 
           <div className="hero-actions">
             <button className="primary-action" onClick={openCreatorStart}>
-              {isCreatorLoggedIn ? '내 채널 관리하기' : '크리에이터로 시작'}
+              {isCreatorLoggedIn ? '내 채널 관리하기' : '로그인 / 시작하기'}
             </button>
-            <button className="secondary-action" onClick={() => setCurrentView('fan')}>
-              팬 입장 화면 보기
+            <button className="secondary-action" onClick={() => setCurrentView('signup')}>
+              로그인 화면 보기
             </button>
           </div>
 
@@ -1400,8 +1383,8 @@ function App() {
 
             <p className="card-intro">
               {isCreatorLoggedIn
-                ? '이미 로그인된 크리에이터 기준으로 채널 관리와 운영 화면으로 바로 이어집니다.'
-                : '화면은 연결돼 있고, 지금은 프론트 프로토타입 중심으로 크리에이터 운영 경험을 먼저 설계한 상태입니다.'}
+                ? '이미 로그인된 인플루언서 기준으로 채널 관리와 운영 화면으로 바로 이어집니다.'
+                : '로그인 화면 하나에서 인플루언서와 팬이 같은 진입 흐름을 사용합니다.'}
             </p>
 
             <div className="journey-list">
@@ -1474,10 +1457,10 @@ function App() {
 
       <section className="workflow-panel">
         <div className="workflow-copy">
-          <span className="section-label">온보딩 흐름</span>
-          <h2>방을 만들고 필요한 기능만 붙이는 구조</h2>
+            <span className="section-label">온보딩 흐름</span>
+            <h2>방을 만들고 필요한 기능만 붙이는 구조</h2>
           <p>
-            모든 방이 똑같을 필요는 없습니다. 크리에이터가 운영 방식에 맞게
+            모든 방이 똑같을 필요는 없습니다. 인플루언서가 운영 방식에 맞게
             모듈을 켜고, 팬은 하나의 공식 공간에서 콘텐츠와 소통을 함께
             소비합니다.
           </p>
@@ -1498,27 +1481,31 @@ function App() {
   const renderSignup = () => (
     <section className="scene-panel light">
       <div className="scene-copy">
-        <span className="section-label dark">STEP 01</span>
-        <h2>{isCreatorLoggedIn ? '연결된 크리에이터 계정' : '크리에이터 계정 만들기'}</h2>
+        <span className="section-label dark">AUTH</span>
+        <h2>{isCreatorLoggedIn ? '연결된 인플루언서 계정' : '로그인 / 시작하기'}</h2>
         <p>
           {isCreatorLoggedIn
-            ? '이미 로그인된 상태이므로 다시 가입할 필요가 없습니다. 연결된 채널 정보와 운영 화면으로 바로 이동하면 됩니다.'
-            : '소셜 로그인 진입점을 먼저 고르고, 계정이 연결되면 팬방 생성 단계로 바로 넘어갑니다. 어떤 플랫폼에서 시작하느냐에 따라 초반 문구와 권장 설정이 달라집니다.'}
+            ? '이미 로그인된 상태이므로 다시 시작할 필요가 없습니다. 연결된 채널 정보와 운영 화면으로 바로 이동하면 됩니다.'
+            : '로그인은 하나로 두고, 들어갈 모드만 고릅니다. 같은 사람이 인플루언서이면서 다른 인플루언서의 팬일 수도 있습니다.'}
         </p>
 
         <div className="highlight-card">
-          <span className="mini-label">선택된 로그인</span>
-          <strong>{selectedSocialDetail.label}</strong>
-          <p>{selectedSocialDetail.detail}</p>
+          <span className="mini-label">선택된 모드</span>
+          <strong>{authMode === 'influencer' ? '인플루언서 모드' : '팬 모드'}</strong>
+          <p>
+            {authMode === 'influencer'
+              ? '채널 연결과 운영 화면으로 이어집니다.'
+              : '가입한 팬방 목록을 불러오거나 초대 링크 가입으로 이어집니다.'}
+          </p>
         </div>
 
         <div className="notice-preview">
-          <span className="mini-label">OAuth2 상태</span>
-          <strong>{authFeedback}</strong>
+          <span className="mini-label">상태</span>
+          <strong>{isCreatorLoggedIn ? authFeedback : fanStatus}</strong>
           <p>
             {isCreatorLoggedIn
-              ? '현재 세션이 살아 있어 홈과 가입 화면에서 같은 로그인 흐름을 반복하지 않고 운영 화면으로 이어집니다.'
-              : '크리에이터가 구글로 로그인하면 YouTube 채널을 연결하고, 돌아오자마자 채널명, 설명, 구독자 수가 운영 화면에 채워집니다.'}
+              ? '현재 세션이 살아 있어 홈과 로그인 화면에서 같은 흐름을 반복하지 않고 운영 화면으로 이어집니다.'
+              : 'Google 로그인 뒤 선택한 모드에 맞는 화면으로 바로 이동합니다.'}
           </p>
         </div>
 
@@ -1528,8 +1515,10 @@ function App() {
               연결된 채널 보러가기
             </button>
           ) : (
-            <button className="primary-action" onClick={() => void startCreatorGoogleLogin()}>
-              {isStartingGoogleLogin ? 'Google로 이동 중...' : 'Google로 로그인하고 채널 가져오기'}
+            <button className="primary-action" onClick={() => void startSelectedAuthFlow()}>
+              {isStartingGoogleLogin || isStartingFanGoogleLogin
+                ? 'Google로 이동 중...'
+                : 'Google로 계속하기'}
             </button>
           )}
           <button className="secondary-action dark" onClick={() => setCurrentView('home')}>
@@ -1541,42 +1530,44 @@ function App() {
       <div className="scene-card">
         <div className="card-header">
           <div>
-            <span className="card-kicker">회원가입</span>
-            <h2>로그인 방식 선택</h2>
+            <span className="card-kicker">AUTH HUB</span>
+            <h2>모드만 고르고 로그인</h2>
           </div>
           <span className="status-badge">Live UI</span>
         </div>
 
-        <div className="social-list">
-          {socialButtons.map((button) => (
-            <button
-              className={
-                selectedSocial === button.tone
-                  ? `social-button ${button.tone} selected`
-                  : `social-button ${button.tone}`
-              }
-              key={button.label}
-              onClick={() => setSelectedSocial(button.tone)}
-            >
-              <span>{button.label}</span>
-              <small>{button.detail}</small>
-            </button>
-          ))}
+        <div className="detail-grid auth-mode-grid">
+          <button
+            className={authMode === 'influencer' ? 'detail-card auth-mode-card active' : 'detail-card auth-mode-card'}
+            onClick={() => setAuthMode('influencer')}
+            type="button"
+          >
+            <span className="mini-label">인플루언서</span>
+            <strong>채널 연결 후 운영 시작</strong>
+            <p>YouTube 채널을 연결하고 팬방 운영 화면으로 들어갑니다.</p>
+          </button>
+          <button
+            className={authMode === 'fan' ? 'detail-card auth-mode-card active' : 'detail-card auth-mode-card'}
+            onClick={() => setAuthMode('fan')}
+            type="button"
+          >
+            <span className="mini-label">팬</span>
+            <strong>가입한 팬방 다시 입장</strong>
+            <p>같은 Google 계정으로 팬방 목록을 복원합니다.</p>
+          </button>
         </div>
 
         <div className="detail-grid">
           <article className="detail-card">
-            <span className="mini-label">권장 이유</span>
-            <strong>구글 로그인과 유튜브 채널 연결을 한 번에 처리</strong>
-            <p>로그인 후 바로 앱으로 돌아오고, 최신 채널 정보를 콘텐츠 센터에 채워 넣습니다.</p>
+            <span className="mini-label">공통 로그인</span>
+            <strong>버튼은 하나, 역할만 선택</strong>
+            <p>로그인 자체를 쪼개지 않고, 진입 후 어떤 화면으로 보낼지만 구분합니다.</p>
           </article>
           <article className="detail-card">
-            <span className="mini-label">다음 연결</span>
-            <strong>{isCreatorLoggedIn ? '중복 로그인 방지' : '팬방 주소 자동 제안'}</strong>
+            <span className="mini-label">팬 첫 가입</span>
+            <strong>초대 링크에서 바로 시작</strong>
             <p>
-              {isCreatorLoggedIn
-                ? '로그인된 상태에서 홈으로 돌아가도 다시 처음부터 반복하지 않고 채널 관리 화면으로 연결합니다.'
-                : '연결된 채널명과 설명을 기준으로 방 이름, 소개, 운영 카드가 이어집니다.'}
+              팬의 첫 가입은 초대 링크에서 이뤄지고, 그 다음부터는 같은 로그인 화면으로 돌아옵니다.
             </p>
           </article>
         </div>

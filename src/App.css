@@ -957,6 +957,29 @@
   gap: 14px;
 }
 
+.auth-mode-grid {
+  margin-top: 20px;
+}
+
+.auth-mode-card {
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    background 180ms ease;
+}
+
+.auth-mode-card.active {
+  background:
+    radial-gradient(circle at top right, rgba(255, 122, 69, 0.14), transparent 28%),
+    rgba(255, 241, 221, 0.96);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 122, 69, 0.16),
+    0 16px 36px rgba(16, 21, 34, 0.08);
+}
+
 .detail-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-top: 20px;
