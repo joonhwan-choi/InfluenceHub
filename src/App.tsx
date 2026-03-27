@@ -125,12 +125,6 @@ type CreatorFanMember = {
   tier: string
 }
 
-const statCards = [
-  { label: '활성 팬방', value: '126', meta: '유튜버별 독립 공간' },
-  { label: '자동 공지율', value: '92%', meta: '업로드와 연동' },
-  { label: '평균 체류 시간', value: '18m', meta: '팬 콘텐츠 소비 지표' },
-]
-
 const featureCatalog: FeatureModule[] = [
   {
     name: '팬 커뮤니티',
@@ -497,6 +491,27 @@ function App() {
     })) ?? fanRooms
   const activeFanRoom =
     displayedFanRooms.find((room) => room.id === selectedFanRoomId) ?? displayedFanRooms[0]
+  const homeStatCards = [
+    {
+      label: '연결 채널',
+      value: connectedChannel ? connectedChannel.channel_title : '미연결',
+      meta: connectedChannel
+        ? `구독자 ${connectedChannel.subscriber_count}명`
+        : 'Google 로그인 후 채널 연동',
+    },
+    {
+      label: '활성 기능',
+      value: `${selectedFeatures.length}개`,
+      meta: selectedFeatures.length > 0 ? selectedFeatures.join(' · ') : '아직 선택 전',
+    },
+    {
+      label: '초대 링크',
+      value: inviteDashboard ? `${inviteDashboard.invite_links.length}개` : '0개',
+      meta: inviteDashboard
+        ? `팬 가입 ${inviteDashboard.total_join_count}명`
+        : '로그인 후 초대 링크 생성 가능',
+    },
+  ]
 
   const toggleFeature = (featureName: string) => {
     setSelectedFeatures((current) =>
@@ -1353,7 +1368,7 @@ function App() {
           </div>
 
           <div className="stat-grid">
-            {statCards.map((card) => (
+            {homeStatCards.map((card) => (
               <article className="stat-card" key={card.label}>
                 <span className="stat-label">{card.label}</span>
                 <strong>{card.value}</strong>
