@@ -1143,8 +1143,204 @@ function App() {
     </header>
   )
 
-  const renderHome = () => (
-    <>
+  const renderCreatorAccessGuard = (
+    title: string,
+    description: string,
+    primaryLabel = '크리에이터 로그인으로 이동',
+  ) => (
+    <section className="scene-panel light">
+      <div className="scene-copy">
+        <span className="section-label dark">CREATOR ACCESS</span>
+        <h2>{title}</h2>
+        <p>{description}</p>
+
+        <div className="highlight-card">
+          <span className="mini-label">현재 상태</span>
+          <strong>{isFanLoggedIn ? '팬 모드로 로그인됨' : '비로그인 상태'}</strong>
+          <p>
+            운영 화면은 크리에이터 채널과 팬방을 직접 관리하는 영역이라 역할이 분리돼야
+            자연스럽습니다.
+          </p>
+        </div>
+
+        <div className="inline-actions">
+          <button className="primary-action" onClick={openCreatorStart}>
+            {primaryLabel}
+          </button>
+          <button className="secondary-action dark" onClick={() => setCurrentView(isFanLoggedIn ? 'fan' : 'home')}>
+            {isFanLoggedIn ? '내 팬방으로 돌아가기' : '홈으로'}
+          </button>
+        </div>
+      </div>
+
+      <div className="scene-card access-card">
+        <div className="card-header">
+          <div>
+            <span className="card-kicker">권한 안내</span>
+            <h2>역할별 화면을 분리했습니다</h2>
+          </div>
+          <span className="status-badge">Locked</span>
+        </div>
+
+        <div className="detail-grid">
+          <article className="detail-card">
+            <span className="mini-label">크리에이터 전용</span>
+            <strong>채널 연결, 초대 링크, 팬 분류, 업로드 관리</strong>
+            <p>운영 기능은 로그인한 크리에이터 채널 기준으로만 열립니다.</p>
+          </article>
+          <article className="detail-card">
+            <span className="mini-label">팬 전용</span>
+            <strong>가입한 팬방, 초대 링크, 팬방 선택</strong>
+            <p>팬은 여러 인플루언서 팬방을 오가며 참여하는 흐름에 집중합니다.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+  )
+
+  const renderFanHome = () => {
+    const joinedRooms = fanSession?.joined_rooms ?? []
+
+    return (
+      <>
+        <section className="hero-panel">
+          <div className="hero-copy role-home-card">
+            <div className="eyebrow-row">
+              <span className="eyebrow-pill">INFLUENCEHUB</span>
+              <span className="eyebrow-note">Fan Membership Home</span>
+            </div>
+
+            <h1>
+              가입한 팬방을
+              <br />
+              한 화면에서
+              <br />
+              오가며 보는 홈
+            </h1>
+
+            <p className="hero-description">
+              팬 모드에서는 크리에이터 운영 화면보다 내가 가입한 팬방, 최근 초대 링크,
+              다음 일정과 굿즈 오픈 같은 팬 중심 정보가 먼저 보여야 자연스럽습니다.
+            </p>
+
+            <div className="hero-actions">
+              <button className="primary-action" onClick={() => setCurrentView('fan')}>
+                내 팬방 보기
+              </button>
+              <button className="secondary-action" onClick={() => setCurrentView('invite')}>
+                최근 초대 링크 보기
+              </button>
+            </div>
+
+            <div className="stat-grid">
+              <article className="stat-card">
+                <span className="stat-label">가입한 팬방</span>
+                <strong>{joinedRooms.length}</strong>
+                <span className="stat-meta">같은 팬 계정으로 여러 방 이동</span>
+              </article>
+              <article className="stat-card">
+                <span className="stat-label">현재 선택 팬방</span>
+                <strong>{activeFanRoom.creator}</strong>
+                <span className="stat-meta">{activeFanRoom.label}</span>
+              </article>
+              <article className="stat-card">
+                <span className="stat-label">최근 입장 경로</span>
+                <strong>Invite</strong>
+                <span className="stat-meta">{activeFanRoom.joinedVia}</span>
+              </article>
+            </div>
+          </div>
+
+          <div className="preview-stack">
+            <section className="signup-card">
+              <div className="card-header">
+                <div>
+                  <span className="card-kicker">내 팬방</span>
+                  <h2>{fanSession?.nickname ?? '팬'}님이 가입한 방</h2>
+                </div>
+                <span className="status-badge">FAN</span>
+              </div>
+
+              <div className="journey-list">
+                {displayedFanRooms.map((room) => (
+                  <button
+                    className="journey-card"
+                    key={room.id}
+                    onClick={() => {
+                      setSelectedFanRoomId(room.id)
+                      setCurrentView('fan')
+                    }}
+                  >
+                    <span>{room.creator.slice(0, 1)}</span>
+                    <strong>{room.label}</strong>
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            <section className="room-preview-card">
+              <div className="preview-topbar">
+                <div className="creator-chip">
+                  <span className="chip-avatar">FAN</span>
+                  <div>
+                    <strong>{activeFanRoom.creator}</strong>
+                    <span>{activeFanRoom.joinedVia}</span>
+                  </div>
+                </div>
+                <button className="tiny-action" onClick={() => setCurrentView('fan')}>
+                  팬방 열기
+                </button>
+              </div>
+
+              <div className="role-home-stack">
+                <article className="role-home-note">
+                  <span className="section-label">최근 공지</span>
+                  <strong>오늘 밤 8시 새 영상 공개 + 팬방 Q&amp;A</strong>
+                  <p>업로드 직후 팬방 공지와 일정 카드가 같이 열리도록 구성했습니다.</p>
+                </article>
+                <article className="role-home-note">
+                  <span className="section-label">다음 액션</span>
+                  <strong>굿즈 선오픈 알림 받기</strong>
+                  <p>팬방 탭에서 일정과 굿즈를 오가며 필요한 방을 바로 선택하면 됩니다.</p>
+                </article>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section className="workflow-panel">
+          <div className="workflow-copy">
+            <span className="section-label">FAN FLOW</span>
+            <h2>초대 링크로 들어와 팬방을 추가하는 흐름</h2>
+            <p>
+              팬은 영상 설명란이나 라이브 고정 댓글의 초대 링크를 타고 가입한 뒤, 여러
+              인플루언서 팬방을 같은 계정으로 오가며 소비합니다.
+            </p>
+          </div>
+
+          <div className="step-list">
+            {[
+              '영상·라이브 초대 링크 진입',
+              '팬 계정으로 간단 가입',
+              '가입한 팬방 목록에 자동 추가',
+              '원하는 팬방을 선택해 다시 입장',
+            ].map((step, index) => (
+              <article className="step-card" key={step}>
+                <span className="step-index">0{index + 1}</span>
+                <p>{step}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+      </>
+    )
+  }
+
+  const renderHome = () =>
+    isFanLoggedIn && !isCreatorLoggedIn ? (
+      renderFanHome()
+    ) : (
+      <>
       <section className="hero-panel">
         <div className="hero-copy">
           <div className="eyebrow-row">
@@ -1223,8 +1419,8 @@ function App() {
                   <span>방장 · 구독자 12.4만</span>
                 </div>
               </div>
-              <button className="tiny-action" onClick={() => setCurrentView('dashboard')}>
-                {isCreatorLoggedIn ? '운영 계속하기' : '대시보드 열기'}
+              <button className="tiny-action" onClick={openCreatorStart}>
+                {isCreatorLoggedIn ? '운영 계속하기' : '가입 흐름 열기'}
               </button>
             </div>
 
@@ -1289,7 +1485,7 @@ function App() {
         </div>
       </section>
     </>
-  )
+    )
 
   const renderSignup = () => (
     <section className="scene-panel light">
@@ -1377,16 +1573,10 @@ function App() {
           </article>
         </div>
 
-        <div className="legal-note">
-          <span>계속 진행하면 아래 문서에 동의하는 것으로 간주됩니다.</span>
-          <div className="legal-link-row">
-            <button className="legal-link" onClick={() => setCurrentView('privacy')}>
-              개인정보처리방침
-            </button>
-            <button className="legal-link" onClick={() => setCurrentView('terms')}>
-              애플리케이션 서비스 약관
-            </button>
-          </div>
+        <div className="highlight-card compact-highlight">
+          <span className="mini-label">안내</span>
+          <strong>법률 문서는 하단 푸터에서만 확인할 수 있게 정리했습니다.</strong>
+          <p>회원가입 흐름에서는 로그인과 채널 연결에만 집중하도록 화면을 단순화했습니다.</p>
         </div>
       </div>
     </section>
@@ -1953,15 +2143,11 @@ function App() {
             </div>
 
             <div className="inline-actions">
-              {isCreatorLoggedIn ? (
-                <button className="secondary-action dark" onClick={handleCreatorLogout}>
-                  로그아웃
-                </button>
-              ) : (
+              {!isCreatorLoggedIn ? (
                 <button className="primary-action" onClick={() => void startCreatorGoogleLogin()}>
                   {isStartingGoogleLogin ? 'Google로 이동 중...' : '구글 로그인 다시 하기'}
                 </button>
-              )}
+              ) : null}
               <button className="secondary-action small" onClick={() => void loadLatestConnection()}>
                 {isLoadingChannel ? '채널 불러오는 중...' : '내 채널 다시 불러오기'}
               </button>
@@ -2119,18 +2305,10 @@ function App() {
           ))}
         </div>
 
-        <div className="integration-legal">
-          <span>
-            플랫폼 연동 전 심사 및 정책 고지를 위해 아래 법률 문서 링크를 함께 제공할 수 있습니다.
-          </span>
-          <div className="legal-link-row">
-            <button className="legal-link" onClick={() => setCurrentView('privacy')}>
-              개인정보처리방침 보기
-            </button>
-            <button className="legal-link" onClick={() => setCurrentView('terms')}>
-              서비스 약관 보기
-            </button>
-          </div>
+        <div className="highlight-card compact-highlight">
+          <span className="mini-label">정책 링크</span>
+          <strong>개인정보처리방침과 약관은 하단 푸터에서만 열립니다.</strong>
+          <p>플랫폼 설정 화면에서는 연동과 업로드 흐름만 남기고, 법률 링크는 전역 하단으로 모았습니다.</p>
         </div>
       </section>
     </section>
@@ -2446,11 +2624,8 @@ function App() {
         </div>
 
         <div className="fan-actions">
-          <button
-            className="primary-action"
-            onClick={() => setCurrentView(fanSession ? 'home' : 'dashboard')}
-          >
-            {fanSession ? '메인으로' : '방장 화면으로'}
+          <button className="primary-action" onClick={() => setCurrentView(fanSession ? 'home' : 'signup')}>
+            {fanSession ? '팬 홈으로' : '크리에이터 흐름 보기'}
           </button>
           {fanSession ? (
             <button className="secondary-action" onClick={handleFanLogout}>
@@ -2677,13 +2852,55 @@ function App() {
       {renderHeader()}
       {currentView === 'home' && renderHome()}
       {currentView === 'signup' && renderSignup()}
-      {currentView === 'room' && renderRoom()}
-      {currentView === 'features' && renderFeatures()}
-      {currentView === 'dashboard' && renderDashboard()}
-      {currentView === 'content' && renderContent()}
-      {currentView === 'community' && renderCommunity()}
-      {currentView === 'events' && renderEvents()}
-      {currentView === 'store' && renderStore()}
+      {currentView === 'room' &&
+        (isCreatorLoggedIn
+          ? renderRoom()
+          : renderCreatorAccessGuard(
+              '팬방 정보 화면은 크리에이터 전용입니다',
+              '채널명, 팬방 슬러그, 운영 소개 문구는 실제 크리에이터 채널을 연결한 뒤에만 수정하거나 확인할 수 있습니다.',
+            ))}
+      {currentView === 'features' &&
+        (isCreatorLoggedIn
+          ? renderFeatures()
+          : renderCreatorAccessGuard(
+              '기능 설정은 크리에이터가 직접 정하는 영역입니다',
+              '팬 커뮤니티, 이벤트, 멀티 업로드, 굿즈 모듈은 운영자만 켜고 끌 수 있게 분리했습니다.',
+            ))}
+      {currentView === 'dashboard' &&
+        (isCreatorLoggedIn
+          ? renderDashboard()
+          : renderCreatorAccessGuard(
+              '운영 대시보드는 로그인한 크리에이터에게만 열립니다',
+              '초대 링크 성과, 팬 등급 분류, 매출과 운영 지표는 연결된 크리에이터 채널 기준으로만 보여야 자연스럽습니다.',
+            ))}
+      {currentView === 'content' &&
+        (isCreatorLoggedIn
+          ? renderContent()
+          : renderCreatorAccessGuard(
+              '콘텐츠 배포 센터는 크리에이터 로그인 후 사용할 수 있습니다',
+              '파일 업로드, 유튜브 연동, 자동 공지 생성은 실제 연결된 채널이 있어야 의미가 있기 때문에 잠가두는 것이 맞습니다.',
+            ))}
+      {currentView === 'community' &&
+        (isCreatorLoggedIn
+          ? renderCommunity()
+          : renderCreatorAccessGuard(
+              '커뮤니티 운영 화면은 크리에이터만 볼 수 있습니다',
+              '공지 작성, 멤버십 피드, 운영 큐는 팬 화면과 분리된 관리자 영역으로 유지했습니다.',
+            ))}
+      {currentView === 'events' &&
+        (isCreatorLoggedIn
+          ? renderEvents()
+          : renderCreatorAccessGuard(
+              '이벤트 운영 보드는 크리에이터 전용입니다',
+              '참여 수집, 추첨 발표, 미션 운영은 팬 입장이 아니라 운영자 역할에서만 관리됩니다.',
+            ))}
+      {currentView === 'store' &&
+        (isCreatorLoggedIn
+          ? renderStore()
+          : renderCreatorAccessGuard(
+              '굿즈 관리 보드는 크리에이터 전용입니다',
+              '상품 재고와 드롭 관리 정보는 팬에게 그대로 노출되기보다 운영자 보드에서 관리되는 편이 자연스럽습니다.',
+            ))}
       {currentView === 'privacy' && renderPrivacy()}
       {currentView === 'terms' && renderTerms()}
       {currentView === 'invite' && renderInvite()}

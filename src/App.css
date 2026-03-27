@@ -147,6 +147,12 @@
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
 }
 
+.role-home-card {
+  background:
+    radial-gradient(circle at top left, rgba(255, 209, 102, 0.22), transparent 30%),
+    linear-gradient(160deg, rgba(20, 41, 73, 0.92), rgba(9, 18, 31, 0.96));
+}
+
 .eyebrow-row {
   display: flex;
   align-items: center;
@@ -875,6 +881,32 @@
   background: rgba(255, 209, 102, 0.12);
 }
 
+.role-home-stack {
+  display: grid;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.role-home-note {
+  padding: 18px;
+  border-radius: 22px;
+  background: rgba(28, 36, 50, 0.05);
+  box-shadow: inset 0 0 0 1px rgba(28, 36, 50, 0.08);
+}
+
+.role-home-note strong {
+  display: block;
+  margin-top: 10px;
+  color: #1c2432;
+  font: 900 1rem/1.35 "Arial Black", "AppleGothic", sans-serif;
+}
+
+.role-home-note p {
+  margin: 10px 0 0;
+  color: rgba(28, 36, 50, 0.68);
+  font: 500 0.94rem/1.58 "AppleGothic", "Arial", sans-serif;
+}
+
 .progress-strip {
   display: flex;
   gap: 10px;
@@ -900,6 +932,10 @@
   padding: 18px;
   background: rgba(28, 36, 50, 0.06);
   border: 1px solid rgba(28, 36, 50, 0.08);
+}
+
+.compact-highlight {
+  margin-top: 18px;
 }
 
 .scene-panel.light .highlight-card p,
@@ -1668,6 +1704,10 @@
 .doc-shell {
   display: grid;
   gap: 18px;
+}
+
+.access-card {
+  align-content: start;
 }
 
 .doc-hero,
