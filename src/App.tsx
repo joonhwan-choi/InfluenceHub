@@ -165,6 +165,24 @@ type CreatorAppearanceSettings = {
   cardDensity: CardDensity
 }
 
+type CreatorRoomSettingsResponse = {
+  room_theme_id: RoomThemeId
+  banner_style: BannerStyle
+  button_style: ButtonStyle
+  card_density: CardDensity
+  selected_features: string[]
+}
+
+type PublishJobHistoryItem = {
+  publish_job_id: number
+  platform: string
+  status: string
+  title: string
+  target_url: string | null
+  scheduled_at: string
+  created_at: string
+}
+
 const featureCatalog: FeatureModule[] = [
   {
     name: '팬 커뮤니티',
@@ -572,6 +590,7 @@ function App() {
   const [isLoadingChannel, setIsLoadingChannel] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null)
+  const [publishHistory, setPublishHistory] = useState<PublishJobHistoryItem[]>([])
   const [isStartingGoogleLogin, setIsStartingGoogleLogin] = useState(false)
   const [authFeedback, setAuthFeedback] = useState('아직 구글 로그인 전')
   const [isCreatorLoggedIn, setIsCreatorLoggedIn] = useState(false)
@@ -595,6 +614,7 @@ function App() {
   const [bannerStyle, setBannerStyle] = useState<BannerStyle>('focus')
   const [buttonStyle, setButtonStyle] = useState<ButtonStyle>('rounded')
   const [cardDensity, setCardDensity] = useState<CardDensity>('comfortable')
+  const [hasHydratedCreatorSettings, setHasHydratedCreatorSettings] = useState(false)
   const roleMenuRef = useRef<HTMLDivElement | null>(null)
 
   const activeRoomTheme =
@@ -715,6 +735,7 @@ function App() {
     localStorage.removeItem(creatorSessionStorageKey)
     setConnectedChannel(null)
     setIsCreatorLoggedIn(false)
+    setHasHydratedCreatorSettings(false)
     setAuthFeedback('로그아웃됨')
   }
 
@@ -806,6 +827,8 @@ function App() {
       setAuthFeedback(`로그인 유지 중 · ${data.channel_title} 채널이 연결되어 있습니다.`)
       void loadCreatorInviteDashboard(data.session_token)
       void loadCreatorFanMembers(data.session_token)
+      void loadCreatorRoomSettings(data.session_token)
+      void loadPublishHistory(data.session_token)
       if (!uploadTitle.trim()) {
         setUploadTitle(`${connection.channel_title} 새 영상`)
       }
@@ -880,6 +903,90 @@ function App() {
     } catch (error) {
       const message = error instanceof Error ? error.message : '팬 목록을 불러오지 못했습니다.'
       setFanTierStatus(message)
+    }
+  }
+
+  const loadCreatorRoomSettings = async (sessionToken?: string) => {
+    const creatorSessionToken = sessionToken ?? localStorage.getItem(creatorSessionStorageKey)
+    if (!creatorSessionToken) {
+      return
+    }
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/creator/settings`, {
+        headers: {
+          Authorization: `Bearer ${creatorSessionToken}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('저장된 운영 설정을 불러오지 못했습니다.')
+      }
+
+      const data = (await response.json()) as CreatorRoomSettingsResponse
+      setSelectedRoomTheme(data.room_theme_id)
+      setBannerStyle(data.banner_style)
+      setButtonStyle(data.button_style)
+      setCardDensity(data.card_density)
+      if (data.selected_features.length > 0) {
+        setSelectedFeatures(data.selected_features)
+      }
+      setHasHydratedCreatorSettings(true)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '저장된 운영 설정을 불러오지 못했습니다.'
+      setAuthFeedback(message)
+    }
+  }
+
+  const loadPublishHistory = async (sessionToken?: string) => {
+    const creatorSessionToken = sessionToken ?? localStorage.getItem(creatorSessionStorageKey)
+    if (!creatorSessionToken) {
+      return
+    }
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/publish-jobs/recent`, {
+        headers: {
+          Authorization: `Bearer ${creatorSessionToken}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('업로드 이력을 불러오지 못했습니다.')
+      }
+
+      const data = (await response.json()) as PublishJobHistoryItem[]
+      setPublishHistory(data)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '업로드 이력을 불러오지 못했습니다.'
+      setUploadError(message)
+    }
+  }
+
+  const persistCreatorSettings = async (
+    sessionToken: string,
+    settings: CreatorRoomSettingsResponse,
+    options?: { silent?: boolean },
+  ) => {
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/creator/settings`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${sessionToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(settings),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || '운영 설정 저장에 실패했습니다.')
+      }
+    } catch (error) {
+      if (!options?.silent) {
+        const message = error instanceof Error ? error.message : '운영 설정 저장에 실패했습니다.'
+        setAuthFeedback(message)
+      }
     }
   }
 
@@ -1191,6 +1298,7 @@ function App() {
       const data = (await response.json()) as UploadResult
       setUploadResult(data)
       setUploadStatus('업로드 완료')
+      void loadPublishHistory()
       if (!connectedChannel) {
         void loadLatestConnection()
       }
@@ -1384,6 +1492,37 @@ function App() {
     }
     localStorage.setItem(creatorAppearanceStorageKey, JSON.stringify(appearanceSettings))
   }, [bannerStyle, buttonStyle, cardDensity])
+
+  useEffect(() => {
+    if (!isCreatorLoggedIn || !hasHydratedCreatorSettings) {
+      return
+    }
+
+    const sessionToken = localStorage.getItem(creatorSessionStorageKey)
+    if (!sessionToken) {
+      return
+    }
+
+    void persistCreatorSettings(
+      sessionToken,
+      {
+        room_theme_id: selectedRoomTheme,
+        banner_style: bannerStyle,
+        button_style: buttonStyle,
+        card_density: cardDensity,
+        selected_features: selectedFeatures,
+      },
+      { silent: true },
+    )
+  }, [
+    isCreatorLoggedIn,
+    hasHydratedCreatorSettings,
+    selectedRoomTheme,
+    bannerStyle,
+    buttonStyle,
+    cardDensity,
+    selectedFeatures,
+  ])
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
@@ -2834,6 +2973,41 @@ function App() {
                 </div>
               </article>
             ))}
+          </div>
+
+          <div className="timeline-list">
+            <div className="panel-head">
+              <div>
+                <span className="card-kicker">최근 발행 이력</span>
+                <h3>업로드 기록</h3>
+              </div>
+            </div>
+            {publishHistory.length > 0 ? (
+              publishHistory.map((job) => (
+                <article className="timeline-row" key={job.publish_job_id}>
+                  <span className="timeline-time">{job.platform}</span>
+                  <div>
+                    <strong>{job.title}</strong>
+                    <p>
+                      {job.status} · {new Date(job.created_at).toLocaleString('ko-KR')}
+                    </p>
+                    {job.target_url ? (
+                      <a className="result-link" href={job.target_url} rel="noreferrer" target="_blank">
+                        결과 보기
+                      </a>
+                    ) : null}
+                  </div>
+                </article>
+              ))
+            ) : (
+              <article className="timeline-row">
+                <span className="timeline-time">READY</span>
+                <div>
+                  <strong>아직 업로드 이력이 없습니다</strong>
+                  <p>첫 업로드를 실행하면 최근 발행 기록이 여기에 쌓입니다.</p>
+                </div>
+              </article>
+            )}
           </div>
         </section>
       </div>

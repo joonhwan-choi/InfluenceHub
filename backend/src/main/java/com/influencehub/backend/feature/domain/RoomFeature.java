@@ -57,4 +57,8 @@ public class RoomFeature extends BaseTimeEntity {
     public boolean isEnabled() {
         return enabled;
     }
+
+    public void updateEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
 }

@@ -39,6 +39,18 @@ public class CreatorRoom extends BaseTimeEntity {
     @Column(nullable = false, length = 20)
     private RoomVisibility visibility;
 
+    @Column(nullable = false, length = 40)
+    private String roomThemeId;
+
+    @Column(nullable = false, length = 20)
+    private String bannerStyle;
+
+    @Column(nullable = false, length = 20)
+    private String buttonStyle;
+
+    @Column(nullable = false, length = 20)
+    private String cardDensity;
+
     protected CreatorRoom() {
     }
 
@@ -48,6 +60,10 @@ public class CreatorRoom extends BaseTimeEntity {
         this.slug = slug;
         this.description = description;
         this.visibility = visibility;
+        this.roomThemeId = "hub-classic";
+        this.bannerStyle = "focus";
+        this.buttonStyle = "rounded";
+        this.cardDensity = "comfortable";
     }
 
     public Long getId() {
@@ -74,8 +90,31 @@ public class CreatorRoom extends BaseTimeEntity {
         return visibility;
     }
 
+    public String getRoomThemeId() {
+        return roomThemeId;
+    }
+
+    public String getBannerStyle() {
+        return bannerStyle;
+    }
+
+    public String getButtonStyle() {
+        return buttonStyle;
+    }
+
+    public String getCardDensity() {
+        return cardDensity;
+    }
+
     public void updateProfile(String roomName, String description) {
         this.roomName = roomName;
         this.description = description;
+    }
+
+    public void updateAppearance(String roomThemeId, String bannerStyle, String buttonStyle, String cardDensity) {
+        this.roomThemeId = roomThemeId;
+        this.bannerStyle = bannerStyle;
+        this.buttonStyle = buttonStyle;
+        this.cardDensity = cardDensity;
     }
 }
