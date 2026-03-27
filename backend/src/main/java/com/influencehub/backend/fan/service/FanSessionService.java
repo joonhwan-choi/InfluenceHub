@@ -3,7 +3,7 @@ package com.influencehub.backend.fan.service;
 import com.influencehub.backend.fan.domain.FanMembership;
 import com.influencehub.backend.fan.domain.FanSession;
 import com.influencehub.backend.fan.dto.FanAuthResponse;
-import com.influencehub.backend.fan.dto.FanLoginRequest;
+import com.influencehub.backend.fan.dto.GoogleUserProfile;
 import com.influencehub.backend.fan.dto.FanRoomSummaryResponse;
 import com.influencehub.backend.fan.repository.FanMembershipRepository;
 import com.influencehub.backend.fan.repository.FanSessionRepository;
@@ -52,18 +52,20 @@ public class FanSessionService {
     }
 
     @Transactional
-    public FanAuthResponse login(FanLoginRequest request) {
-        String email = request.getEmail().trim().toLowerCase(Locale.ROOT);
-        User fan = userRepository.findByEmail(email)
-            .orElseThrow(() -> new IllegalStateException("가입된 팬 계정이 없습니다. 먼저 초대 링크로 가입하세요."));
+    public FanAuthResponse loginWithGoogle(GoogleUserProfile profile) {
+        User fan = userRepository.findByEmail(profile.getEmail().trim().toLowerCase(Locale.ROOT))
+            .orElseThrow(() -> new IllegalStateException("가입된 팬 계정이 없습니다. 먼저 초대 링크로 팬 가입을 완료하세요."));
 
         if (fan.getRole() != UserRole.FAN) {
             throw new IllegalStateException("팬 계정으로만 로그인할 수 있습니다.");
         }
 
-        if (request.getNickname() != null && !request.getNickname().trim().isEmpty()) {
-            fan.updateProfile(request.getNickname().trim(), fan.getProfileImageUrl());
-        }
+        fan.updateProfile(
+            profile.getName().trim(),
+            profile.getPicture() == null || profile.getPicture().isBlank()
+                ? fan.getProfileImageUrl()
+                : profile.getPicture()
+        );
 
         if (fanMembershipRepository.findByFanOrderByCreatedAtDesc(fan).isEmpty()) {
             throw new IllegalStateException("가입한 팬방이 없어 로그인할 수 없습니다.");

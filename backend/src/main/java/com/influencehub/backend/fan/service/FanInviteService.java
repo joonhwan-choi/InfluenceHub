@@ -10,6 +10,7 @@ import com.influencehub.backend.fan.dto.CreateInviteLinkRequest;
 import com.influencehub.backend.fan.dto.CreatorFanMemberResponse;
 import com.influencehub.backend.fan.dto.CreatorInviteDashboardResponse;
 import com.influencehub.backend.fan.dto.FanAuthResponse;
+import com.influencehub.backend.fan.dto.GoogleUserProfile;
 import com.influencehub.backend.fan.dto.FanJoinInviteRequest;
 import com.influencehub.backend.fan.dto.InviteLinkDetailResponse;
 import com.influencehub.backend.fan.dto.InviteLinkResponse;
@@ -181,25 +182,58 @@ public class FanInviteService {
 
     @Transactional
     public FanAuthResponse joinInvite(FanJoinInviteRequest request) {
-        InviteLink inviteLink = inviteLinkRepository.findByInviteCode(request.getInviteCode())
+        return joinInviteInternal(
+            request.getInviteCode(),
+            request.getEmail().trim().toLowerCase(Locale.ROOT),
+            request.getNickname().trim(),
+            ""
+        );
+    }
+
+    @Transactional
+    public FanAuthResponse joinInviteWithGoogle(String inviteCode, GoogleUserProfile profile) {
+        return joinInviteInternal(
+            inviteCode,
+            profile.getEmail().trim().toLowerCase(Locale.ROOT),
+            profile.getName().trim(),
+            profile.getPicture()
+        );
+    }
+
+    private FanAuthResponse joinInviteInternal(
+        String inviteCode,
+        String email,
+        String nickname,
+        String profileImageUrl
+    ) {
+        InviteLink inviteLink = inviteLinkRepository.findByInviteCode(inviteCode)
             .orElseThrow(() -> new IllegalStateException("초대 링크를 찾을 수 없습니다."));
         if (!inviteLink.isActive()) {
             throw new IllegalStateException("비활성화된 초대 링크입니다.");
         }
 
-        User fan = userRepository.findByEmail(request.getEmail().trim().toLowerCase(Locale.ROOT))
+        User fan = userRepository.findByEmail(email)
             .map(existing -> {
-                existing.updateProfile(request.getNickname().trim(), existing.getProfileImageUrl());
+                existing.updateProfile(
+                    nickname,
+                    profileImageUrl == null || profileImageUrl.isBlank()
+                        ? existing.getProfileImageUrl()
+                        : profileImageUrl
+                );
                 return existing;
             })
             .orElseGet(() -> userRepository.save(
                 new User(
-                    request.getEmail().trim().toLowerCase(Locale.ROOT),
-                    request.getNickname().trim(),
+                    email,
+                    nickname,
                     UserRole.FAN,
                     AuthProvider.GOOGLE
                 )
             ));
+
+        if (profileImageUrl != null && !profileImageUrl.isBlank()) {
+            fan.updateProfile(nickname, profileImageUrl);
+        }
 
         boolean newlyJoined = false;
         if (fanMembershipRepository.findByFanAndRoom(fan, inviteLink.getRoom()).isEmpty()) {

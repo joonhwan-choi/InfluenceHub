@@ -62,6 +62,11 @@ type AuthUrlResponse = {
   redirect_uri: string
 }
 
+type FanAuthUrlResponse = {
+  auth_url: string
+  redirect_uri: string
+}
+
 type CreatorSession = {
   session_token: string
   expires_at: string
@@ -508,11 +513,10 @@ function App() {
   const [fanSession, setFanSession] = useState<FanAuthResponse | null>(null)
   const [inviteDetail, setInviteDetail] = useState<InviteDetailResponse | null>(null)
   const [inviteCode, setInviteCode] = useState('')
-  const [fanEmail, setFanEmail] = useState('')
-  const [fanNickname, setFanNickname] = useState('')
   const [fanStatus, setFanStatus] = useState('팬 로그인 전')
   const [fanError, setFanError] = useState('')
   const [isJoiningInvite, setIsJoiningInvite] = useState(false)
+  const [isStartingFanGoogleLogin, setIsStartingFanGoogleLogin] = useState(false)
 
   const selectedSocialDetail =
     socialButtons.find((button) => button.tone === selectedSocial) ?? socialButtons[0]
@@ -918,91 +922,38 @@ function App() {
     }
   }
 
+  const startFanGoogleLogin = async (nextInviteCode?: string) => {
+    setIsStartingFanGoogleLogin(true)
+    setFanError('')
+    setFanStatus(nextInviteCode ? '팬 가입용 Google 로그인으로 이동 중' : '팬 로그인용 Google으로 이동 중')
+
+    try {
+      const query = nextInviteCode ? `?inviteCode=${encodeURIComponent(nextInviteCode)}` : ''
+      const response = await fetch(`${apiBaseUrl}/api/v1/fans/auth-url${query}`)
+      if (!response.ok) {
+        throw new Error('팬 Google 로그인 주소를 만들지 못했습니다.')
+      }
+
+      const data = (await response.json()) as FanAuthUrlResponse
+      window.location.assign(data.auth_url)
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : '팬 Google 로그인을 시작하지 못했습니다.'
+      setFanError(message)
+      setFanStatus(nextInviteCode ? '팬 가입 시작 실패' : '팬 로그인 시작 실패')
+      setIsStartingFanGoogleLogin(false)
+    }
+  }
+
   const handleFanJoin = async () => {
     if (!inviteCode.trim()) {
       setFanError('초대 링크 코드가 필요합니다.')
       return
     }
 
-    if (!fanEmail.trim() || !fanNickname.trim()) {
-      setFanError('이메일과 닉네임을 입력하세요.')
-      return
-    }
-
     setIsJoiningInvite(true)
-    setFanError('')
-    setFanStatus('팬 가입 처리 중')
-
-    try {
-      const response = await fetch(`${apiBaseUrl}/api/v1/fans/join`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          inviteCode,
-          email: fanEmail.trim(),
-          nickname: fanNickname.trim(),
-        }),
-      })
-
-      if (!response.ok) {
-        const errorText = await response.text()
-        throw new Error(errorText || '팬 가입에 실패했습니다.')
-      }
-
-      const data = (await response.json()) as FanAuthResponse
-      setFanSession(data)
-      persistFanSession(data.session_token)
-      setSelectedFanRoomId(data.joined_rooms[0]?.room_slug ?? 'salt-toast')
-      setCurrentView('fan')
-      setFanStatus(`${data.nickname}님 팬 가입 완료`)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : '팬 가입에 실패했습니다.'
-      setFanError(message)
-      setFanStatus('팬 가입 실패')
-    } finally {
-      setIsJoiningInvite(false)
-    }
-  }
-
-  const handleFanLogin = async () => {
-    if (!fanEmail.trim()) {
-      setFanError('팬 로그인에 사용할 이메일을 입력하세요.')
-      return
-    }
-
-    setFanError('')
-    setFanStatus('팬 로그인 중')
-
-    try {
-      const response = await fetch(`${apiBaseUrl}/api/v1/fans/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: fanEmail.trim(),
-          nickname: fanNickname.trim() || undefined,
-        }),
-      })
-
-      if (!response.ok) {
-        const errorText = await response.text()
-        throw new Error(errorText || '팬 로그인에 실패했습니다.')
-      }
-
-      const data = (await response.json()) as FanAuthResponse
-      setFanSession(data)
-      persistFanSession(data.session_token)
-      setSelectedFanRoomId(data.joined_rooms[0]?.room_slug ?? 'salt-toast')
-      setCurrentView('fan')
-      setFanStatus(`${data.nickname}님 팬 로그인 완료`)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : '팬 로그인에 실패했습니다.'
-      setFanError(message)
-      setFanStatus('팬 로그인 실패')
-    }
+    await startFanGoogleLogin(inviteCode)
+    setIsJoiningInvite(false)
   }
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -1083,8 +1034,10 @@ function App() {
     const params = new URLSearchParams(window.location.search)
     const view = params.get('view')
     const youtubeState = params.get('youtube')
+    const fanOAuthState = params.get('fan')
     const message = params.get('message')
     const appToken = params.get('appToken')
+    const fanAppToken = params.get('fanAppToken')
     const pathname = window.location.pathname
 
     if (
@@ -1110,7 +1063,23 @@ function App() {
       setAuthFeedback(message || '구글 로그인 중 오류가 발생했습니다.')
     }
 
-    if (view || youtubeState || message) {
+    if (fanOAuthState === 'connected') {
+      if (fanAppToken) {
+        persistFanSession(fanAppToken)
+        void fetchFanSession(fanAppToken, { silent: true })
+      }
+      setCurrentView('fan')
+      setFanStatus('Google 팬 로그인 완료')
+      setFanError('')
+    }
+
+    if (fanOAuthState === 'error') {
+      setCurrentView(pathname.startsWith('/invite/') ? 'invite' : 'fan')
+      setFanStatus('Google 팬 로그인 실패')
+      setFanError(message || '팬 Google 로그인 중 오류가 발생했습니다.')
+    }
+
+    if (view || youtubeState || fanOAuthState || message || appToken || fanAppToken) {
       window.history.replaceState({}, document.title, window.location.pathname)
     }
 
@@ -2672,8 +2641,8 @@ function App() {
           </div>
 
           <div className="inline-actions">
-            <button className="primary-action" onClick={() => void handleFanLogin()}>
-              팬 로그인
+            <button className="primary-action" onClick={() => void startFanGoogleLogin()}>
+              {isStartingFanGoogleLogin ? 'Google로 이동 중...' : 'Google로 팬 로그인'}
             </button>
             <button className="secondary-action dark" onClick={() => setCurrentView('invite')}>
               초대 링크로 가입하기
@@ -2684,43 +2653,22 @@ function App() {
         <div className="scene-card">
           <div className="card-header">
             <div>
-              <span className="card-kicker">팬 로그인</span>
-              <h2>가입한 팬방 다시 불러오기</h2>
+              <span className="card-kicker">Google OAuth</span>
+              <h2>팬도 OAuth로 다시 들어오기</h2>
             </div>
             <span className="status-badge">Fan Auth</span>
           </div>
 
-          <div className="form-stack">
-            <div className="field-block">
-              <span className="mini-label">이메일</span>
-              <input
-                className="text-input"
-                value={fanEmail}
-                onChange={(event) => setFanEmail(event.target.value)}
-                placeholder="fan@example.com"
-              />
-            </div>
-            <div className="field-block">
-              <span className="mini-label">닉네임 수정(선택)</span>
-              <input
-                className="text-input"
-                value={fanNickname}
-                onChange={(event) => setFanNickname(event.target.value)}
-                placeholder="원하면 새 닉네임 입력"
-              />
-            </div>
-          </div>
-
           <div className="detail-grid">
             <article className="detail-card">
-              <span className="mini-label">팬 로그인 후</span>
-              <strong>가입한 팬방 목록 복원</strong>
-              <p>같은 팬 계정으로 가입했던 크리에이터 팬방이 한 번에 다시 열립니다.</p>
+              <span className="mini-label">처음 가입</span>
+              <strong>초대 링크에서 Google로 팬 가입</strong>
+              <p>영상 설명란이나 라이브 링크를 통해 들어오면 Google 로그인 후 바로 팬방에 입장합니다.</p>
             </article>
             <article className="detail-card">
-              <span className="mini-label">첫 가입이 아직이면</span>
-              <strong>초대 링크로 먼저 팬 가입</strong>
-              <p>이메일만으로 로그인하려면 먼저 초대 링크를 타고 팬 가입이 한 번 있어야 합니다.</p>
+              <span className="mini-label">다시 로그인</span>
+              <strong>같은 Google 계정으로 팬방 목록 복원</strong>
+              <p>한 번 가입한 팬은 비밀번호 없이 같은 Google 계정으로 여러 팬방을 다시 불러옵니다.</p>
             </article>
           </div>
 
@@ -2921,30 +2869,20 @@ function App() {
               </article>
             </div>
 
-            <div className="form-stack">
-              <div className="field-block">
-                <span className="mini-label">이메일</span>
-                <input
-                  className="text-input"
-                  value={fanEmail}
-                  onChange={(event) => setFanEmail(event.target.value)}
-                  placeholder="fan@example.com"
-                />
-              </div>
-              <div className="field-block">
-                <span className="mini-label">닉네임</span>
-                <input
-                  className="text-input"
-                  value={fanNickname}
-                  onChange={(event) => setFanNickname(event.target.value)}
-                  placeholder="팬 닉네임"
-                />
-              </div>
+            <div className="highlight-card compact-highlight">
+              <span className="mini-label">가입 방식</span>
+              <strong>초대 링크 진입 후 Google 계정으로 바로 팬 가입</strong>
+              <p>
+                이메일과 비밀번호를 별도로 받지 않고, 같은 Google 계정으로 이후 팬 로그인도
+                이어집니다.
+              </p>
             </div>
 
             <div className="inline-actions">
               <button className="primary-action" onClick={() => void handleFanJoin()}>
-                {isJoiningInvite ? '팬 가입 중...' : '팬으로 가입하고 입장'}
+                {isJoiningInvite || isStartingFanGoogleLogin
+                  ? 'Google로 이동 중...'
+                  : 'Google로 팬 가입하고 입장'}
               </button>
               {fanSession ? (
                 <button className="secondary-action dark" onClick={() => setCurrentView('fan')}>
