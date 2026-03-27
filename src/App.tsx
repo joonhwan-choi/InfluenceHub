@@ -480,7 +480,6 @@ function App() {
   const [fanStatus, setFanStatus] = useState('팬 로그인 전')
   const [fanError, setFanError] = useState('')
   const [isJoiningInvite, setIsJoiningInvite] = useState(false)
-  const [isLoadingFanSession, setIsLoadingFanSession] = useState(false)
 
   const selectedSocialDetail =
     socialButtons.find((button) => button.tone === selectedSocial) ?? socialButtons[0]
@@ -609,7 +608,6 @@ function App() {
   }
 
   const fetchFanSession = async (sessionToken: string, options?: { silent?: boolean }) => {
-    setIsLoadingFanSession(true)
     if (!options?.silent) {
       setFanError('')
     }
@@ -638,7 +636,6 @@ function App() {
         setFanError(message)
       }
     } finally {
-      setIsLoadingFanSession(false)
     }
   }
 
@@ -836,7 +833,8 @@ function App() {
 
     const storedFanSessionToken = localStorage.getItem(fanSessionStorageKey)
     if (storedFanSessionToken) {
-      if (!storedSessionToken && !pathname.startsWith('/invite/')) {
+      const storedCreatorSessionToken = localStorage.getItem(creatorSessionStorageKey)
+      if (!storedCreatorSessionToken && !pathname.startsWith('/invite/')) {
         setCurrentView('fan')
       }
       void fetchFanSession(storedFanSessionToken, { silent: true })
