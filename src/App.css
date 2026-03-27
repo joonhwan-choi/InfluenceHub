@@ -1938,13 +1938,15 @@
   min-height: 44px;
   padding: 0 16px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(245, 241, 232, 0.82);
+  background: rgba(255, 255, 255, 0.9);
+  color: #1c2432;
+  box-shadow: inset 0 0 0 1px rgba(28, 36, 50, 0.08);
 }
 
 .fan-tab.active {
-  background: rgba(255, 209, 102, 0.16);
-  color: #fff3cb;
+  background: linear-gradient(135deg, #ffd166, #ff7a45);
+  color: #1c2432;
+  box-shadow: 0 14px 28px rgba(255, 122, 69, 0.18);
 }
 
 .calendar-list {
@@ -2126,12 +2128,14 @@
 
 .fan-scene-classic .fan-tab {
   background: rgba(255, 255, 255, 0.08);
-  color: rgba(245, 241, 232, 0.82);
+  color: #f5f1e8;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 .fan-scene-classic .fan-tab.active {
-  background: rgba(255, 209, 102, 0.16);
-  color: #fff4d5;
+  background: linear-gradient(135deg, #ffd166, #ff7a45);
+  color: #1c2432;
+  box-shadow: 0 14px 28px rgba(255, 122, 69, 0.22);
 }
 
 .fan-scene-classic .mini-board.dark {
