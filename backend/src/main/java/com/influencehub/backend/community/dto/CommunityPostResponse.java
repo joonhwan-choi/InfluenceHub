@@ -9,6 +9,7 @@ public class CommunityPostResponse {
     private final String title;
     private final String content;
     private final String authorName;
+    private final String imageUrl;
     private final LocalDateTime createdAt;
 
     public CommunityPostResponse(
@@ -17,6 +18,7 @@ public class CommunityPostResponse {
         String title,
         String content,
         String authorName,
+        String imageUrl,
         LocalDateTime createdAt
     ) {
         this.postId = postId;
@@ -24,6 +26,7 @@ public class CommunityPostResponse {
         this.title = title;
         this.content = content;
         this.authorName = authorName;
+        this.imageUrl = imageUrl;
         this.createdAt = createdAt;
     }
 
@@ -45,6 +48,10 @@ public class CommunityPostResponse {
 
     public String getAuthorName() {
         return authorName;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
     }
 
     public LocalDateTime getCreatedAt() {

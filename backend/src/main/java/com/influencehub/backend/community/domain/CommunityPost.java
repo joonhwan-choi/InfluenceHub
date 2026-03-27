@@ -41,15 +41,23 @@ public class CommunityPost extends BaseTimeEntity {
     @Column(nullable = false, length = 3000)
     private String content;
 
+    @Column(name = "image_url", columnDefinition = "TEXT")
+    private String imageUrl;
+
     protected CommunityPost() {
     }
 
     public CommunityPost(CreatorRoom room, User author, PostType postType, String title, String content) {
+        this(room, author, postType, title, content, null);
+    }
+
+    public CommunityPost(CreatorRoom room, User author, PostType postType, String title, String content, String imageUrl) {
         this.room = room;
         this.author = author;
         this.postType = postType;
         this.title = title;
         this.content = content;
+        this.imageUrl = imageUrl;
     }
 
     public Long getId() {
@@ -74,5 +82,9 @@ public class CommunityPost extends BaseTimeEntity {
 
     public String getContent() {
         return content;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
     }
 }

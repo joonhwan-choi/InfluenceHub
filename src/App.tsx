@@ -666,6 +666,7 @@ function App() {
   )
   const [selectedPostImage, setSelectedPostImage] = useState<File | null>(null)
   const [postPreviewUrl, setPostPreviewUrl] = useState<string | null>(null)
+  const [postImageDataUrl, setPostImageDataUrl] = useState<string | null>(null)
   const [postStatus, setPostStatus] = useState('아직 게시 전')
   const [uploadStatus, setUploadStatus] = useState('아직 업로드 전')
   const [uploadError, setUploadError] = useState('')
@@ -1484,6 +1485,16 @@ function App() {
   const handlePostImageChange = (event: ChangeEvent<HTMLInputElement>) => {
     const nextFile = event.target.files?.[0] ?? null
     setSelectedPostImage(nextFile)
+    if (!nextFile) {
+      setPostImageDataUrl(null)
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      setPostImageDataUrl(typeof reader.result === 'string' ? reader.result : null)
+    }
+    reader.readAsDataURL(nextFile)
   }
 
   useEffect(() => {
@@ -1514,7 +1525,7 @@ function App() {
     }
   }, [selectedPostImage])
 
-  const handlePublishPost = () => {
+  const handlePublishPost = async () => {
     if (!postTitle.trim()) {
       setUploadError('게시글 제목을 입력하세요.')
       return
@@ -1525,22 +1536,41 @@ function App() {
       return
     }
 
-    const createdAt = new Date().toISOString()
-    const draftPost: CommunityPostItem = {
-      post_id: Date.now(),
-      post_type: 'FREE',
-      title: postTitle.trim(),
-      content: postBody.trim(),
-      author_name: connectedChannel?.channel_title ?? '운영자',
-      created_at: createdAt,
-      image_url: postPreviewUrl ?? undefined,
+    const creatorSessionToken = localStorage.getItem(creatorSessionStorageKey)
+    if (!creatorSessionToken) {
+      setUploadError('먼저 인플루언서 로그인이 필요합니다.')
+      return
     }
 
-    setCommunityFeed((current) => [draftPost, ...current])
-    setPostStatus('팬방 게시글 등록 완료')
-    setUploadError('')
-    setFanTab('feed')
-    setCurrentView('content')
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/community/mine`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${creatorSessionToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: postTitle.trim(),
+          content: postBody.trim(),
+          imageUrl: postImageDataUrl,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('게시글을 저장하지 못했습니다.')
+      }
+
+      const savedPost = (await response.json()) as CommunityPostItem
+      setCommunityFeed((current) => [savedPost, ...current.filter((post) => post.post_id !== savedPost.post_id)])
+      setPostStatus('팬방 게시글 등록 완료')
+      setUploadError('')
+      setFanTab('feed')
+      await loadCreatorCommunityPosts(creatorSessionToken)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '게시글을 저장하지 못했습니다.'
+      setUploadError(message)
+      setPostStatus('게시 실패')
+    }
   }
 
   const handleUpload = async () => {

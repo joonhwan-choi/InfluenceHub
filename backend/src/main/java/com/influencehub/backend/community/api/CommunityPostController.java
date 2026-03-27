@@ -1,10 +1,13 @@
 package com.influencehub.backend.community.api;
 
+import com.influencehub.backend.community.dto.CreateCommunityPostRequest;
 import com.influencehub.backend.community.dto.CommunityPostResponse;
 import com.influencehub.backend.community.service.CommunityPostService;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -27,6 +30,14 @@ public class CommunityPostController {
     @GetMapping("/rooms/{roomSlug}/posts")
     public List<CommunityPostResponse> roomPosts(@PathVariable String roomSlug) {
         return communityPostService.getRoomPosts(roomSlug);
+    }
+
+    @PostMapping("/mine")
+    public CommunityPostResponse create(
+        @RequestHeader("Authorization") String authorizationHeader,
+        @RequestBody CreateCommunityPostRequest request
+    ) {
+        return communityPostService.createCreatorRoomPost(extractBearerToken(authorizationHeader), request);
     }
 
     private String extractBearerToken(String authorizationHeader) {

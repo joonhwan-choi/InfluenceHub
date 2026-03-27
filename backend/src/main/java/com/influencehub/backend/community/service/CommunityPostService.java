@@ -4,6 +4,7 @@ import com.influencehub.backend.auth.domain.CreatorSession;
 import com.influencehub.backend.auth.service.CreatorAuthService;
 import com.influencehub.backend.community.domain.CommunityPost;
 import com.influencehub.backend.community.domain.PostType;
+import com.influencehub.backend.community.dto.CreateCommunityPostRequest;
 import com.influencehub.backend.community.dto.CommunityPostResponse;
 import com.influencehub.backend.community.repository.CommunityPostRepository;
 import com.influencehub.backend.room.domain.CreatorRoom;
@@ -44,6 +45,31 @@ public class CommunityPostService {
         return getOrSeedPosts(room);
     }
 
+    @Transactional
+    public CommunityPostResponse createCreatorRoomPost(String sessionToken, CreateCommunityPostRequest request) {
+        CreatorSession session = creatorAuthService.requireSession(sessionToken);
+        CreatorRoom room = session.getRoom();
+
+        String title = request.getTitle() == null ? "" : request.getTitle().trim();
+        String content = request.getContent() == null ? "" : request.getContent().trim();
+        String imageUrl = request.getImageUrl() == null || request.getImageUrl().isBlank()
+            ? null
+            : request.getImageUrl().trim();
+
+        if (title.isEmpty()) {
+            throw new IllegalArgumentException("게시글 제목이 필요합니다.");
+        }
+        if (content.isEmpty()) {
+            throw new IllegalArgumentException("게시글 본문이 필요합니다.");
+        }
+
+        CommunityPost savedPost = communityPostRepository.save(
+            new CommunityPost(room, room.getOwner(), PostType.FREE, title, content, imageUrl)
+        );
+
+        return toResponse(savedPost);
+    }
+
     private List<CommunityPostResponse> getOrSeedPosts(CreatorRoom room) {
         List<CommunityPost> posts = communityPostRepository.findTop20ByRoomOrderByCreatedAtDesc(room);
         if (posts.isEmpty()) {
@@ -57,14 +83,19 @@ public class CommunityPostService {
         }
 
         return posts.stream()
-            .map(post -> new CommunityPostResponse(
-                post.getId(),
-                post.getPostType().name(),
-                post.getTitle(),
-                post.getContent(),
-                post.getAuthor().getNickname(),
-                post.getCreatedAt()
-            ))
+            .map(this::toResponse)
             .collect(Collectors.toList());
+    }
+
+    private CommunityPostResponse toResponse(CommunityPost post) {
+        return new CommunityPostResponse(
+            post.getId(),
+            post.getPostType().name(),
+            post.getTitle(),
+            post.getContent(),
+            post.getAuthor().getNickname(),
+            post.getImageUrl(),
+            post.getCreatedAt()
+        );
     }
 }
