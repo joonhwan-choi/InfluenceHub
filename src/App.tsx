@@ -560,7 +560,6 @@ function App() {
       : [
           ['home', '홈'],
           ['signup', '로그인'],
-          ['fan', '팬 화면'],
         ]
 
   const startSelectedAuthFlow = async () => {
@@ -1482,16 +1481,16 @@ function App() {
     <section className="scene-panel light">
       <div className="scene-copy">
         <span className="section-label dark">AUTH</span>
-        <h2>{isCreatorLoggedIn ? '연결된 인플루언서 계정' : '로그인 / 시작하기'}</h2>
+        <h2>{isCreatorLoggedIn ? '연결된 인플루언서 계정' : 'SNS 로그인'}</h2>
         <p>
           {isCreatorLoggedIn
             ? '이미 로그인된 상태이므로 다시 시작할 필요가 없습니다. 연결된 채널 정보와 운영 화면으로 바로 이동하면 됩니다.'
-            : '로그인은 하나로 두고, 들어갈 모드만 고릅니다. 같은 사람이 인플루언서이면서 다른 인플루언서의 팬일 수도 있습니다.'}
+            : '로그인은 하나로 두고, 로그인 후 들어갈 모드만 고릅니다. 같은 사람이 인플루언서이면서 다른 인플루언서의 팬일 수도 있습니다.'}
         </p>
 
         <div className="highlight-card">
-          <span className="mini-label">선택된 모드</span>
-          <strong>{authMode === 'influencer' ? '인플루언서 모드' : '팬 모드'}</strong>
+          <span className="mini-label">로그인 후 이동</span>
+          <strong>{authMode === 'influencer' ? '인플루언서로 시작' : '팬으로 들어가기'}</strong>
           <p>
             {authMode === 'influencer'
               ? '채널 연결과 운영 화면으로 이어집니다.'
@@ -1518,7 +1517,7 @@ function App() {
             <button className="primary-action" onClick={() => void startSelectedAuthFlow()}>
               {isStartingGoogleLogin || isStartingFanGoogleLogin
                 ? 'Google로 이동 중...'
-                : 'Google로 계속하기'}
+                : 'Google로 로그인'}
             </button>
           )}
           <button className="secondary-action dark" onClick={() => setCurrentView('home')}>
@@ -1530,8 +1529,8 @@ function App() {
       <div className="scene-card">
         <div className="card-header">
           <div>
-            <span className="card-kicker">AUTH HUB</span>
-            <h2>모드만 고르고 로그인</h2>
+            <span className="card-kicker">LOGIN FLOW</span>
+            <h2>로그인 후 모드 선택</h2>
           </div>
           <span className="status-badge">Live UI</span>
         </div>
@@ -1543,8 +1542,8 @@ function App() {
             type="button"
           >
             <span className="mini-label">인플루언서</span>
-            <strong>채널 연결 후 운영 시작</strong>
-            <p>YouTube 채널을 연결하고 팬방 운영 화면으로 들어갑니다.</p>
+            <strong>로그인 후 인플루언서로 시작</strong>
+            <p>YouTube 채널을 연결하고 운영 화면으로 들어갑니다.</p>
           </button>
           <button
             className={authMode === 'fan' ? 'detail-card auth-mode-card active' : 'detail-card auth-mode-card'}
@@ -1552,7 +1551,7 @@ function App() {
             type="button"
           >
             <span className="mini-label">팬</span>
-            <strong>가입한 팬방 다시 입장</strong>
+            <strong>로그인 후 팬으로 들어가기</strong>
             <p>같은 Google 계정으로 팬방 목록을 복원합니다.</p>
           </button>
         </div>
@@ -1560,11 +1559,11 @@ function App() {
         <div className="detail-grid">
           <article className="detail-card">
             <span className="mini-label">공통 로그인</span>
-            <strong>버튼은 하나, 역할만 선택</strong>
-            <p>로그인 자체를 쪼개지 않고, 진입 후 어떤 화면으로 보낼지만 구분합니다.</p>
+            <strong>SNS 로그인은 하나로 통일</strong>
+            <p>로그인 버튼은 하나만 두고, 어떤 화면으로 들어갈지만 나눴습니다.</p>
           </article>
           <article className="detail-card">
-            <span className="mini-label">팬 첫 가입</span>
+            <span className="mini-label">팬 첫 입장</span>
             <strong>초대 링크에서 바로 시작</strong>
             <p>
               팬의 첫 가입은 초대 링크에서 이뤄지고, 그 다음부터는 같은 로그인 화면으로 돌아옵니다.
