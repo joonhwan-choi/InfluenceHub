@@ -1,5 +1,6 @@
 package com.influencehub.backend.youtube.api;
 
+import com.influencehub.backend.auth.dto.CreatorAuthResponse;
 import com.influencehub.backend.youtube.dto.YoutubeAuthUrlResponse;
 import com.influencehub.backend.youtube.dto.YoutubeConnectionResponse;
 import com.influencehub.backend.youtube.dto.YoutubeConnectionSnapshotResponse;
@@ -51,10 +52,10 @@ public class YoutubeIntegrationController {
     @GetMapping("/oauth/callback")
     public ResponseEntity<Void> callback(@RequestParam("code") String code) {
         try {
-            youtubeIntegrationService.exchangeCode(code);
-            return buildRedirect("content", "connected", "");
+            CreatorAuthResponse authResponse = youtubeIntegrationService.authenticateCreator(code);
+            return buildRedirect("content", "connected", "", authResponse.getSessionToken());
         } catch (RuntimeException ex) {
-            return buildRedirect("signup", "error", ex.getMessage());
+            return buildRedirect("signup", "error", ex.getMessage(), "");
         }
     }
 
@@ -83,10 +84,21 @@ public class YoutubeIntegrationController {
         );
     }
 
-    private ResponseEntity<Void> buildRedirect(String view, String youtubeState, String message) {
+    private ResponseEntity<Void> buildRedirect(
+        String view,
+        String youtubeState,
+        String message,
+        String appToken
+    ) {
         String redirectUrl = UriComponentsBuilder.fromUriString(frontendUrl)
             .queryParam("view", view)
             .queryParam("youtube", youtubeState)
+            .queryParamIfPresent(
+                "appToken",
+                appToken == null || appToken.isBlank()
+                    ? java.util.Optional.empty()
+                    : java.util.Optional.of(appToken)
+            )
             .queryParamIfPresent(
                 "message",
                 message == null || message.isBlank()

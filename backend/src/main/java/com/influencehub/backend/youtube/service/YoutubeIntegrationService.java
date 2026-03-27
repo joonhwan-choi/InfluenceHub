@@ -3,6 +3,8 @@ package com.influencehub.backend.youtube.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.influencehub.backend.auth.dto.CreatorAuthResponse;
+import com.influencehub.backend.auth.service.CreatorAuthService;
 import com.influencehub.backend.publish.domain.PlatformType;
 import com.influencehub.backend.publish.domain.PublishJob;
 import com.influencehub.backend.publish.domain.PublishStatus;
@@ -58,6 +60,7 @@ public class YoutubeIntegrationService {
     private final CreatorRoomRepository creatorRoomRepository;
     private final PublishJobRepository publishJobRepository;
     private final YoutubeChannelConnectionRepository youtubeChannelConnectionRepository;
+    private final CreatorAuthService creatorAuthService;
     private final String clientId;
     private final String clientSecret;
     private final String redirectUri;
@@ -69,6 +72,7 @@ public class YoutubeIntegrationService {
         CreatorRoomRepository creatorRoomRepository,
         PublishJobRepository publishJobRepository,
         YoutubeChannelConnectionRepository youtubeChannelConnectionRepository,
+        CreatorAuthService creatorAuthService,
         @Value("${youtube.client-id:}") String clientId,
         @Value("${youtube.client-secret:}") String clientSecret,
         @Value("${youtube.redirect-uri:}") String redirectUri
@@ -79,6 +83,7 @@ public class YoutubeIntegrationService {
         this.creatorRoomRepository = creatorRoomRepository;
         this.publishJobRepository = publishJobRepository;
         this.youtubeChannelConnectionRepository = youtubeChannelConnectionRepository;
+        this.creatorAuthService = creatorAuthService;
         this.clientId = clientId;
         this.clientSecret = clientSecret;
         this.redirectUri = redirectUri;
@@ -106,6 +111,27 @@ public class YoutubeIntegrationService {
     public YoutubeConnectionResponse exchangeCode(String code) {
         requireConfiguredCredentials();
 
+        YoutubeTokenBundle tokenBundle = exchangeTokenBundle(code);
+        YoutubeChannelProfileResponse channel = fetchMyChannel(tokenBundle.getAccessToken());
+        persistConnection(channel, tokenBundle.getAccessToken(), tokenBundle.getRefreshToken());
+        return new YoutubeConnectionResponse(tokenBundle.getAccessToken(), tokenBundle.getRefreshToken(), channel);
+    }
+
+    @Transactional
+    public CreatorAuthResponse authenticateCreator(String code) {
+        requireConfiguredCredentials();
+
+        YoutubeTokenBundle tokenBundle = exchangeTokenBundle(code);
+        YoutubeChannelProfileResponse channel = fetchMyChannel(tokenBundle.getAccessToken());
+        YoutubeChannelConnection connection = persistConnection(
+            channel,
+            tokenBundle.getAccessToken(),
+            tokenBundle.getRefreshToken()
+        );
+        return creatorAuthService.issueSession(connection);
+    }
+
+    private YoutubeTokenBundle exchangeTokenBundle(String code) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
@@ -123,12 +149,10 @@ public class YoutubeIntegrationService {
         );
 
         JsonNode tokenJson = readJson(tokenResponse.getBody());
-        String accessToken = textOrEmpty(tokenJson, "access_token");
-        String refreshToken = textOrEmpty(tokenJson, "refresh_token");
-
-        YoutubeChannelProfileResponse channel = fetchMyChannel(accessToken);
-        persistConnection(channel, accessToken, refreshToken);
-        return new YoutubeConnectionResponse(accessToken, refreshToken, channel);
+        return new YoutubeTokenBundle(
+            textOrEmpty(tokenJson, "access_token"),
+            textOrEmpty(tokenJson, "refresh_token")
+        );
     }
 
     public YoutubeChannelProfileResponse fetchMyChannel(String accessToken) {
@@ -324,15 +348,15 @@ public class YoutubeIntegrationService {
         return headers;
     }
 
-    private void persistConnection(
+    private YoutubeChannelConnection persistConnection(
         YoutubeChannelProfileResponse channel,
         String accessToken,
         String refreshToken
     ) {
         YoutubeOnboardingContext context = provisionContext(channel);
-        youtubeChannelConnectionRepository.findByYoutubeChannelId(channel.getChannelId())
-            .ifPresentOrElse(
-                connection -> connection.updateChannelMetadata(
+        return youtubeChannelConnectionRepository.findByYoutubeChannelId(channel.getChannelId())
+            .map(connection -> {
+                connection.updateChannelMetadata(
                     channel.getTitle(),
                     channel.getDescription(),
                     channel.getCustomUrl(),
@@ -340,22 +364,23 @@ public class YoutubeIntegrationService {
                     channel.getSubscriberCount(),
                     accessToken,
                     refreshToken
-                ),
-                () -> youtubeChannelConnectionRepository.save(
-                    new YoutubeChannelConnection(
-                        context.getUser(),
-                        context.getRoom(),
-                        channel.getChannelId(),
-                        channel.getTitle(),
-                        channel.getDescription(),
-                        channel.getCustomUrl(),
-                        channel.getThumbnailUrl(),
-                        channel.getSubscriberCount(),
-                        accessToken,
-                        refreshToken
-                    )
+                );
+                return connection;
+            })
+            .orElseGet(() -> youtubeChannelConnectionRepository.save(
+                new YoutubeChannelConnection(
+                    context.getUser(),
+                    context.getRoom(),
+                    channel.getChannelId(),
+                    channel.getTitle(),
+                    channel.getDescription(),
+                    channel.getCustomUrl(),
+                    channel.getThumbnailUrl(),
+                    channel.getSubscriberCount(),
+                    accessToken,
+                    refreshToken
                 )
-            );
+            ));
     }
 
     private YoutubeOnboardingContext provisionContext(YoutubeChannelProfileResponse channel) {
@@ -445,5 +470,24 @@ public class YoutubeIntegrationService {
             .replaceAll("[^a-z0-9]+", "-")
             .replaceAll("(^-+|-+$)", "");
         return normalized.isBlank() ? "creator-room" : normalized;
+    }
+
+    private static class YoutubeTokenBundle {
+
+        private final String accessToken;
+        private final String refreshToken;
+
+        private YoutubeTokenBundle(String accessToken, String refreshToken) {
+            this.accessToken = accessToken;
+            this.refreshToken = refreshToken;
+        }
+
+        private String getAccessToken() {
+            return accessToken;
+        }
+
+        private String getRefreshToken() {
+            return refreshToken;
+        }
     }
 }

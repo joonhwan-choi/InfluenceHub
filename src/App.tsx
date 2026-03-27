@@ -53,10 +53,16 @@ type AuthUrlResponse = {
   redirect_uri: string
 }
 
-type SessionSnapshot = {
-  channelId: string
-  roomName: string
-  savedAt: string
+type CreatorSession = {
+  session_token: string
+  expires_at: string
+  connection_id: number
+  channel_id: string
+  channel_title: string
+  channel_description: string
+  room_name: string
+  room_slug: string
+  subscriber_count: string
 }
 
 const statCards = [
@@ -265,7 +271,7 @@ const youtubeIntegrationSteps = [
   },
 ]
 
-const creatorSessionStorageKey = 'influencehub.creator-session'
+const creatorSessionStorageKey = 'influencehub.creator-session-token'
 
 const importedChannelPreview = {
   title: '침착한개발자TV',
@@ -400,14 +406,8 @@ function App() {
     setCurrentView('dashboard')
   }
 
-  const persistCreatorSession = (connection: ChannelConnection) => {
-    const snapshot: SessionSnapshot = {
-      channelId: connection.channel_id,
-      roomName: connection.room_name,
-      savedAt: new Date().toISOString(),
-    }
-
-    localStorage.setItem(creatorSessionStorageKey, JSON.stringify(snapshot))
+  const persistCreatorSession = (sessionToken: string) => {
+    localStorage.setItem(creatorSessionStorageKey, sessionToken)
     setIsCreatorLoggedIn(true)
   }
 
@@ -418,27 +418,44 @@ function App() {
     setAuthFeedback('로그아웃됨')
   }
 
-  const loadLatestConnection = async (options?: { silent?: boolean }) => {
+  const fetchCurrentCreatorSession = async (
+    sessionToken: string,
+    options?: { silent?: boolean },
+  ) => {
     setIsLoadingChannel(true)
     if (!options?.silent) {
       setUploadError('')
     }
 
     try {
-      const response = await fetch(`${apiBaseUrl}/api/v1/youtube/latest-connection`)
+      const response = await fetch(`${apiBaseUrl}/api/v1/auth/me`, {
+        headers: {
+          Authorization: `Bearer ${sessionToken}`,
+        },
+      })
       if (!response.ok) {
-        throw new Error('채널 정보를 불러오지 못했습니다.')
+        throw new Error('로그인 세션을 확인하지 못했습니다.')
       }
 
-      const data = (await response.json()) as ChannelConnection
-      setConnectedChannel(data)
-      persistCreatorSession(data)
+      const data = (await response.json()) as CreatorSession
+      const connection: ChannelConnection = {
+        connection_id: data.connection_id,
+        channel_id: data.channel_id,
+        channel_title: data.channel_title,
+        channel_description: data.channel_description,
+        room_name: data.room_name,
+        room_slug: data.room_slug,
+        subscriber_count: data.subscriber_count,
+      }
+
+      setConnectedChannel(connection)
+      persistCreatorSession(data.session_token)
       setAuthFeedback(`로그인 유지 중 · ${data.channel_title} 채널이 연결되어 있습니다.`)
       if (!uploadTitle.trim()) {
-        setUploadTitle(`${data.channel_title} 새 영상`)
+        setUploadTitle(`${connection.channel_title} 새 영상`)
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : '채널 정보를 불러오지 못했습니다.'
+      const message = error instanceof Error ? error.message : '로그인 세션을 확인하지 못했습니다.'
       setIsCreatorLoggedIn(false)
       localStorage.removeItem(creatorSessionStorageKey)
       if (!options?.silent) {
@@ -447,6 +464,18 @@ function App() {
     } finally {
       setIsLoadingChannel(false)
     }
+  }
+
+  const loadLatestConnection = async (options?: { silent?: boolean }) => {
+    const sessionToken = localStorage.getItem(creatorSessionStorageKey)
+    if (!sessionToken) {
+      if (!options?.silent) {
+        setUploadError('먼저 구글 로그인으로 크리에이터 세션을 만들어야 합니다.')
+      }
+      return
+    }
+
+    await fetchCurrentCreatorSession(sessionToken, options)
   }
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -528,12 +557,16 @@ function App() {
     const view = params.get('view')
     const youtubeState = params.get('youtube')
     const message = params.get('message')
+    const appToken = params.get('appToken')
 
     if (view === 'content' || view === 'signup' || view === 'dashboard') {
       setCurrentView(view)
     }
 
     if (youtubeState === 'connected') {
+      if (appToken) {
+        persistCreatorSession(appToken)
+      }
       setCurrentView('content')
       setAuthFeedback('구글 로그인 완료, 연결된 유튜브 채널 정보를 불러왔습니다.')
       void loadLatestConnection()
@@ -549,11 +582,11 @@ function App() {
     }
 
     if (!youtubeState) {
-      const storedSession = localStorage.getItem(creatorSessionStorageKey)
-      if (storedSession) {
+      const storedSessionToken = localStorage.getItem(creatorSessionStorageKey)
+      if (storedSessionToken) {
         setCurrentView('content')
         setAuthFeedback('이전 로그인 상태를 복원하는 중')
-        void loadLatestConnection({ silent: true })
+        void fetchCurrentCreatorSession(storedSessionToken, { silent: true })
       }
     }
   }, [])
@@ -1182,7 +1215,21 @@ function App() {
 
             <div className="inline-actions">
               {isCreatorLoggedIn ? (
-                <button className="secondary-action dark" onClick={clearCreatorSession}>
+                <button
+                  className="secondary-action dark"
+                  onClick={() => {
+                    const sessionToken = localStorage.getItem(creatorSessionStorageKey)
+                    if (sessionToken) {
+                      void fetch(`${apiBaseUrl}/api/v1/auth/logout`, {
+                        method: 'POST',
+                        headers: {
+                          Authorization: `Bearer ${sessionToken}`,
+                        },
+                      })
+                    }
+                    clearCreatorSession()
+                  }}
+                >
                   로그아웃
                 </button>
               ) : (
