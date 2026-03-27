@@ -1,4 +1,4 @@
-import { useEffect, useState, type ChangeEvent, type CSSProperties } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent, type CSSProperties } from 'react'
 import './App.css'
 
 type View =
@@ -21,6 +21,9 @@ type PrivacyStatus = 'private' | 'unlisted' | 'public'
 type AuthMode = 'influencer' | 'fan'
 type AuthMethod = 'social' | 'email'
 type DashboardSection = 'overview' | 'content' | 'community' | 'events' | 'store'
+type BannerStyle = 'focus' | 'soft' | 'broadcast'
+type ButtonStyle = 'rounded' | 'solid' | 'outlined'
+type CardDensity = 'compact' | 'comfortable' | 'airy'
 type RoomThemeId =
   | 'hub-classic'
   | 'sunset-sand'
@@ -154,6 +157,12 @@ type RoomThemePreset = {
   panelBackground: string
   textColor: string
   mutedColor: string
+}
+
+type CreatorAppearanceSettings = {
+  bannerStyle: BannerStyle
+  buttonStyle: ButtonStyle
+  cardDensity: CardDensity
 }
 
 const featureCatalog: FeatureModule[] = [
@@ -383,6 +392,7 @@ const creatorSessionStorageKey = 'influencehub.creator-session-token'
 const fanSessionStorageKey = 'influencehub.fan-session-token'
 const googleProfileStorageKey = 'influencehub.google-profile'
 const roomThemeStorageKey = 'influencehub.room-theme'
+const creatorAppearanceStorageKey = 'influencehub.creator-appearance'
 
 const importedChannelPreview = {
   title: '침착한개발자TV',
@@ -582,11 +592,16 @@ function App() {
   const [pendingGoogleProfile, setPendingGoogleProfile] = useState<PendingGoogleProfile | null>(null)
   const [selectedRoomTheme, setSelectedRoomTheme] = useState<RoomThemeId>('hub-classic')
   const [isRoleMenuOpen, setIsRoleMenuOpen] = useState(false)
+  const [bannerStyle, setBannerStyle] = useState<BannerStyle>('focus')
+  const [buttonStyle, setButtonStyle] = useState<ButtonStyle>('rounded')
+  const [cardDensity, setCardDensity] = useState<CardDensity>('comfortable')
+  const roleMenuRef = useRef<HTMLDivElement | null>(null)
 
   const activeRoomTheme =
     roomThemePresets.find((preset) => preset.id === selectedRoomTheme) ?? roomThemePresets[0]
   const useRoomThemeSurface = currentView === 'fan'
   const isClassicRoomTheme = selectedRoomTheme === 'hub-classic'
+  const creatorExperienceClasses = `banner-${bannerStyle} buttons-${buttonStyle} density-${cardDensity}`
 
   const displayedFanRooms =
     fanSession?.joined_rooms.map((room) => ({
@@ -1340,6 +1355,59 @@ function App() {
   }, [selectedRoomTheme])
 
   useEffect(() => {
+    const storedAppearance = localStorage.getItem(creatorAppearanceStorageKey)
+    if (!storedAppearance) {
+      return
+    }
+
+    try {
+      const parsed = JSON.parse(storedAppearance) as Partial<CreatorAppearanceSettings>
+      if (parsed.bannerStyle === 'focus' || parsed.bannerStyle === 'soft' || parsed.bannerStyle === 'broadcast') {
+        setBannerStyle(parsed.bannerStyle)
+      }
+      if (parsed.buttonStyle === 'rounded' || parsed.buttonStyle === 'solid' || parsed.buttonStyle === 'outlined') {
+        setButtonStyle(parsed.buttonStyle)
+      }
+      if (parsed.cardDensity === 'compact' || parsed.cardDensity === 'comfortable' || parsed.cardDensity === 'airy') {
+        setCardDensity(parsed.cardDensity)
+      }
+    } catch {
+      localStorage.removeItem(creatorAppearanceStorageKey)
+    }
+  }, [])
+
+  useEffect(() => {
+    const appearanceSettings: CreatorAppearanceSettings = {
+      bannerStyle,
+      buttonStyle,
+      cardDensity,
+    }
+    localStorage.setItem(creatorAppearanceStorageKey, JSON.stringify(appearanceSettings))
+  }, [bannerStyle, buttonStyle, cardDensity])
+
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!roleMenuRef.current?.contains(event.target as Node)) {
+        setIsRoleMenuOpen(false)
+      }
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsRoleMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [])
+
+  useEffect(() => {
     const root = document.documentElement
     const body = document.body
 
@@ -1391,7 +1459,7 @@ function App() {
             </button>
           ))}
           {headerRoleLabel ? (
-            <div className="role-menu-wrap">
+            <div className="role-menu-wrap" ref={roleMenuRef}>
               <button
                 className="nav-role-chip"
                 onClick={() => setIsRoleMenuOpen((current) => !current)}
@@ -1927,7 +1995,7 @@ function App() {
   )
 
   const renderRoom = () => (
-    <section className="scene-panel">
+    <section className={`scene-panel creator-workspace ${creatorExperienceClasses}`}>
       <div className="scene-copy">
         <span className="section-label">ROOM SETTINGS</span>
         <h2>{isCreatorLoggedIn ? '팬방 설정' : '팬방의 첫 인상을 설계'}</h2>
@@ -1946,7 +2014,7 @@ function App() {
 
         <div className="inline-actions">
           <button className="primary-action" onClick={() => setCurrentView('features')}>
-            {isCreatorLoggedIn ? '기능 설정으로' : '기능 선택으로'}
+            {isCreatorLoggedIn ? '다음: 기능 설정' : '다음: 기능 선택'}
           </button>
           <button className="secondary-action" onClick={() => setCurrentView('content')}>
             채널 화면으로
@@ -1986,7 +2054,69 @@ function App() {
             <div className="notice-preview settings-save-card">
               <span className="mini-label">저장된 설정</span>
               <strong>{activeRoomTheme.name}</strong>
-              <p>선택한 테마는 이 브라우저에 저장되어 다음 접속 때도 그대로 유지됩니다.</p>
+              <p>테마와 운영 옵션은 이 브라우저에 저장되어 다음 접속 때도 그대로 유지됩니다.</p>
+            </div>
+
+            <div className="settings-option-grid">
+              <section className="settings-option-group">
+                <span className="mini-label">배너 스타일</span>
+                <div className="settings-chip-row">
+                  {[
+                    ['focus', '포커스'],
+                    ['soft', '소프트'],
+                    ['broadcast', '브로드캐스트'],
+                  ].map(([value, label]) => (
+                    <button
+                      className={bannerStyle === value ? 'settings-chip active' : 'settings-chip'}
+                      key={value}
+                      onClick={() => setBannerStyle(value as BannerStyle)}
+                      type="button"
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              <section className="settings-option-group">
+                <span className="mini-label">버튼 스타일</span>
+                <div className="settings-chip-row">
+                  {[
+                    ['rounded', '라운드'],
+                    ['solid', '솔리드'],
+                    ['outlined', '아웃라인'],
+                  ].map(([value, label]) => (
+                    <button
+                      className={buttonStyle === value ? 'settings-chip active' : 'settings-chip'}
+                      key={value}
+                      onClick={() => setButtonStyle(value as ButtonStyle)}
+                      type="button"
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              <section className="settings-option-group">
+                <span className="mini-label">카드 밀도</span>
+                <div className="settings-chip-row">
+                  {[
+                    ['compact', '컴팩트'],
+                    ['comfortable', '기본'],
+                    ['airy', '여유'],
+                  ].map(([value, label]) => (
+                    <button
+                      className={cardDensity === value ? 'settings-chip active' : 'settings-chip'}
+                      key={value}
+                      onClick={() => setCardDensity(value as CardDensity)}
+                      type="button"
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </section>
             </div>
           </section>
 
@@ -2050,6 +2180,12 @@ function App() {
                   {activeRoomTheme.name} · {activeRoomTheme.tone}
                 </div>
               </label>
+              <label>
+                운영 프리셋
+                <div className="field multiline">
+                  배너 {bannerStyle} · 버튼 {buttonStyle} · 카드 {cardDensity}
+                </div>
+              </label>
             </div>
           </section>
         </div>
@@ -2058,14 +2194,13 @@ function App() {
   )
 
   const renderFeatures = () => (
-    <section className="scene-panel light">
+    <section className={`scene-panel creator-workspace ${creatorExperienceClasses}`}>
       <div className="scene-copy">
-        <span className="section-label dark">STEP 03</span>
+        <span className="section-label">MODULE SETUP</span>
         <h2>운영 방식에 맞는 기능 모듈 선택</h2>
         <p>
-          클릭하면 즉시 켜지고 꺼지는 구조로 만들었습니다. 지금은 프론트
-          프로토타입이지만, 나중에 실제 설정 API만 붙이면 거의 같은 UX로 갈 수
-          있습니다.
+          인플루언서 운영 흐름에 맞는 모듈만 남겨서 대시보드와 팬 화면을 더 선명하게
+          구성합니다.
         </p>
 
         <div className="selection-summary">
@@ -2076,15 +2211,15 @@ function App() {
 
         <div className="inline-actions">
           <button className="primary-action" onClick={goToDashboard}>
-            대시보드 생성
+            이 설정으로 대시보드 열기
           </button>
-          <button className="secondary-action dark" onClick={() => setCurrentView('room')}>
-            이전 단계
+          <button className="secondary-action" onClick={() => setCurrentView('room')}>
+            이전: 팬방 설정
           </button>
         </div>
       </div>
 
-      <div className="scene-card">
+      <div className="scene-card creator-control-card">
         <div className="feature-grid">
           {featureCatalog.map((feature) => {
             const enabled = selectedFeatures.includes(feature.name)
@@ -2113,7 +2248,7 @@ function App() {
   )
 
   const renderDashboard = () => (
-    <section className="dashboard-shell">
+    <section className={`dashboard-shell creator-workspace ${creatorExperienceClasses}`}>
       {renderDashboardSidebar('overview')}
 
       <div className="dashboard-main">
@@ -2459,7 +2594,7 @@ function App() {
   )
 
   const renderContentMain = () => (
-    <section className="studio-shell">
+    <section className={`studio-shell creator-workspace ${creatorExperienceClasses}`}>
       <div className="studio-header">
         <div>
           <span className="section-label">PUBLISHING STUDIO</span>
@@ -2883,7 +3018,7 @@ function App() {
   )
 
   const renderCommunityMain = () => (
-    <section className="studio-shell">
+    <section className={`studio-shell creator-workspace ${creatorExperienceClasses}`}>
       <div className="studio-header">
         <div>
           <span className="section-label">COMMUNITY OPS</span>
@@ -2949,7 +3084,7 @@ function App() {
   )
 
   const renderEventsMain = () => (
-    <section className="studio-shell">
+    <section className={`studio-shell creator-workspace ${creatorExperienceClasses}`}>
       <div className="studio-header">
         <div>
           <span className="section-label">EVENT PLANNER</span>
@@ -2987,7 +3122,7 @@ function App() {
   )
 
   const renderStoreMain = () => (
-    <section className="studio-shell">
+    <section className={`studio-shell creator-workspace ${creatorExperienceClasses}`}>
       <div className="studio-header">
         <div>
           <span className="section-label">STORE BOARD</span>
