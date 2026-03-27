@@ -1794,6 +1794,10 @@
   color: #1c2432;
 }
 
+.metric-card .mini-label {
+  color: rgba(28, 36, 50, 0.58);
+}
+
 .metric-card strong {
   display: block;
   margin-top: 10px;
@@ -1803,6 +1807,7 @@
 .metric-change {
   margin-top: 10px;
   font: 700 0.8rem/1.2 "Arial", "AppleGothic", sans-serif;
+  color: rgba(28, 36, 50, 0.62);
 }
 
 .dashboard-main {

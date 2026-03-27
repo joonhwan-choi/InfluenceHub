@@ -256,6 +256,9 @@ type PlatformSetupState = {
 const isRenderableImageUrl = (value?: string | null) =>
   typeof value === 'string' && /^https?:\/\/\S+/i.test(value.trim())
 
+const isTestCommunityPost = (post: CommunityPostItem) =>
+  post.title.trim() === '이미지 저장 테스트' || post.content.includes('image_url 필드 저장 확인')
+
 const featureCatalog: FeatureModule[] = [
   {
     name: '팬 커뮤니티',
@@ -783,7 +786,7 @@ function App() {
   const isInstagramSelectedForPublish = selectedPublishPlatforms.includes('Instagram')
   const visibleFanFeed: FanFeedItem[] =
     isCreatorLoggedIn && communityFeed.length > 0
-      ? communityFeed.slice(0, 3).map((post) => ({
+      ? communityFeed.filter((post) => !isTestCommunityPost(post)).slice(0, 3).map((post) => ({
           title: post.title,
           text: post.content,
           badge: postTypeToBadge[post.post_type] ?? 'POST',
@@ -4217,7 +4220,7 @@ function App() {
 
           <div className="board-list">
             {(communityFeed.length > 0
-              ? communityFeed.map((post) => ({
+              ? communityFeed.filter((post) => !isTestCommunityPost(post)).map((post) => ({
                   label: post.post_type,
                   title: post.title,
                   meta: `${post.author_name} · ${new Date(post.created_at).toLocaleString('ko-KR')}`,
