@@ -131,13 +131,6 @@ const statCards = [
   { label: '평균 체류 시간', value: '18m', meta: '팬 콘텐츠 소비 지표' },
 ]
 
-const onboardingSteps = [
-  'SNS 로그인으로 크리에이터 회원가입',
-  '내 채널 이름과 팬방 주소 생성',
-  '원하는 기능 모듈만 ON',
-  '첫 업로드 후 팬방 공지 자동 생성',
-]
-
 const featureCatalog: FeatureModule[] = [
   {
     name: '팬 커뮤니티',
@@ -1339,23 +1332,23 @@ function App() {
           </div>
 
           <h1>
-            인플루언서가 방장이 되는
+            콘텐츠 밖의 팬 경험까지
             <br />
-            팬 커뮤니티 운영 허브
+            하나의 허브로
           </h1>
 
           <p className="hero-description">
-            유튜브 밖에서 흩어진 팬 경험을 하나의 공식 공간으로 모읍니다.
-            인플루언서는 팬방을 만들고, 필요한 운영 모듈만 붙여 직접 수익과
-            소통 흐름을 관리합니다.
+            InfluenceHub는 인플루언서의 콘텐츠, 커뮤니티, 이벤트, 굿즈, 팬 초대 흐름을
+            하나로 묶는 팬 운영 플랫폼입니다. 업로드 이후의 팬 경험까지 직접 설계하고
+            운영할 수 있습니다.
           </p>
 
           <div className="hero-actions">
             <button className="primary-action" onClick={openCreatorStart}>
-              {isCreatorLoggedIn ? '내 채널 관리하기' : '로그인 / 시작하기'}
+              {isCreatorLoggedIn ? '내 채널 관리하기' : '지금 시작하기'}
             </button>
             <button className="secondary-action" onClick={() => setCurrentView('signup')}>
-              로그인 화면 보기
+              서비스 둘러보기
             </button>
           </div>
 
@@ -1374,20 +1367,25 @@ function App() {
           <section className="signup-card">
             <div className="card-header">
               <div>
-                <span className="card-kicker">온보딩 미리보기</span>
-                <h2>가입부터 운영까지 한 흐름</h2>
+                <span className="card-kicker">WHY INFLUENCEHUB</span>
+                <h2>팬 운영을 한 화면으로 모읍니다</h2>
               </div>
               <span className="status-badge">MVP</span>
             </div>
 
             <p className="card-intro">
               {isCreatorLoggedIn
-                ? '이미 로그인된 인플루언서 기준으로 채널 관리와 운영 화면으로 바로 이어집니다.'
-                : '로그인 화면 하나에서 인플루언서와 팬이 같은 진입 흐름을 사용합니다.'}
+                ? '이미 연결된 계정 기준으로 채널 관리와 운영 흐름을 바로 이어갈 수 있습니다.'
+                : '업로드 이후 공지, 초대 링크, 팬 등급 운영, 굿즈와 이벤트까지 이어지는 흐름을 하나의 서비스에서 관리합니다.'}
             </p>
 
             <div className="journey-list">
-              {onboardingSteps.map((step, index) => (
+              {[
+                '새 콘텐츠 공개와 동시에 팬 공지 연결',
+                '초대 링크로 팬 유입과 가입 전환 추적',
+                '팬방, 이벤트, 굿즈를 한 흐름으로 운영',
+                '팬 등급과 코어 팬 그룹까지 직접 관리',
+              ].map((step, index) => (
                 <button
                   className="journey-card"
                   key={step}
@@ -1416,21 +1414,22 @@ function App() {
 
             <div className="room-layout">
               <div className="room-main">
-                <span className="section-label">자동 생성 공지</span>
-                <h3>새 영상이 업로드됐습니다</h3>
+                <span className="section-label">서비스 미리보기</span>
+                <h3>업로드 뒤의 운영까지 이어집니다</h3>
                 <p>
-                  오늘 업로드된 영상이 유튜브와 치지직에 동시에 반영됐고,
-                  팬방에는 공지가 자동 등록됩니다.
+                  영상 공개, 팬방 공지, 라이브 예고, 초대 링크 공유, 굿즈 오픈까지
+                  끊기지 않게 설계된 운영 경험을 한 곳에서 다룹니다.
                 </p>
                 <div className="platform-tags">
                   <span>YouTube</span>
-                  <span>CHZZK</span>
-                  <span>팬 알림 발송</span>
+                  <span>팬방</span>
+                  <span>이벤트</span>
+                  <span>굿즈</span>
                 </div>
               </div>
 
               <aside className="room-side">
-                <span className="section-label">현재 활성 모듈</span>
+                <span className="section-label">핵심 기능</span>
                 <div className="module-list">
                   {featureCatalog.slice(0, 4).map((module) => {
                     const enabled = selectedFeatures.includes(module.name)
@@ -1456,17 +1455,21 @@ function App() {
 
       <section className="workflow-panel">
         <div className="workflow-copy">
-            <span className="section-label">온보딩 흐름</span>
-            <h2>방을 만들고 필요한 기능만 붙이는 구조</h2>
+            <span className="section-label">PLATFORM OVERVIEW</span>
+            <h2>인플루언서 운영에 필요한 흐름을 연결합니다</h2>
           <p>
-            모든 방이 똑같을 필요는 없습니다. 인플루언서가 운영 방식에 맞게
-            모듈을 켜고, 팬은 하나의 공식 공간에서 콘텐츠와 소통을 함께
-            소비합니다.
+            팬이 콘텐츠를 본 뒤 어디로 들어오고, 어떤 경험을 하며, 어떻게 다시 돌아오는지까지
+            서비스 전체 관점에서 설계할 수 있습니다.
           </p>
         </div>
 
         <div className="step-list">
-          {onboardingSteps.map((step, index) => (
+          {[
+            '콘텐츠 공개 후 팬 유입을 끌어옵니다',
+            '초대 링크로 팬방 가입을 연결합니다',
+            '커뮤니티와 이벤트로 참여를 쌓습니다',
+            '굿즈와 멤버십으로 관계를 확장합니다',
+          ].map((step, index) => (
             <article className="step-card" key={step}>
               <span className="step-index">0{index + 1}</span>
               <p>{step}</p>
