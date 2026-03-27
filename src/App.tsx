@@ -581,6 +581,7 @@ function App() {
   const [isStartingFanGoogleLogin, setIsStartingFanGoogleLogin] = useState(false)
   const [pendingGoogleProfile, setPendingGoogleProfile] = useState<PendingGoogleProfile | null>(null)
   const [selectedRoomTheme, setSelectedRoomTheme] = useState<RoomThemeId>('hub-classic')
+  const [isRoleMenuOpen, setIsRoleMenuOpen] = useState(false)
 
   const activeRoomTheme =
     roomThemePresets.find((preset) => preset.id === selectedRoomTheme) ?? roomThemePresets[0]
@@ -735,6 +736,7 @@ function App() {
     }
 
     clearCreatorSession()
+    setIsRoleMenuOpen(false)
     setCurrentView('home')
   }
 
@@ -750,6 +752,7 @@ function App() {
     }
 
     clearFanSession()
+    setIsRoleMenuOpen(false)
     setCurrentView('home')
   }
 
@@ -1379,25 +1382,40 @@ function App() {
             <button
               className={currentView === id ? 'nav-tab active' : 'nav-tab'}
               key={id}
-              onClick={() => setCurrentView(id)}
+              onClick={() => {
+                setCurrentView(id)
+                setIsRoleMenuOpen(false)
+              }}
             >
               {label}
             </button>
           ))}
-          {headerRoleLabel ? <span className="nav-role-chip">{headerRoleLabel}</span> : null}
+          {headerRoleLabel ? (
+            <div className="role-menu-wrap">
+              <button
+                className="nav-role-chip"
+                onClick={() => setIsRoleMenuOpen((current) => !current)}
+                type="button"
+              >
+                {headerRoleLabel}
+              </button>
+              {isRoleMenuOpen ? (
+                <div className="role-menu-dropdown">
+                  {isCreatorLoggedIn ? (
+                    <button className="role-menu-item" onClick={handleCreatorLogout} type="button">
+                      크리에이터 로그아웃
+                    </button>
+                  ) : null}
+                  {isFanLoggedIn && !isCreatorLoggedIn ? (
+                    <button className="role-menu-item" onClick={handleFanLogout} type="button">
+                      팬 로그아웃
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </nav>
-
-        {isCreatorLoggedIn ? (
-          <button className="header-logout" onClick={handleCreatorLogout}>
-            크리에이터 로그아웃
-          </button>
-        ) : null}
-
-        {isFanLoggedIn && !isCreatorLoggedIn ? (
-          <button className="header-logout" onClick={handleFanLogout}>
-            팬 로그아웃
-          </button>
-        ) : null}
       </div>
     </header>
   )
