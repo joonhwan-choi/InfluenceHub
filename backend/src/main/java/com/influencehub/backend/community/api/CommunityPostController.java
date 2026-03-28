@@ -5,6 +5,7 @@ import com.influencehub.backend.community.dto.CommunityCommentResponse;
 import com.influencehub.backend.community.dto.CreateCommunityPostRequest;
 import com.influencehub.backend.community.dto.CommunityPostResponse;
 import com.influencehub.backend.community.dto.CommunityReactionResponse;
+import com.influencehub.backend.community.dto.CommunityReportRequest;
 import com.influencehub.backend.community.dto.UpdateCommunityPostRequest;
 import com.influencehub.backend.community.service.CommunityPostService;
 import java.util.List;
@@ -69,6 +70,16 @@ public class CommunityPostController {
         return communityPostService.updateCreatorRoomPost(extractBearerToken(authorizationHeader), postId, request);
     }
 
+    @PatchMapping("/mine/{postId}/highlight")
+    public CommunityPostResponse updateHighlighted(
+        @RequestHeader("Authorization") String authorizationHeader,
+        @PathVariable Long postId,
+        @RequestBody UpdateCommunityPostRequest request
+    ) {
+        boolean highlighted = request.getHighlighted() != null && request.getHighlighted();
+        return communityPostService.updateHighlighted(extractBearerToken(authorizationHeader), postId, highlighted);
+    }
+
     @GetMapping("/posts/{postId}/comments")
     public List<CommunityCommentResponse> comments(@PathVariable Long postId) {
         return communityPostService.getComments(postId);
@@ -89,6 +100,15 @@ public class CommunityPostController {
         @PathVariable Long postId
     ) {
         return communityPostService.toggleReaction(postId, extractBearerToken(authorizationHeader));
+    }
+
+    @PostMapping("/posts/{postId}/report")
+    public void report(
+        @RequestHeader("Authorization") String authorizationHeader,
+        @PathVariable Long postId,
+        @RequestBody CommunityReportRequest request
+    ) {
+        communityPostService.reportPost(postId, extractBearerToken(authorizationHeader), request);
     }
 
     @DeleteMapping("/mine/{postId}")

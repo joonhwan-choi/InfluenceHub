@@ -5,18 +5,21 @@ import com.influencehub.backend.auth.service.CreatorAuthService;
 import com.influencehub.backend.community.domain.CommunityComment;
 import com.influencehub.backend.community.domain.CommunityPost;
 import com.influencehub.backend.community.domain.CommunityReaction;
+import com.influencehub.backend.community.domain.CommunityReport;
 import com.influencehub.backend.community.domain.PostType;
 import com.influencehub.backend.community.dto.CommunityCommentRequest;
 import com.influencehub.backend.community.dto.CommunityCommentResponse;
 import com.influencehub.backend.community.dto.CreateCommunityPostRequest;
 import com.influencehub.backend.community.dto.CommunityPostResponse;
 import com.influencehub.backend.community.dto.CommunityReactionResponse;
+import com.influencehub.backend.community.dto.CommunityReportRequest;
 import com.influencehub.backend.community.dto.UpdateCommunityPostRequest;
 import com.influencehub.backend.community.repository.CommunityCommentRepository;
 import com.influencehub.backend.fan.repository.FanMembershipRepository;
 import com.influencehub.backend.fan.service.FanSessionService;
 import com.influencehub.backend.community.repository.CommunityPostRepository;
 import com.influencehub.backend.community.repository.CommunityReactionRepository;
+import com.influencehub.backend.community.repository.CommunityReportRepository;
 import com.influencehub.backend.room.domain.CreatorRoom;
 import com.influencehub.backend.room.repository.CreatorRoomRepository;
 import com.influencehub.backend.user.domain.User;
@@ -38,6 +41,7 @@ public class CommunityPostService {
     private final CommunityPostRepository communityPostRepository;
     private final CommunityCommentRepository communityCommentRepository;
     private final CommunityReactionRepository communityReactionRepository;
+    private final CommunityReportRepository communityReportRepository;
 
     public CommunityPostService(
         CreatorAuthService creatorAuthService,
@@ -46,7 +50,8 @@ public class CommunityPostService {
         CreatorRoomRepository creatorRoomRepository,
         CommunityPostRepository communityPostRepository,
         CommunityCommentRepository communityCommentRepository,
-        CommunityReactionRepository communityReactionRepository
+        CommunityReactionRepository communityReactionRepository,
+        CommunityReportRepository communityReportRepository
     ) {
         this.creatorAuthService = creatorAuthService;
         this.fanSessionService = fanSessionService;
@@ -55,6 +60,7 @@ public class CommunityPostService {
         this.communityPostRepository = communityPostRepository;
         this.communityCommentRepository = communityCommentRepository;
         this.communityReactionRepository = communityReactionRepository;
+        this.communityReportRepository = communityReportRepository;
     }
 
     @Transactional
@@ -163,6 +169,22 @@ public class CommunityPostService {
         communityPostRepository.delete(post);
     }
 
+    @Transactional
+    public CommunityPostResponse updateHighlighted(String sessionToken, Long postId, boolean highlighted) {
+        CreatorSession session = creatorAuthService.requireSession(sessionToken);
+        CreatorRoom room = session.getRoom();
+        CommunityPost post = communityPostRepository.findByIdAndRoom(postId, room)
+            .orElseThrow(() -> new IllegalStateException("게시글을 찾지 못했습니다."));
+        post.updateHighlighted(highlighted);
+        return toResponse(
+            post,
+            communityReactionRepository.countByPost(post),
+            communityCommentRepository.countByPost(post),
+            communityReportRepository.countByPost(post),
+            false
+        );
+    }
+
     @Transactional(readOnly = true)
     public List<CommunityCommentResponse> getComments(Long postId) {
         CommunityPost post = communityPostRepository.findById(postId)
@@ -218,12 +240,33 @@ public class CommunityPostService {
         return new CommunityReactionResponse(post.getId(), communityReactionRepository.countByPost(post), likedByViewer);
     }
 
+    @Transactional
+    public void reportPost(Long postId, String fanSessionToken, CommunityReportRequest request) {
+        User fan = fanSessionService.requireFan(fanSessionToken);
+        CommunityPost post = communityPostRepository.findById(postId)
+            .orElseThrow(() -> new IllegalStateException("게시글을 찾지 못했습니다."));
+
+        fanMembershipRepository.findByFanAndRoom(fan, post.getRoom())
+            .orElseThrow(() -> new IllegalStateException("가입한 팬방에서만 신고할 수 있습니다."));
+
+        if (communityReportRepository.findByPostAndFan(post, fan).isPresent()) {
+            return;
+        }
+
+        String reason = request.getReason() == null || request.getReason().isBlank()
+            ? "팬 신고"
+            : request.getReason().trim();
+        communityReportRepository.save(new CommunityReport(post, fan, reason));
+    }
+
     private List<CommunityPostResponse> getPosts(CreatorRoom room, User viewer, String sort) {
         List<CommunityPost> posts = communityPostRepository.findTop20ByRoomOrderByCreatedAtDesc(room);
         Map<Long, Long> reactionCounts = communityReactionRepository.findByPostIn(posts).stream()
             .collect(Collectors.groupingBy(reaction -> reaction.getPost().getId(), Collectors.counting()));
         Map<Long, Long> commentCounts = posts.stream()
             .collect(Collectors.toMap(CommunityPost::getId, communityCommentRepository::countByPost));
+        Map<Long, Long> reportCounts = communityReportRepository.findByPostIn(posts).stream()
+            .collect(Collectors.groupingBy(report -> report.getPost().getId(), Collectors.counting()));
         Set<Long> likedPostIds = viewer == null
             ? Set.of()
             : communityReactionRepository.findByPostIn(posts).stream()
@@ -234,15 +277,19 @@ public class CommunityPostService {
         Comparator<CommunityPostResponse> comparator = "popular".equalsIgnoreCase(sort)
             ? Comparator.comparingLong(CommunityPostResponse::getLikeCount)
                 .thenComparingLong(CommunityPostResponse::getCommentCount)
+                .thenComparing(CommunityPostResponse::isHighlighted)
                 .thenComparing(CommunityPostResponse::getCreatedAt)
                 .reversed()
-            : Comparator.comparing(CommunityPostResponse::getCreatedAt).reversed();
+            : Comparator.comparing(CommunityPostResponse::isHighlighted)
+                .thenComparing(CommunityPostResponse::getCreatedAt)
+                .reversed();
 
         return posts.stream()
             .map(post -> toResponse(
                 post,
                 reactionCounts.getOrDefault(post.getId(), 0L),
                 commentCounts.getOrDefault(post.getId(), 0L),
+                reportCounts.getOrDefault(post.getId(), 0L),
                 likedPostIds.contains(post.getId())
             ))
             .sorted(comparator)
@@ -250,10 +297,16 @@ public class CommunityPostService {
     }
 
     private CommunityPostResponse toResponse(CommunityPost post) {
-        return toResponse(post, 0L, 0L, false);
+        return toResponse(post, 0L, 0L, 0L, false);
     }
 
-    private CommunityPostResponse toResponse(CommunityPost post, long likeCount, long commentCount, boolean likedByViewer) {
+    private CommunityPostResponse toResponse(
+        CommunityPost post,
+        long likeCount,
+        long commentCount,
+        long reportCount,
+        boolean likedByViewer
+    ) {
         return new CommunityPostResponse(
             post.getId(),
             post.getPostType().name(),
@@ -263,7 +316,9 @@ public class CommunityPostService {
             post.getImageUrl(),
             likeCount,
             commentCount,
+            reportCount,
             likedByViewer,
+            post.isHighlighted(),
             post.getCreatedAt()
         );
     }

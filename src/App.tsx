@@ -215,7 +215,9 @@ type CommunityPostItem = {
   image_url?: string
   like_count: number
   comment_count: number
+  report_count: number
   liked_by_viewer: boolean
+  highlighted: boolean
 }
 
 type CommunityCommentItem = {
@@ -1379,6 +1381,75 @@ function App() {
       setFanPostStatus('댓글 등록 완료')
     } catch (error) {
       const message = error instanceof Error ? error.message : '댓글 등록에 실패했습니다.'
+      setFanPostStatus(message)
+    }
+  }
+
+  const handleToggleCommunityHighlight = async (post: CommunityPostItem) => {
+    const creatorSessionToken = localStorage.getItem(creatorSessionStorageKey)
+    if (!creatorSessionToken) {
+      setPostStatus('먼저 인플루언서 로그인이 필요합니다.')
+      return
+    }
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/community/mine/${post.post_id}/highlight`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${creatorSessionToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          highlighted: !post.highlighted,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || '베스트 글 상태 변경에 실패했습니다.')
+      }
+
+      const updated = (await response.json()) as CommunityPostItem
+      setCommunityFeed((current) => current.map((item) => (item.post_id === updated.post_id ? updated : item)))
+      setPostStatus(updated.highlighted ? '베스트 글로 고정했습니다.' : '베스트 고정을 해제했습니다.')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '베스트 글 상태 변경에 실패했습니다.'
+      setPostStatus(message)
+    }
+  }
+
+  const handleReportCommunityPost = async (postId: number) => {
+    const fanSessionToken = localStorage.getItem(fanSessionStorageKey)
+    if (!fanSessionToken) {
+      setFanPostStatus('팬 로그인 후 신고할 수 있습니다.')
+      return
+    }
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/community/posts/${postId}/report`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${fanSessionToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reason: '팬 신고',
+        }),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || '게시글 신고에 실패했습니다.')
+      }
+
+      setCommunityFeed((current) =>
+        current.map((post) =>
+          post.post_id === postId ? { ...post, report_count: post.report_count + 1 } : post,
+        ),
+      )
+      setFanPostStatus('게시글 신고 접수 완료')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '게시글 신고에 실패했습니다.'
       setFanPostStatus(message)
     }
   }
@@ -4753,11 +4824,16 @@ function App() {
               communityFeed.filter((post) => !isTestCommunityPost(post)).map((post) => (
                 <article className="board-card" key={post.post_id}>
                   <span className="board-label">{post.post_type}</span>
+                  {post.highlighted ? <span className="info-chip">BEST</span> : null}
                   <strong>{post.title}</strong>
                   <p>{post.author_name} · {new Date(post.created_at).toLocaleString('ko-KR')}</p>
+                  <p>추천 {post.like_count} · 댓글 {post.comment_count} · 신고 {post.report_count}</p>
                   <div className="inline-actions compact-actions">
                     <button className="secondary-action" onClick={() => startEditingCommunityPost(post)} type="button">
                       수정
+                    </button>
+                    <button className="secondary-action" onClick={() => void handleToggleCommunityHighlight(post)} type="button">
+                      {post.highlighted ? '베스트 해제' : '베스트 고정'}
                     </button>
                     <button className="secondary-action" onClick={() => void handleDeleteCommunityPost(post.post_id)} type="button">
                       삭제
@@ -5547,7 +5623,10 @@ function App() {
                           src={moment.image_url}
                         />
                       ) : null}
-                      <span className="fan-badge">{postTypeToBadge[moment.post_type] ?? 'POST'}</span>
+                      <div className="chip-row">
+                        <span className="fan-badge">{postTypeToBadge[moment.post_type] ?? 'POST'}</span>
+                        {moment.highlighted ? <span className="info-chip">BEST</span> : null}
+                      </div>
                       <strong>{moment.title}</strong>
                       <p>{moment.content}</p>
                       <div className="chip-row">
@@ -5556,6 +5635,9 @@ function App() {
                         </button>
                         <button className="info-chip interactive-chip" onClick={() => void loadFanComments(moment.post_id)} type="button">
                           댓글 {moment.comment_count}
+                        </button>
+                        <button className="info-chip interactive-chip" onClick={() => void handleReportCommunityPost(moment.post_id)} type="button">
+                          신고 {moment.report_count}
                         </button>
                       </div>
                       <div className="comment-stack">

@@ -44,6 +44,9 @@ public class CommunityPost extends BaseTimeEntity {
     @Column(name = "image_url", columnDefinition = "TEXT")
     private String imageUrl;
 
+    @Column(nullable = false)
+    private boolean highlighted;
+
     protected CommunityPost() {
     }
 
@@ -58,6 +61,7 @@ public class CommunityPost extends BaseTimeEntity {
         this.title = title;
         this.content = content;
         this.imageUrl = imageUrl;
+        this.highlighted = false;
     }
 
     public Long getId() {
@@ -88,9 +92,17 @@ public class CommunityPost extends BaseTimeEntity {
         return imageUrl;
     }
 
+    public boolean isHighlighted() {
+        return highlighted;
+    }
+
     public void update(String title, String content, String imageUrl) {
         this.title = title;
         this.content = content;
         this.imageUrl = imageUrl;
+    }
+
+    public void updateHighlighted(boolean highlighted) {
+        this.highlighted = highlighted;
     }
 }
