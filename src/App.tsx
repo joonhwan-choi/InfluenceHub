@@ -691,6 +691,12 @@ function App() {
   const youtubeCommunityDraft = `${postTitle.trim() || '유튜브 커뮤니티 제목'}\n\n${postBody.trim() || '유튜브 커뮤니티 본문'}`
   const visibleStoreBoard = storeBoard.filter((item) => item.visible)
   const visibleEventBoard = eventBoard.filter((item) => item.visible)
+  const fanTierCounts = {
+    GENERAL: fanMembers.filter((member) => member.tier === 'GENERAL').length,
+    VIP: fanMembers.filter((member) => member.tier === 'VIP').length,
+    BIG_SPENDER: fanMembers.filter((member) => member.tier === 'BIG_SPENDER').length,
+    CORE_CREW: fanMembers.filter((member) => member.tier === 'CORE_CREW').length,
+  }
   const dashboardMetricCards = [
     {
       label: '연결 채널',
@@ -731,6 +737,12 @@ function App() {
       value: `${inviteDashboard?.multi_room_fan_count ?? 0}`,
       meta: inviteDashboard ? '멀티 팬 계정' : '멀티 팬 없음',
     },
+  ]
+  const fanTierSummaryCards = [
+    { label: 'GENERAL', value: `${fanTierCounts.GENERAL}명`, meta: '기본 팬' },
+    { label: 'VIP', value: `${fanTierCounts.VIP}명`, meta: '핵심 응원 팬' },
+    { label: 'BIG_SPENDER', value: `${fanTierCounts.BIG_SPENDER}명`, meta: '굿즈/이벤트 강한 팬' },
+    { label: 'CORE_CREW', value: `${fanTierCounts.CORE_CREW}명`, meta: '코어 팬 그룹' },
   ]
   const homeStatCards = [
     {
@@ -3704,35 +3716,43 @@ function App() {
             </div>
 
             <div className="activity-list">
-              {(fanMembers.length
-                ? fanMembers.slice(0, 4)
-                : [
-                    {
-                      membership_id: 0,
-                      fan_email: 'corefan@example.com',
-                      fan_nickname: '침철단 1호',
-                      joined_via: '라이브 고정 댓글',
-                      tier: 'CORE_CREW',
-                    },
-                  ]
-              ).map((fanMember) => (
-                <article className="activity-card" key={fanMember.membership_id || fanMember.fan_email}>
-                  <span className="activity-time">{fanMember.joined_via}</span>
-                  <strong>{fanMember.fan_nickname}</strong>
-                  <p>{fanMember.tier} · {fanMember.fan_email}</p>
-                  <div className="inline-actions compact-actions">
-                    {['GENERAL', 'VIP', 'BIG_SPENDER', 'CORE_CREW'].map((tier) => (
-                      <button
-                        className="tiny-action"
-                        disabled={fanMember.membership_id === 0}
-                        key={tier}
-                        onClick={() => void handleUpdateFanTier(fanMember.membership_id, tier)}
-                      >
-                        {tier}
-                      </button>
-                    ))}
+              {fanMembers.length > 0 ? (
+                fanMembers.slice(0, 4).map((fanMember) => (
+                  <article className="activity-card" key={fanMember.membership_id || fanMember.fan_email}>
+                    <span className="activity-time">{fanMember.joined_via}</span>
+                    <strong>{fanMember.fan_nickname}</strong>
+                    <p>{fanMember.tier} · {fanMember.fan_email}</p>
+                    <div className="inline-actions compact-actions">
+                      {['GENERAL', 'VIP', 'BIG_SPENDER', 'CORE_CREW'].map((tier) => (
+                        <button
+                          className="tiny-action"
+                          key={tier}
+                          onClick={() => void handleUpdateFanTier(fanMember.membership_id, tier)}
+                        >
+                          {tier}
+                        </button>
+                      ))}
+                    </div>
+                  </article>
+                ))
+              ) : (
+                <div className="notice-preview compact-highlight">
+                  <span className="mini-label">팬 그룹 없음</span>
+                  <strong>아직 분류된 팬 멤버가 없습니다.</strong>
+                  <p>초대 링크로 팬이 들어오면 여기서 등급을 나눠 운영할 수 있습니다.</p>
+                </div>
+              )}
+            </div>
+
+            <div className="selected-module-list">
+              {fanTierSummaryCards.map((card) => (
+                <div className="selected-module" key={card.label}>
+                  <div>
+                    <strong>{card.label}</strong>
+                    <span>{card.meta}</span>
                   </div>
-                </article>
+                  <strong>{card.value}</strong>
+                </div>
               ))}
             </div>
 
@@ -5297,10 +5317,15 @@ function App() {
 
           <div className="mini-board dark">
             <span className="mini-label">운영자 시점 연결</span>
-            <strong>초대된 팬 수와 멀티 팬 가입이 같이 보임</strong>
+            <strong>
+              {inviteDashboard
+                ? `초대 팬 ${inviteDashboard.total_join_count}명 · 멀티 팬 ${inviteDashboard.multi_room_fan_count}명`
+                : '초대 링크 생성 후 운영 집계가 열립니다'}
+            </strong>
             <p>
-              대시보드에서 링크별 유입과 가입 수를 확인하고, 팬은 같은 계정으로 여러
-              인플루언서 팬방에 입장합니다.
+              {inviteDashboard
+                ? '대시보드에서 링크별 유입과 가입 수를 확인하고, 팬은 같은 계정으로 여러 인플루언서 팬방에 입장합니다.'
+                : '초대 링크를 만들면 여기서 팬 유입과 멀티 팬 가입 흐름을 함께 확인할 수 있습니다.'}
             </p>
           </div>
         </aside>
