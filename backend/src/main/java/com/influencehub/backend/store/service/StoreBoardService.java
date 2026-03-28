@@ -6,26 +6,35 @@ import com.influencehub.backend.room.domain.CreatorRoom;
 import com.influencehub.backend.store.domain.StoreProduct;
 import com.influencehub.backend.store.domain.StoreProductSourceType;
 import com.influencehub.backend.store.dto.CreateStoreProductRequest;
+import com.influencehub.backend.store.dto.StoreImageUploadResponse;
 import com.influencehub.backend.store.dto.StoreImportPreviewRequest;
 import com.influencehub.backend.store.dto.StoreImportPreviewResponse;
 import com.influencehub.backend.store.dto.StoreItemResponse;
 import com.influencehub.backend.store.dto.UpdateStoreProductRequest;
 import com.influencehub.backend.store.repository.StoreProductRepository;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 @Service
 public class StoreBoardService {
@@ -137,6 +146,40 @@ public class StoreBoardService {
             data.sourceLabel,
             data.note
         );
+    }
+
+    @Transactional(readOnly = true)
+    public StoreImageUploadResponse uploadImage(String sessionToken, MultipartFile file) {
+        creatorAuthService.requireSession(sessionToken);
+
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("업로드할 이미지 파일이 필요합니다.");
+        }
+        String contentType = Optional.ofNullable(file.getContentType()).orElse("");
+        if (!contentType.startsWith("image/")) {
+            throw new IllegalArgumentException("이미지 파일만 업로드할 수 있습니다.");
+        }
+
+        try {
+            Path uploadDirectory = Paths.get("uploads", "goods").toAbsolutePath().normalize();
+            Files.createDirectories(uploadDirectory);
+
+            String extension = extractExtension(file.getOriginalFilename(), contentType);
+            String storedFileName = UUID.randomUUID() + extension;
+            Path destination = uploadDirectory.resolve(storedFileName);
+
+            try (InputStream inputStream = file.getInputStream()) {
+                Files.copy(inputStream, destination, StandardCopyOption.REPLACE_EXISTING);
+            }
+
+            String imageUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/uploads/goods/")
+                .path(storedFileName)
+                .toUriString();
+            return new StoreImageUploadResponse(imageUrl, storedFileName);
+        } catch (IOException exception) {
+            throw new IllegalStateException("이미지 업로드에 실패했습니다.");
+        }
     }
 
     private StoreItemResponse toResponse(StoreProduct product) {
@@ -314,6 +357,26 @@ public class StoreBoardService {
 
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
+    }
+
+    private String extractExtension(String originalFileName, String contentType) {
+        if (!isBlank(originalFileName) && originalFileName.contains(".")) {
+            String extension = originalFileName.substring(originalFileName.lastIndexOf('.')).toLowerCase(Locale.ROOT);
+            if (extension.matches("\\.[a-z0-9]{2,5}")) {
+                return extension;
+            }
+        }
+
+        if (contentType.equalsIgnoreCase("image/png")) {
+            return ".png";
+        }
+        if (contentType.equalsIgnoreCase("image/webp")) {
+            return ".webp";
+        }
+        if (contentType.equalsIgnoreCase("image/gif")) {
+            return ".gif";
+        }
+        return ".jpg";
     }
 
     private static class ImportedStoreProductData {

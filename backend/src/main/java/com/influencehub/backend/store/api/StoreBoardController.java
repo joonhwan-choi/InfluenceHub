@@ -1,6 +1,7 @@
 package com.influencehub.backend.store.api;
 
 import com.influencehub.backend.store.dto.CreateStoreProductRequest;
+import com.influencehub.backend.store.dto.StoreImageUploadResponse;
 import com.influencehub.backend.store.dto.StoreImportPreviewRequest;
 import com.influencehub.backend.store.dto.StoreImportPreviewResponse;
 import com.influencehub.backend.store.dto.StoreItemResponse;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/v1/store")
@@ -47,6 +49,14 @@ public class StoreBoardController {
         @Valid @RequestBody StoreImportPreviewRequest request
     ) {
         return storeBoardService.previewImport(extractBearerToken(authorizationHeader), request);
+    }
+
+    @PostMapping("/upload-image")
+    public StoreImageUploadResponse uploadImage(
+        @RequestHeader("Authorization") String authorizationHeader,
+        MultipartFile file
+    ) {
+        return storeBoardService.uploadImage(extractBearerToken(authorizationHeader), file);
     }
 
     @PatchMapping("/mine/{productId}")

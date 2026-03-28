@@ -253,6 +253,11 @@ type StoreImportPreview = {
   note: string
 }
 
+type StoreImageUploadResponse = {
+  image_url: string
+  file_name: string
+}
+
 type PlatformTone = 'youtube' | 'neutral' | 'dark' | 'instagram' | 'facebook' | 'light' | 'purple'
 
 type PlatformCatalogItem = {
@@ -565,6 +570,7 @@ function App() {
   const [storeProductName, setStoreProductName] = useState('')
   const [storeProductDescription, setStoreProductDescription] = useState('')
   const [storeProductImageUrl, setStoreProductImageUrl] = useState('')
+  const [storeProductImageFile, setStoreProductImageFile] = useState<File | null>(null)
   const [storeProductPriceText, setStoreProductPriceText] = useState('')
   const [storeProductStatusLabel, setStoreProductStatusLabel] = useState('판매 준비')
   const [storeProductSalesLabel, setStoreProductSalesLabel] = useState('외부 링크 판매')
@@ -573,6 +579,7 @@ function App() {
   const [storeSaveStatus, setStoreSaveStatus] = useState('아직 상품 등록 전')
   const [storeImportPreview, setStoreImportPreview] = useState<StoreImportPreview | null>(null)
   const [isImportingStoreLink, setIsImportingStoreLink] = useState(false)
+  const [isUploadingStoreImage, setIsUploadingStoreImage] = useState(false)
   const [isSavingStoreProduct, setIsSavingStoreProduct] = useState(false)
   const [editingStoreProductId, setEditingStoreProductId] = useState<number | null>(null)
   const [inviteDashboard, setInviteDashboard] = useState<CreatorInviteDashboardResponse | null>(null)
@@ -1578,12 +1585,56 @@ function App() {
     }
   }
 
+  const handleUploadStoreImage = async () => {
+    const creatorSessionToken = localStorage.getItem(creatorSessionStorageKey)
+    if (!creatorSessionToken) {
+      setStoreSaveStatus('먼저 인플루언서 로그인이 필요합니다.')
+      return
+    }
+
+    if (!storeProductImageFile) {
+      setStoreSaveStatus('업로드할 이미지 파일을 먼저 선택해 주세요.')
+      return
+    }
+
+    setIsUploadingStoreImage(true)
+    setStoreSaveStatus('상품 이미지를 업로드하는 중입니다...')
+
+    try {
+      const formData = new FormData()
+      formData.append('file', storeProductImageFile)
+
+      const response = await fetch(`${apiBaseUrl}/api/v1/store/upload-image`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${creatorSessionToken}`,
+        },
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || '이미지 업로드에 실패했습니다.')
+      }
+
+      const data = (await response.json()) as StoreImageUploadResponse
+      setStoreProductImageUrl(data.image_url)
+      setStoreSaveStatus('이미지 업로드 완료')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '이미지 업로드에 실패했습니다.'
+      setStoreSaveStatus(message)
+    } finally {
+      setIsUploadingStoreImage(false)
+    }
+  }
+
   const startEditingStoreProduct = (item: StoreItemSummary) => {
     setEditingStoreProductId(item.product_id)
     setStoreSourceUrl(item.external_url ?? '')
     setStoreProductName(item.name)
     setStoreProductDescription(item.description ?? '')
     setStoreProductImageUrl(item.image_url ?? '')
+    setStoreProductImageFile(null)
     setStoreProductPriceText(item.price_text ?? '')
     setStoreProductStatusLabel(item.status_label ?? '판매 준비')
     setStoreProductSalesLabel(item.sales_label ?? '외부 링크 판매')
@@ -1598,6 +1649,7 @@ function App() {
     setStoreProductName('')
     setStoreProductDescription('')
     setStoreProductImageUrl('')
+    setStoreProductImageFile(null)
     setStoreProductPriceText('')
     setStoreProductStatusLabel('판매 준비')
     setStoreProductSalesLabel('외부 링크 판매')
@@ -4758,6 +4810,31 @@ function App() {
                 type="url"
                 value={storeProductImageUrl}
               />
+            </div>
+            <div className="field-block">
+              <label htmlFor="store-product-image-file">이미지 파일 업로드</label>
+              <div className="platform-inline-row">
+                <input
+                  className="text-input"
+                  id="store-product-image-file"
+                  onChange={(event) => setStoreProductImageFile(event.target.files?.[0] ?? null)}
+                  type="file"
+                  accept="image/*"
+                />
+                <button
+                  className="secondary-action"
+                  disabled={isUploadingStoreImage || !storeProductImageFile}
+                  onClick={() => void handleUploadStoreImage()}
+                  type="button"
+                >
+                  {isUploadingStoreImage ? '업로드 중...' : '이미지 업로드'}
+                </button>
+              </div>
+              <p className="helper-copy">
+                {storeProductImageFile
+                  ? `${storeProductImageFile.name} 선택됨`
+                  : '링크 자동수집이 막히면 파일 업로드로 바로 등록할 수 있습니다.'}
+              </p>
             </div>
             <div className="field-block">
               <label htmlFor="store-product-source">출처 라벨</label>
