@@ -746,6 +746,12 @@ function App() {
     { label: 'BIG_SPENDER', value: `${fanTierCounts.BIG_SPENDER}명`, meta: '굿즈/이벤트 강한 팬' },
     { label: 'CORE_CREW', value: `${fanTierCounts.CORE_CREW}명`, meta: '코어 팬 그룹' },
   ]
+  const fanFeedLikeTotal = visibleFanFeed.reduce((sum, post) => sum + post.like_count, 0)
+  const fanFeedCommentTotal = visibleFanFeed.reduce((sum, post) => sum + post.comment_count, 0)
+  const hottestFanPost =
+    visibleFanFeed.length > 0
+      ? [...visibleFanFeed].sort((left, right) => (right.like_count + right.comment_count) - (left.like_count + left.comment_count))[0]
+      : null
   const homeStatCards = [
     {
       label: '연결 채널',
@@ -5605,6 +5611,38 @@ function App() {
             인기순
           </button>
         </div>
+      ) : null}
+
+      {fanTab === 'feed' ? (
+        <section className="fan-community-hub">
+          <div className="fan-community-stats">
+            <article className="fan-community-card">
+              <span className="mini-label">커뮤니티 글</span>
+              <strong>{visibleFanFeed.length}개</strong>
+              <p>지금 팬방에 올라온 최근 글 수</p>
+            </article>
+            <article className="fan-community-card">
+              <span className="mini-label">추천 반응</span>
+              <strong>{fanFeedLikeTotal}개</strong>
+              <p>팬들이 눌러준 총 추천 수</p>
+            </article>
+            <article className="fan-community-card">
+              <span className="mini-label">댓글 대화</span>
+              <strong>{fanFeedCommentTotal}개</strong>
+              <p>팬들끼리 이어진 댓글 수</p>
+            </article>
+          </div>
+
+          <div className="fan-community-spotlight">
+            <span className="card-kicker">지금 인기글</span>
+            <h3>{hottestFanPost?.title ?? '아직 인기글이 없습니다'}</h3>
+            <p>
+              {hottestFanPost
+                ? `${hottestFanPost.author_name} · 추천 ${hottestFanPost.like_count} · 댓글 ${hottestFanPost.comment_count}`
+                : '첫 글이 올라오면 여기서 팬들이 가장 반응한 글을 바로 보여줍니다.'}
+            </p>
+          </div>
+        </section>
       ) : null}
 
       <div className="fan-layout">

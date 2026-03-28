@@ -2690,8 +2690,55 @@
   font: 500 0.94rem/1.55 "AppleGothic", "Arial", sans-serif;
 }
 
+.fan-community-hub {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.9fr);
+  gap: 16px;
+}
+
+.fan-community-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.fan-community-card,
+.fan-community-spotlight {
+  padding: 18px 20px;
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(255, 248, 236, 0.98), rgba(239, 231, 216, 0.95));
+  color: #1c2432;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.12);
+}
+
+.fan-community-card strong,
+.fan-community-spotlight strong,
+.fan-community-spotlight h3 {
+  color: #1c2432;
+}
+
+.fan-community-card strong {
+  display: block;
+  margin-top: 10px;
+  font: 900 1.4rem/1.1 "Arial Black", "AppleGothic", sans-serif;
+}
+
+.fan-community-card p,
+.fan-community-spotlight p {
+  margin: 8px 0 0;
+  color: rgba(28, 36, 50, 0.68);
+}
+
+.fan-community-spotlight h3 {
+  margin: 10px 0 0;
+  font: 900 1.2rem/1.25 "Arial Black", "AppleGothic", sans-serif;
+}
+
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-room-switcher,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-action-hub,
+.page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-community-card,
+.page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-community-spotlight,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-feed,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-side-panel {
   background:
@@ -2782,6 +2829,7 @@
 }
 
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .panel-head h3,
+.page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-community-spotlight h3,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-feed h3,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-room-card strong,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-action-card strong,
@@ -2796,6 +2844,8 @@
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .mini-label,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .calendar-card span,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .catalog-card span,
+.page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-community-card p,
+.page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-community-spotlight p,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-room-card p,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-action-card p,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-room-card .mini-label,
@@ -2820,6 +2870,8 @@
 
 .fan-scene-classic .fan-room-switcher,
 .fan-scene-classic .fan-action-hub,
+.fan-scene-classic .fan-community-card,
+.fan-scene-classic .fan-community-spotlight,
 .fan-scene-classic .fan-feed,
 .fan-scene-classic .fan-side-panel {
   background:
@@ -2830,6 +2882,7 @@
 }
 
 .fan-scene-classic .panel-head h3,
+.fan-scene-classic .fan-community-spotlight h3,
 .fan-scene-classic .fan-feed h3,
 .fan-scene-classic .fan-room-card strong,
 .fan-scene-classic .fan-action-card strong,
@@ -2844,6 +2897,8 @@
 .fan-scene-classic .mini-label,
 .fan-scene-classic .calendar-card span,
 .fan-scene-classic .catalog-card span,
+.fan-scene-classic .fan-community-card p,
+.fan-scene-classic .fan-community-spotlight p,
 .fan-scene-classic .fan-room-card p,
 .fan-scene-classic .fan-action-card p,
 .fan-scene-classic .fan-room-card .mini-label,
