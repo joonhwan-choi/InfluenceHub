@@ -4,10 +4,14 @@ import com.influencehub.backend.store.dto.CreateStoreProductRequest;
 import com.influencehub.backend.store.dto.StoreImportPreviewRequest;
 import com.influencehub.backend.store.dto.StoreImportPreviewResponse;
 import com.influencehub.backend.store.dto.StoreItemResponse;
+import com.influencehub.backend.store.dto.UpdateStoreProductRequest;
 import com.influencehub.backend.store.service.StoreBoardService;
 import java.util.List;
 import javax.validation.Valid;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -43,6 +47,33 @@ public class StoreBoardController {
         @Valid @RequestBody StoreImportPreviewRequest request
     ) {
         return storeBoardService.previewImport(extractBearerToken(authorizationHeader), request);
+    }
+
+    @PatchMapping("/mine/{productId}")
+    public StoreItemResponse update(
+        @RequestHeader("Authorization") String authorizationHeader,
+        @PathVariable Long productId,
+        @RequestBody UpdateStoreProductRequest request
+    ) {
+        return storeBoardService.updateProduct(extractBearerToken(authorizationHeader), productId, request);
+    }
+
+    @PatchMapping("/mine/{productId}/visibility")
+    public StoreItemResponse updateVisibility(
+        @RequestHeader("Authorization") String authorizationHeader,
+        @PathVariable Long productId,
+        @RequestBody UpdateStoreProductRequest request
+    ) {
+        boolean visible = request.getVisible() != null && request.getVisible();
+        return storeBoardService.updateVisibility(extractBearerToken(authorizationHeader), productId, visible);
+    }
+
+    @DeleteMapping("/mine/{productId}")
+    public void delete(
+        @RequestHeader("Authorization") String authorizationHeader,
+        @PathVariable Long productId
+    ) {
+        storeBoardService.deleteProduct(extractBearerToken(authorizationHeader), productId);
     }
 
     private String extractBearerToken(String authorizationHeader) {

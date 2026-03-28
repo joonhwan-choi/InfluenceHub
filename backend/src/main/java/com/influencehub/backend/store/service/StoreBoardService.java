@@ -9,6 +9,7 @@ import com.influencehub.backend.store.dto.CreateStoreProductRequest;
 import com.influencehub.backend.store.dto.StoreImportPreviewRequest;
 import com.influencehub.backend.store.dto.StoreImportPreviewResponse;
 import com.influencehub.backend.store.dto.StoreItemResponse;
+import com.influencehub.backend.store.dto.UpdateStoreProductRequest;
 import com.influencehub.backend.store.repository.StoreProductRepository;
 import java.io.IOException;
 import java.net.URI;
@@ -80,6 +81,48 @@ public class StoreBoardService {
         return toResponse(saved);
     }
 
+    @Transactional
+    public StoreItemResponse updateProduct(String sessionToken, Long productId, UpdateStoreProductRequest request) {
+        CreatorSession session = creatorAuthService.requireSession(sessionToken);
+        CreatorRoom room = session.getRoom();
+        StoreProduct product = storeProductRepository.findByIdAndRoom(productId, room)
+            .orElseThrow(() -> new IllegalStateException("상품을 찾지 못했습니다."));
+
+        product.update(
+            requiredValue(request.getName(), "상품 이름이 필요합니다."),
+            blankToNull(request.getDescription()),
+            blankToNull(request.getImageUrl()),
+            blankToNull(request.getExternalUrl()),
+            blankToNull(request.getPriceText()),
+            defaultIfBlank(request.getStatusLabel(), "판매 준비"),
+            defaultIfBlank(request.getSalesLabel(), "외부 링크 판매"),
+            defaultIfBlank(request.getSourceLabel(), "직접 등록")
+        );
+        if (request.getVisible() != null) {
+            product.updateVisible(request.getVisible());
+        }
+        return toResponse(product);
+    }
+
+    @Transactional
+    public StoreItemResponse updateVisibility(String sessionToken, Long productId, boolean visible) {
+        CreatorSession session = creatorAuthService.requireSession(sessionToken);
+        CreatorRoom room = session.getRoom();
+        StoreProduct product = storeProductRepository.findByIdAndRoom(productId, room)
+            .orElseThrow(() -> new IllegalStateException("상품을 찾지 못했습니다."));
+        product.updateVisible(visible);
+        return toResponse(product);
+    }
+
+    @Transactional
+    public void deleteProduct(String sessionToken, Long productId) {
+        CreatorSession session = creatorAuthService.requireSession(sessionToken);
+        CreatorRoom room = session.getRoom();
+        StoreProduct product = storeProductRepository.findByIdAndRoom(productId, room)
+            .orElseThrow(() -> new IllegalStateException("상품을 찾지 못했습니다."));
+        storeProductRepository.delete(product);
+    }
+
     @Transactional(readOnly = true)
     public StoreImportPreviewResponse previewImport(String sessionToken, StoreImportPreviewRequest request) {
         creatorAuthService.requireSession(sessionToken);
@@ -106,7 +149,8 @@ public class StoreBoardService {
             product.getPriceText(),
             product.getStatusLabel(),
             product.getSalesLabel(),
-            product.getSourceLabel()
+            product.getSourceLabel(),
+            product.isVisible()
         );
     }
 

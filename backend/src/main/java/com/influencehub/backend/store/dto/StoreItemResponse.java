@@ -11,6 +11,7 @@ public class StoreItemResponse {
     private final String statusLabel;
     private final String salesLabel;
     private final String sourceLabel;
+    private final boolean visible;
 
     public StoreItemResponse(
         Long productId,
@@ -21,7 +22,8 @@ public class StoreItemResponse {
         String priceText,
         String statusLabel,
         String salesLabel,
-        String sourceLabel
+        String sourceLabel,
+        boolean visible
     ) {
         this.productId = productId;
         this.name = name;
@@ -32,6 +34,7 @@ public class StoreItemResponse {
         this.statusLabel = statusLabel;
         this.salesLabel = salesLabel;
         this.sourceLabel = sourceLabel;
+        this.visible = visible;
     }
 
     public Long getProductId() {
@@ -68,5 +71,9 @@ public class StoreItemResponse {
 
     public String getSourceLabel() {
         return sourceLabel;
+    }
+
+    public boolean isVisible() {
+        return visible;
     }
 }

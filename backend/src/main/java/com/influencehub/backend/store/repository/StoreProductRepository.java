@@ -8,4 +8,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface StoreProductRepository extends JpaRepository<StoreProduct, Long> {
 
     List<StoreProduct> findTop20ByRoomOrderByCreatedAtDesc(CreatorRoom room);
+
+    java.util.Optional<StoreProduct> findByIdAndRoom(Long id, CreatorRoom room);
 }

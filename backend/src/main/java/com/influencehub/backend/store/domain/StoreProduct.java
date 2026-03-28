@@ -54,6 +54,9 @@ public class StoreProduct extends BaseTimeEntity {
     @Column(length = 120)
     private String sourceLabel;
 
+    @Column(nullable = false)
+    private boolean visible;
+
     protected StoreProduct() {
     }
 
@@ -79,6 +82,7 @@ public class StoreProduct extends BaseTimeEntity {
         this.statusLabel = statusLabel;
         this.salesLabel = salesLabel;
         this.sourceLabel = sourceLabel;
+        this.visible = true;
     }
 
     public Long getId() {
@@ -123,5 +127,33 @@ public class StoreProduct extends BaseTimeEntity {
 
     public String getSourceLabel() {
         return sourceLabel;
+    }
+
+    public boolean isVisible() {
+        return visible;
+    }
+
+    public void update(
+        String name,
+        String description,
+        String imageUrl,
+        String externalUrl,
+        String priceText,
+        String statusLabel,
+        String salesLabel,
+        String sourceLabel
+    ) {
+        this.name = name;
+        this.description = description;
+        this.imageUrl = imageUrl;
+        this.externalUrl = externalUrl;
+        this.priceText = priceText;
+        this.statusLabel = statusLabel;
+        this.salesLabel = salesLabel;
+        this.sourceLabel = sourceLabel;
+    }
+
+    public void updateVisible(boolean visible) {
+        this.visible = visible;
     }
 }

@@ -237,6 +237,7 @@ type StoreItemSummary = {
   status_label: string | null
   sales_label: string | null
   source_label: string | null
+  visible: boolean
 }
 
 type StoreImportPreview = {
@@ -672,6 +673,7 @@ function App() {
   const [storeImportPreview, setStoreImportPreview] = useState<StoreImportPreview | null>(null)
   const [isImportingStoreLink, setIsImportingStoreLink] = useState(false)
   const [isSavingStoreProduct, setIsSavingStoreProduct] = useState(false)
+  const [editingStoreProductId, setEditingStoreProductId] = useState<number | null>(null)
   const [inviteDashboard, setInviteDashboard] = useState<CreatorInviteDashboardResponse | null>(null)
   const [inviteTitle, setInviteTitle] = useState('영상 설명란 초대')
   const [inviteSourceLabel, setInviteSourceLabel] = useState('영상 설명란')
@@ -759,6 +761,7 @@ function App() {
         }))
       : fanFeed
   const youtubeCommunityDraft = `${postTitle.trim() || '유튜브 커뮤니티 제목'}\n\n${postBody.trim() || '유튜브 커뮤니티 본문'}`
+  const visibleStoreBoard = storeBoard.filter((item) => item.visible)
   const homeStatCards = [
     {
       label: '연결 채널',
@@ -1318,8 +1321,11 @@ function App() {
     setStoreSaveStatus('상품을 저장하는 중입니다...')
 
     try {
-      const response = await fetch(`${apiBaseUrl}/api/v1/store/mine`, {
-        method: 'POST',
+      const isEditing = editingStoreProductId !== null
+      const response = await fetch(
+        `${apiBaseUrl}/api/v1/store/mine${isEditing ? `/${editingStoreProductId}` : ''}`,
+        {
+          method: isEditing ? 'PATCH' : 'POST',
         headers: {
           Authorization: `Bearer ${creatorSessionToken}`,
           'Content-Type': 'application/json',
@@ -1333,8 +1339,10 @@ function App() {
           status_label: storeProductStatusLabel,
           sales_label: storeProductSalesLabel,
           source_label: storeProductSourceLabel,
+          visible: true,
         }),
-      })
+        },
+      )
 
       if (!response.ok) {
         const errorText = await response.text()
@@ -1342,12 +1350,18 @@ function App() {
       }
 
       const savedProduct = (await response.json()) as StoreItemSummary
-      setStoreBoard((previous) => [savedProduct, ...previous])
-      setStoreSaveStatus('상품이 등록되었습니다.')
+      setStoreBoard((previous) => {
+        if (isEditing) {
+          return previous.map((item) => (item.product_id === savedProduct.product_id ? savedProduct : item))
+        }
+        return [savedProduct, ...previous]
+      })
+      setStoreSaveStatus(isEditing ? '상품이 수정되었습니다.' : '상품이 등록되었습니다.')
       if (!storeImportPreview) {
         setStoreSourceUrl('')
       }
       setStoreImportPreview(null)
+      setEditingStoreProductId(null)
       setStoreProductName('')
       setStoreProductDescription('')
       setStoreProductImageUrl('')
@@ -1360,6 +1374,97 @@ function App() {
       setStoreSaveStatus(message)
     } finally {
       setIsSavingStoreProduct(false)
+    }
+  }
+
+  const startEditingStoreProduct = (item: StoreItemSummary) => {
+    setEditingStoreProductId(item.product_id)
+    setStoreSourceUrl(item.external_url ?? '')
+    setStoreProductName(item.name)
+    setStoreProductDescription(item.description ?? '')
+    setStoreProductImageUrl(item.image_url ?? '')
+    setStoreProductPriceText(item.price_text ?? '')
+    setStoreProductStatusLabel(item.status_label ?? '판매 준비')
+    setStoreProductSalesLabel(item.sales_label ?? '외부 링크 판매')
+    setStoreProductSourceLabel(item.source_label ?? '직접 등록')
+    setStoreSaveStatus('수정 모드로 불러왔습니다.')
+  }
+
+  const resetStoreComposer = () => {
+    setEditingStoreProductId(null)
+    setStoreImportPreview(null)
+    setStoreSourceUrl('')
+    setStoreProductName('')
+    setStoreProductDescription('')
+    setStoreProductImageUrl('')
+    setStoreProductPriceText('')
+    setStoreProductStatusLabel('판매 준비')
+    setStoreProductSalesLabel('외부 링크 판매')
+    setStoreProductSourceLabel('직접 등록')
+    setStoreSaveStatus('새 상품 등록 모드입니다.')
+  }
+
+  const handleToggleStoreVisibility = async (item: StoreItemSummary) => {
+    const creatorSessionToken = localStorage.getItem(creatorSessionStorageKey)
+    if (!creatorSessionToken) {
+      setStoreSaveStatus('먼저 인플루언서 로그인이 필요합니다.')
+      return
+    }
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/store/mine/${item.product_id}/visibility`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${creatorSessionToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          visible: !item.visible,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || '노출 상태를 바꾸지 못했습니다.')
+      }
+
+      const updated = (await response.json()) as StoreItemSummary
+      setStoreBoard((previous) => previous.map((current) => (current.product_id === updated.product_id ? updated : current)))
+      setStoreSaveStatus(updated.visible ? '팬 화면 노출로 변경되었습니다.' : '팬 화면 숨김으로 변경되었습니다.')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '노출 상태를 바꾸지 못했습니다.'
+      setStoreSaveStatus(message)
+    }
+  }
+
+  const handleDeleteStoreProduct = async (productId: number) => {
+    const creatorSessionToken = localStorage.getItem(creatorSessionStorageKey)
+    if (!creatorSessionToken) {
+      setStoreSaveStatus('먼저 인플루언서 로그인이 필요합니다.')
+      return
+    }
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/store/mine/${productId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${creatorSessionToken}`,
+        },
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || '상품 삭제에 실패했습니다.')
+      }
+
+      setStoreBoard((previous) => previous.filter((item) => item.product_id !== productId))
+      if (editingStoreProductId === productId) {
+        resetStoreComposer()
+      }
+      setStoreSaveStatus('상품이 삭제되었습니다.')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '상품 삭제에 실패했습니다.'
+      setStoreSaveStatus(message)
     }
   }
 
@@ -4441,8 +4546,13 @@ function App() {
               onClick={() => void handleCreateStoreProduct()}
               type="button"
             >
-              {isSavingStoreProduct ? '저장 중...' : '상품 등록'}
+              {isSavingStoreProduct ? '저장 중...' : editingStoreProductId ? '상품 수정' : '상품 등록'}
             </button>
+            {editingStoreProductId ? (
+              <button className="secondary-action" onClick={resetStoreComposer} type="button">
+                새 상품으로 전환
+              </button>
+            ) : null}
             <span className="helper-copy">{storeSaveStatus}</span>
           </div>
         </section>
@@ -4467,6 +4577,18 @@ function App() {
                     <div className="chip-row">
                       {item.source_label ? <span className="info-chip">{item.source_label}</span> : null}
                       {item.sales_label ? <span className="info-chip">{item.sales_label}</span> : null}
+                      <span className="info-chip">{item.visible ? '팬 화면 노출 중' : '팬 화면 숨김'}</span>
+                    </div>
+                    <div className="inline-actions compact-actions">
+                      <button className="secondary-action" onClick={() => startEditingStoreProduct(item)} type="button">
+                        수정
+                      </button>
+                      <button className="secondary-action" onClick={() => void handleToggleStoreVisibility(item)} type="button">
+                        {item.visible ? '숨기기' : '노출하기'}
+                      </button>
+                      <button className="secondary-action" onClick={() => void handleDeleteStoreProduct(item.product_id)} type="button">
+                        삭제
+                      </button>
                     </div>
                     {item.external_url ? (
                       <a className="inline-link" href={item.external_url} rel="noreferrer" target="_blank">
@@ -4845,9 +4967,9 @@ function App() {
           )}
 
           {fanTab === 'shop' && (
-            storeBoard.length > 0 ? (
+            visibleStoreBoard.length > 0 ? (
               <div className="catalog-list">
-                {storeBoard.map((item) => (
+                {visibleStoreBoard.map((item) => (
                   <article className="catalog-card rich" key={item.product_id}>
                     {item.image_url ? <img alt={item.name} className="catalog-thumb" src={item.image_url} /> : null}
                     <div className="catalog-copy">
