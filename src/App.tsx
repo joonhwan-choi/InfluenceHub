@@ -279,6 +279,9 @@ const isRenderableImageUrl = (value?: string | null) =>
 const isTestCommunityPost = (post: CommunityPostItem) =>
   post.title.trim() === '이미지 저장 테스트' || post.content.includes('image_url 필드 저장 확인')
 
+const platformRequiresCredentials = (platformName: string) =>
+  platformName === 'Instagram' || platformName === 'Discord'
+
 const featureCatalog: FeatureModule[] = [
   {
     name: '팬 커뮤니티',
@@ -695,6 +698,21 @@ function App() {
     secret: '보안 값',
   }
   const enabledPlatforms = platformCatalog.filter((platform) => platformSetup[platform.name]?.isEnabled)
+  const connectedPlatforms = enabledPlatforms.filter((platform) => {
+    if (platform.name === 'YouTube') {
+      return connectedChannel !== null
+    }
+
+    if (platform.name === 'Instagram') {
+      return Boolean(instagramAccountId.trim() && instagramAccessToken.trim())
+    }
+
+    if (platform.name === 'Discord') {
+      return Boolean(discordWebhookUrl.trim())
+    }
+
+    return true
+  })
   const publishablePlatforms = enabledPlatforms.filter((platform) =>
     publishComposerMode === 'video' ? platform.supportsVideo : platform.supportsPost,
   )
@@ -4887,15 +4905,19 @@ function App() {
         {platformSetup.Instagram.isEnabled ? (
           <article className="metric-card">
             <span className="mini-label">Instagram</span>
-            <strong>연동됨</strong>
-            <span className="metric-change">팔로워 집계 연동 예정</span>
+            <strong>{instagramAccountId.trim() && instagramAccessToken.trim() ? '연동됨' : '미연결'}</strong>
+            <span className="metric-change">
+              {instagramAccountId.trim() && instagramAccessToken.trim() ? '팔로워 집계 연동 예정' : '플랫폼 설정 필요'}
+            </span>
           </article>
         ) : null}
         <article className="metric-card">
           <span className="mini-label">활성 채널</span>
-          <strong>{enabledPlatforms.length}개</strong>
+          <strong>{connectedPlatforms.length}개</strong>
           <span className="metric-change">
-            {enabledPlatforms.length > 0 ? enabledPlatforms.map((platform) => platform.name).join(' · ') : '아직 없음'}
+            {connectedPlatforms.length > 0
+              ? connectedPlatforms.map((platform) => platform.name).join(' · ')
+              : '아직 없음'}
           </span>
         </article>
       </div>
@@ -4908,9 +4930,9 @@ function App() {
           </div>
         </div>
 
-        {enabledPlatforms.length > 0 ? (
+        {connectedPlatforms.length > 0 ? (
           <div className="platform-overview-grid">
-            {enabledPlatforms.map((platform) => (
+            {connectedPlatforms.map((platform) => (
               <article className="platform-overview-card" key={platform.name}>
                 <div className="panel-head">
                   <div>
@@ -4940,14 +4962,6 @@ function App() {
                       <div className="selected-module">
                         <strong>팬방 연결</strong>
                         <span>{connectedChannel?.room_name ?? '연결 대기 중'}</span>
-                      </div>
-                      <div className="selected-module">
-                        <strong>롱폼 업로드</strong>
-                        <span>{youtubeLongformCount}개</span>
-                      </div>
-                      <div className="selected-module">
-                        <strong>숏츠 업로드</strong>
-                        <span>{youtubeShortsCount}개</span>
                       </div>
                     </>
                   ) : null}
@@ -4986,9 +5000,28 @@ function App() {
                         <strong>설명</strong>
                         <span>{platform.detail}</span>
                       </div>
+                      {platformRequiresCredentials(platform.name) ? (
+                        <div className="selected-module">
+                          <strong>연결 준비</strong>
+                          <span>설정에서 입력한 연결 값 기준으로 동작합니다.</span>
+                        </div>
+                      ) : null}
                     </>
                   ) : null}
                 </div>
+
+                {platform.name === 'YouTube' ? (
+                  <div className="platform-totals">
+                    <article className="platform-total-card">
+                      <span className="mini-label">롱폼 업로드</span>
+                      <strong>{youtubeLongformCount}개</strong>
+                    </article>
+                    <article className="platform-total-card">
+                      <span className="mini-label">숏츠 업로드</span>
+                      <strong>{youtubeShortsCount}개</strong>
+                    </article>
+                  </div>
+                ) : null}
               </article>
             ))}
           </div>

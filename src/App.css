@@ -920,6 +920,31 @@
   color: rgba(245, 241, 232, 0.74);
 }
 
+.platform-totals {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.platform-total-card {
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.platform-total-card .mini-label {
+  color: rgba(245, 241, 232, 0.68);
+}
+
+.platform-total-card strong {
+  display: block;
+  margin-top: 8px;
+  color: #fff4d5;
+  font: 900 1.18rem/1.2 "Arial Black", "AppleGothic", sans-serif;
+}
+
 .module-list {
   margin-top: 12px;
 }
