@@ -5525,6 +5525,48 @@ function App() {
         )}
       </section>
 
+      <section className="fan-action-hub">
+        <div className="panel-head">
+          <div>
+            <span className="card-kicker">팬이 할 수 있는 것</span>
+            <h3>들어오자마자 바로 참여할 수 있는 액션</h3>
+          </div>
+        </div>
+
+        <div className="fan-action-grid">
+          <button className="fan-action-card" onClick={() => setFanTab('feed')} type="button">
+            <span className="mini-label">POST</span>
+            <strong>글 올리기</strong>
+            <p>팬방 얘기, 후기, 짤, 잡담을 바로 남길 수 있습니다.</p>
+          </button>
+          <button className="fan-action-card" onClick={() => setFanTab('feed')} type="button">
+            <span className="mini-label">REACT</span>
+            <strong>추천 누르기</strong>
+            <p>재밌는 글은 추천해서 인기순으로 올릴 수 있습니다.</p>
+          </button>
+          <button className="fan-action-card" onClick={() => setFanTab('feed')} type="button">
+            <span className="mini-label">TALK</span>
+            <strong>댓글 달기</strong>
+            <p>팬들끼리 실시간으로 반응을 주고받으며 놀 수 있습니다.</p>
+          </button>
+          <button className="fan-action-card" onClick={() => setFanTab('calendar')} type="button">
+            <span className="mini-label">EVENT</span>
+            <strong>일정 체크하기</strong>
+            <p>라이브, 이벤트, 인증 미션을 일정 탭에서 바로 확인합니다.</p>
+          </button>
+          <button className="fan-action-card" onClick={() => setFanTab('shop')} type="button">
+            <span className="mini-label">SHOP</span>
+            <strong>굿즈 둘러보기</strong>
+            <p>팬방 한정 굿즈나 드롭 상품을 바로 볼 수 있습니다.</p>
+          </button>
+          <button className="fan-action-card" onClick={() => setCurrentView('invite')} type="button">
+            <span className="mini-label">INVITE</span>
+            <strong>다른 팬방 추가</strong>
+            <p>초대 링크로 다른 인플루언서 팬방도 같은 계정으로 들어갑니다.</p>
+          </button>
+        </div>
+      </section>
+
       <div className="fan-tab-row">
         <button
           className={fanTab === 'feed' ? 'fan-tab active' : 'fan-tab'}
