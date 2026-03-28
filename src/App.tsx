@@ -1274,7 +1274,7 @@ function App() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          sourceUrl: storeSourceUrl,
+          source_url: storeSourceUrl,
         }),
       })
 
@@ -1327,12 +1327,12 @@ function App() {
         body: JSON.stringify({
           name: storeProductName,
           description: storeProductDescription,
-          imageUrl: storeProductImageUrl,
-          externalUrl: storeSourceUrl,
-          priceText: storeProductPriceText,
-          statusLabel: storeProductStatusLabel,
-          salesLabel: storeProductSalesLabel,
-          sourceLabel: storeProductSourceLabel,
+          image_url: storeProductImageUrl,
+          external_url: storeSourceUrl,
+          price_text: storeProductPriceText,
+          status_label: storeProductStatusLabel,
+          sales_label: storeProductSalesLabel,
+          source_label: storeProductSourceLabel,
         }),
       })
 

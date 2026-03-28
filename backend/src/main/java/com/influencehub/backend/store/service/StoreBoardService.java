@@ -120,11 +120,17 @@ public class StoreBoardService {
 
         try {
             HttpResponse<String> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 429) {
+                throw new IllegalStateException("네이버 쇼핑 페이지가 자동 수집 요청을 차단했습니다. 링크를 붙여넣은 뒤 상품 정보를 직접 확인해 저장해야 합니다.");
+            }
             if (response.statusCode() >= 400) {
                 throw new IllegalStateException("상품 링크를 불러오지 못했습니다.");
             }
 
             String html = response.body();
+            if (html.contains("[에러] 에러페이지 - 시스템오류")) {
+                throw new IllegalStateException("해당 상품 페이지가 자동 수집을 막고 있습니다. 네이버 링크는 일부 상품만 자동 채우기가 가능합니다.");
+            }
             String productName = firstNonBlank(
                 findMetaContent(html, "og:title"),
                 findMetaContent(html, "twitter:title"),
