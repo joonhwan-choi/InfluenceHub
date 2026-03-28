@@ -228,9 +228,25 @@ type EventSummaryItem = {
 }
 
 type StoreItemSummary = {
+  product_id: number
   name: string
-  stock: string
-  sales: string
+  description: string | null
+  image_url: string | null
+  external_url: string | null
+  price_text: string | null
+  status_label: string | null
+  sales_label: string | null
+  source_label: string | null
+}
+
+type StoreImportPreview = {
+  source_url: string
+  product_name: string
+  description: string
+  image_url: string
+  price_text: string
+  source_label: string
+  note: string
 }
 
 type PlatformTone = 'youtube' | 'neutral' | 'dark' | 'instagram' | 'facebook' | 'light' | 'purple'
@@ -491,24 +507,6 @@ const eventSteps = [
   },
 ]
 
-const storeItems = [
-  {
-    name: '사인 포토팩',
-    stock: '잔여 38개',
-    sales: '오늘 124건',
-  },
-  {
-    name: '한정 후드 집업',
-    stock: '잔여 12개',
-    sales: '오늘 42건',
-  },
-  {
-    name: '데스크 매트',
-    stock: '재입고 예정',
-    sales: '알림 신청 291명',
-  },
-]
-
 const fanFeed: FanFeedItem[] = [
   {
     title: '방장 공지',
@@ -531,12 +529,6 @@ const fanCalendar = [
   { day: '오늘', title: '20:00 영상 공개 + 팬방 Q&A' },
   { day: '내일', title: '멤버십 전용 미리듣기 공개' },
   { day: '토요일', title: '굿즈 드롭 사전 알림 발송' },
-]
-
-const fanShopHighlights = [
-  { title: '사인 포토팩', detail: '팬방 한정 1차 오픈 · 38개 남음' },
-  { title: '후드 집업', detail: '오늘 밤 10시 드롭 · 알림 설정 가능' },
-  { title: '데스크 매트', detail: '재입고 요청 291명' },
 ]
 
 const postTypeToBadge: Record<string, string> = {
@@ -667,6 +659,19 @@ function App() {
   const [communityFeed, setCommunityFeed] = useState<CommunityPostItem[]>([])
   const [eventBoard, setEventBoard] = useState<EventSummaryItem[]>([])
   const [storeBoard, setStoreBoard] = useState<StoreItemSummary[]>([])
+  const [storeSourceUrl, setStoreSourceUrl] = useState('')
+  const [storeProductName, setStoreProductName] = useState('')
+  const [storeProductDescription, setStoreProductDescription] = useState('')
+  const [storeProductImageUrl, setStoreProductImageUrl] = useState('')
+  const [storeProductPriceText, setStoreProductPriceText] = useState('')
+  const [storeProductStatusLabel, setStoreProductStatusLabel] = useState('판매 준비')
+  const [storeProductSalesLabel, setStoreProductSalesLabel] = useState('외부 링크 판매')
+  const [storeProductSourceLabel, setStoreProductSourceLabel] = useState('직접 등록')
+  const [storeImportStatus, setStoreImportStatus] = useState('상품 링크를 붙여넣으면 초안이 자동으로 채워집니다.')
+  const [storeSaveStatus, setStoreSaveStatus] = useState('아직 상품 등록 전')
+  const [storeImportPreview, setStoreImportPreview] = useState<StoreImportPreview | null>(null)
+  const [isImportingStoreLink, setIsImportingStoreLink] = useState(false)
+  const [isSavingStoreProduct, setIsSavingStoreProduct] = useState(false)
   const [inviteDashboard, setInviteDashboard] = useState<CreatorInviteDashboardResponse | null>(null)
   const [inviteTitle, setInviteTitle] = useState('영상 설명란 초대')
   const [inviteSourceLabel, setInviteSourceLabel] = useState('영상 설명란')
@@ -1243,6 +1248,118 @@ function App() {
       setStoreBoard(data)
     } catch {
       setStoreBoard([])
+    }
+  }
+
+  const handleImportStoreLink = async () => {
+    const creatorSessionToken = localStorage.getItem(creatorSessionStorageKey)
+    if (!creatorSessionToken) {
+      setStoreImportStatus('먼저 인플루언서 로그인이 필요합니다.')
+      return
+    }
+
+    if (!storeSourceUrl.trim()) {
+      setStoreImportStatus('가져올 상품 링크를 먼저 넣어주세요.')
+      return
+    }
+
+    setIsImportingStoreLink(true)
+    setStoreImportStatus('링크에서 상품 정보를 불러오는 중입니다...')
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/store/import-preview`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${creatorSessionToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sourceUrl: storeSourceUrl,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || '상품 링크를 읽어오지 못했습니다.')
+      }
+
+      const data = (await response.json()) as StoreImportPreview
+      setStoreImportPreview(data)
+      setStoreProductName(data.product_name)
+      setStoreProductDescription(data.description)
+      setStoreProductImageUrl(data.image_url)
+      setStoreProductPriceText(data.price_text)
+      setStoreProductSourceLabel(data.source_label)
+      setStoreProductStatusLabel('판매 링크 연결')
+      setStoreProductSalesLabel('외부 스토어 판매')
+      setStoreImportStatus(data.note)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '상품 링크를 읽어오지 못했습니다.'
+      setStoreImportPreview(null)
+      setStoreImportStatus(message)
+    } finally {
+      setIsImportingStoreLink(false)
+    }
+  }
+
+  const handleCreateStoreProduct = async () => {
+    const creatorSessionToken = localStorage.getItem(creatorSessionStorageKey)
+    if (!creatorSessionToken) {
+      setStoreSaveStatus('먼저 인플루언서 로그인이 필요합니다.')
+      return
+    }
+
+    if (!storeProductName.trim()) {
+      setStoreSaveStatus('상품 이름이 필요합니다.')
+      return
+    }
+
+    setIsSavingStoreProduct(true)
+    setStoreSaveStatus('상품을 저장하는 중입니다...')
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/store/mine`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${creatorSessionToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: storeProductName,
+          description: storeProductDescription,
+          imageUrl: storeProductImageUrl,
+          externalUrl: storeSourceUrl,
+          priceText: storeProductPriceText,
+          statusLabel: storeProductStatusLabel,
+          salesLabel: storeProductSalesLabel,
+          sourceLabel: storeProductSourceLabel,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || '상품 등록에 실패했습니다.')
+      }
+
+      const savedProduct = (await response.json()) as StoreItemSummary
+      setStoreBoard((previous) => [savedProduct, ...previous])
+      setStoreSaveStatus('상품이 등록되었습니다.')
+      if (!storeImportPreview) {
+        setStoreSourceUrl('')
+      }
+      setStoreImportPreview(null)
+      setStoreProductName('')
+      setStoreProductDescription('')
+      setStoreProductImageUrl('')
+      setStoreProductPriceText('')
+      setStoreProductStatusLabel('판매 준비')
+      setStoreProductSalesLabel('외부 링크 판매')
+      setStoreProductSourceLabel('직접 등록')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '상품 등록에 실패했습니다.'
+      setStoreSaveStatus(message)
+    } finally {
+      setIsSavingStoreProduct(false)
     }
   }
 
@@ -4196,7 +4313,7 @@ function App() {
         <div>
           <span className="section-label">STORE BOARD</span>
           <h2>굿즈 스토어 보드</h2>
-          <p>상품 드롭 일정, 재고, 알림 신청과 판매량을 운영자 시점에서 확인합니다.</p>
+          <p>직접 등록하거나 외부 상품 링크를 붙여넣어 굿즈 카탈로그를 채웁니다.</p>
         </div>
         <div className="inline-actions compact">
           <button className="primary-action" onClick={() => setCurrentView('fan')}>
@@ -4209,39 +4326,163 @@ function App() {
         <section className="studio-panel">
           <div className="panel-head">
             <div>
-              <span className="card-kicker">상품 상태</span>
-              <h3>오늘 판매 라인업</h3>
+              <span className="card-kicker">상품 등록</span>
+              <h3>링크 가져오기 + 직접 수정</h3>
             </div>
           </div>
 
-          <div className="catalog-list">
-            {(storeBoard.length > 0 ? storeBoard : storeItems).map((item) => (
-              <article className="catalog-card" key={item.name}>
-                <strong>{item.name}</strong>
-                <span>{item.stock}</span>
-                <p>{item.sales}</p>
-              </article>
-            ))}
+          <div className="field-block">
+            <label htmlFor="store-source-url">상품 링크 붙여넣기</label>
+            <div className="platform-inline-row">
+              <input
+                className="text-input"
+                id="store-source-url"
+                onChange={(event) => setStoreSourceUrl(event.target.value)}
+                placeholder="https://smartstore.naver.com/... 같은 상품 링크"
+                type="url"
+                value={storeSourceUrl}
+              />
+              <button
+                className="secondary-action"
+                disabled={isImportingStoreLink}
+                onClick={() => void handleImportStoreLink()}
+                type="button"
+              >
+                {isImportingStoreLink ? '가져오는 중...' : '링크 가져오기'}
+              </button>
+            </div>
+            <p className="helper-copy">{storeImportStatus}</p>
+          </div>
+
+          <div className="detail-grid">
+            <div className="field-block">
+              <label htmlFor="store-product-name">상품 이름</label>
+              <input
+                className="text-input"
+                id="store-product-name"
+                onChange={(event) => setStoreProductName(event.target.value)}
+                placeholder="상품명을 입력하세요"
+                type="text"
+                value={storeProductName}
+              />
+            </div>
+            <div className="field-block">
+              <label htmlFor="store-product-price">가격 표시</label>
+              <input
+                className="text-input"
+                id="store-product-price"
+                onChange={(event) => setStoreProductPriceText(event.target.value)}
+                placeholder="예: 29,900원"
+                type="text"
+                value={storeProductPriceText}
+              />
+            </div>
+            <div className="field-block">
+              <label htmlFor="store-product-image">이미지 URL</label>
+              <input
+                className="text-input"
+                id="store-product-image"
+                onChange={(event) => setStoreProductImageUrl(event.target.value)}
+                placeholder="가져온 이미지 URL이 여기 채워집니다"
+                type="url"
+                value={storeProductImageUrl}
+              />
+            </div>
+            <div className="field-block">
+              <label htmlFor="store-product-source">출처 라벨</label>
+              <input
+                className="text-input"
+                id="store-product-source"
+                onChange={(event) => setStoreProductSourceLabel(event.target.value)}
+                placeholder="예: 네이버 쇼핑 링크"
+                type="text"
+                value={storeProductSourceLabel}
+              />
+            </div>
+            <div className="field-block">
+              <label htmlFor="store-product-status">상태 라벨</label>
+              <input
+                className="text-input"
+                id="store-product-status"
+                onChange={(event) => setStoreProductStatusLabel(event.target.value)}
+                placeholder="예: 판매 준비"
+                type="text"
+                value={storeProductStatusLabel}
+              />
+            </div>
+            <div className="field-block">
+              <label htmlFor="store-product-sales">판매 라벨</label>
+              <input
+                className="text-input"
+                id="store-product-sales"
+                onChange={(event) => setStoreProductSalesLabel(event.target.value)}
+                placeholder="예: 외부 링크 판매"
+                type="text"
+                value={storeProductSalesLabel}
+              />
+            </div>
+          </div>
+
+          <div className="field-block">
+            <label htmlFor="store-product-description">상품 설명</label>
+            <textarea
+              className="text-area"
+              id="store-product-description"
+              onChange={(event) => setStoreProductDescription(event.target.value)}
+              placeholder="가져온 설명을 그대로 쓰거나 직접 수정할 수 있습니다"
+              value={storeProductDescription}
+            />
+          </div>
+
+          <div className="inline-actions compact-actions">
+            <button
+              className="primary-action"
+              disabled={isSavingStoreProduct}
+              onClick={() => void handleCreateStoreProduct()}
+              type="button"
+            >
+              {isSavingStoreProduct ? '저장 중...' : '상품 등록'}
+            </button>
+            <span className="helper-copy">{storeSaveStatus}</span>
           </div>
         </section>
 
         <section className="studio-panel dark-surface">
           <div className="panel-head">
             <div>
-              <span className="card-kicker">드롭 관리</span>
-              <h3>다음 오픈 배너</h3>
+              <span className="card-kicker">등록된 상품</span>
+              <h3>굿즈 카탈로그</h3>
             </div>
           </div>
 
-          <div className="drop-hero">
-            <strong>한정 후드 집업 tonight 10:00</strong>
-            <p>팬방 방문자에게 먼저 노출되고, 알림 신청자에게는 15분 전 푸시가 갑니다.</p>
-            <div className="chip-row">
-              <span className="info-chip">재고 120</span>
-              <span className="info-chip">알림 신청 684</span>
-              <span className="info-chip">멤버십 선오픈</span>
+          {storeBoard.length > 0 ? (
+            <div className="catalog-list">
+              {storeBoard.map((item) => (
+                <article className="catalog-card rich" key={item.product_id}>
+                  {item.image_url ? <img alt={item.name} className="catalog-thumb" src={item.image_url} /> : null}
+                  <div className="catalog-copy">
+                    <strong>{item.name}</strong>
+                    <span>{item.price_text ?? item.status_label ?? '가격 정보 없음'}</span>
+                    <p>{item.description ?? item.sales_label ?? '등록된 상품 설명이 없습니다.'}</p>
+                    <div className="chip-row">
+                      {item.source_label ? <span className="info-chip">{item.source_label}</span> : null}
+                      {item.sales_label ? <span className="info-chip">{item.sales_label}</span> : null}
+                    </div>
+                    {item.external_url ? (
+                      <a className="inline-link" href={item.external_url} rel="noreferrer" target="_blank">
+                        원본 상품 보기
+                      </a>
+                    ) : null}
+                  </div>
+                </article>
+              ))}
             </div>
-          </div>
+          ) : (
+            <div className="drop-hero">
+              <strong>아직 등록된 굿즈가 없습니다</strong>
+              <p>네이버 쇼핑 링크를 붙여넣거나 직접 이름과 설명을 넣어 첫 상품을 만들어보세요.</p>
+            </div>
+          )}
         </section>
       </div>
     </section>
@@ -4604,14 +4845,30 @@ function App() {
           )}
 
           {fanTab === 'shop' && (
-            <div className="catalog-list">
-              {fanShopHighlights.map((item) => (
-                <article className="catalog-card" key={item.title}>
-                  <strong>{item.title}</strong>
-                  <p>{item.detail}</p>
-                </article>
-              ))}
-            </div>
+            storeBoard.length > 0 ? (
+              <div className="catalog-list">
+                {storeBoard.map((item) => (
+                  <article className="catalog-card rich" key={item.product_id}>
+                    {item.image_url ? <img alt={item.name} className="catalog-thumb" src={item.image_url} /> : null}
+                    <div className="catalog-copy">
+                      <strong>{item.name}</strong>
+                      <p>{item.price_text ?? item.description ?? '팬방 굿즈'}</p>
+                      {item.external_url ? (
+                        <a className="inline-link" href={item.external_url} rel="noreferrer" target="_blank">
+                          상품 링크 열기
+                        </a>
+                      ) : null}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="mini-board">
+                <span className="mini-label">굿즈 준비 전</span>
+                <strong>아직 등록된 상품이 없습니다</strong>
+                <p>방장이 굿즈를 등록하면 여기에서 바로 보이게 됩니다.</p>
+              </div>
+            )
           )}
         </section>
 

@@ -1,9 +1,15 @@
 package com.influencehub.backend.store.api;
 
+import com.influencehub.backend.store.dto.CreateStoreProductRequest;
+import com.influencehub.backend.store.dto.StoreImportPreviewRequest;
+import com.influencehub.backend.store.dto.StoreImportPreviewResponse;
 import com.influencehub.backend.store.dto.StoreItemResponse;
 import com.influencehub.backend.store.service.StoreBoardService;
 import java.util.List;
+import javax.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,6 +27,22 @@ public class StoreBoardController {
     @GetMapping("/mine")
     public List<StoreItemResponse> mine(@RequestHeader("Authorization") String authorizationHeader) {
         return storeBoardService.getMine(extractBearerToken(authorizationHeader));
+    }
+
+    @PostMapping("/mine")
+    public StoreItemResponse create(
+        @RequestHeader("Authorization") String authorizationHeader,
+        @Valid @RequestBody CreateStoreProductRequest request
+    ) {
+        return storeBoardService.createProduct(extractBearerToken(authorizationHeader), request);
+    }
+
+    @PostMapping("/import-preview")
+    public StoreImportPreviewResponse importPreview(
+        @RequestHeader("Authorization") String authorizationHeader,
+        @Valid @RequestBody StoreImportPreviewRequest request
+    ) {
+        return storeBoardService.previewImport(extractBearerToken(authorizationHeader), request);
     }
 
     private String extractBearerToken(String authorizationHeader) {

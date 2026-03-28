@@ -2,25 +2,71 @@ package com.influencehub.backend.store.dto;
 
 public class StoreItemResponse {
 
+    private final Long productId;
     private final String name;
-    private final String stock;
-    private final String sales;
+    private final String description;
+    private final String imageUrl;
+    private final String externalUrl;
+    private final String priceText;
+    private final String statusLabel;
+    private final String salesLabel;
+    private final String sourceLabel;
 
-    public StoreItemResponse(String name, String stock, String sales) {
+    public StoreItemResponse(
+        Long productId,
+        String name,
+        String description,
+        String imageUrl,
+        String externalUrl,
+        String priceText,
+        String statusLabel,
+        String salesLabel,
+        String sourceLabel
+    ) {
+        this.productId = productId;
         this.name = name;
-        this.stock = stock;
-        this.sales = sales;
+        this.description = description;
+        this.imageUrl = imageUrl;
+        this.externalUrl = externalUrl;
+        this.priceText = priceText;
+        this.statusLabel = statusLabel;
+        this.salesLabel = salesLabel;
+        this.sourceLabel = sourceLabel;
+    }
+
+    public Long getProductId() {
+        return productId;
     }
 
     public String getName() {
         return name;
     }
 
-    public String getStock() {
-        return stock;
+    public String getDescription() {
+        return description;
     }
 
-    public String getSales() {
-        return sales;
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public String getExternalUrl() {
+        return externalUrl;
+    }
+
+    public String getPriceText() {
+        return priceText;
+    }
+
+    public String getStatusLabel() {
+        return statusLabel;
+    }
+
+    public String getSalesLabel() {
+        return salesLabel;
+    }
+
+    public String getSourceLabel() {
+        return sourceLabel;
     }
 }
