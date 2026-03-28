@@ -6,6 +6,7 @@ import com.influencehub.backend.community.domain.CommunityPost;
 import com.influencehub.backend.community.domain.PostType;
 import com.influencehub.backend.community.dto.CreateCommunityPostRequest;
 import com.influencehub.backend.community.dto.CommunityPostResponse;
+import com.influencehub.backend.community.dto.UpdateCommunityPostRequest;
 import com.influencehub.backend.community.repository.CommunityPostRepository;
 import com.influencehub.backend.room.domain.CreatorRoom;
 import com.influencehub.backend.room.repository.CreatorRoomRepository;
@@ -68,6 +69,39 @@ public class CommunityPostService {
         );
 
         return toResponse(savedPost);
+    }
+
+    @Transactional
+    public CommunityPostResponse updateCreatorRoomPost(String sessionToken, Long postId, UpdateCommunityPostRequest request) {
+        CreatorSession session = creatorAuthService.requireSession(sessionToken);
+        CreatorRoom room = session.getRoom();
+        CommunityPost post = communityPostRepository.findByIdAndRoom(postId, room)
+            .orElseThrow(() -> new IllegalStateException("게시글을 찾지 못했습니다."));
+
+        String title = request.getTitle() == null ? "" : request.getTitle().trim();
+        String content = request.getContent() == null ? "" : request.getContent().trim();
+        String imageUrl = request.getImageUrl() == null || request.getImageUrl().isBlank()
+            ? null
+            : request.getImageUrl().trim();
+
+        if (title.isEmpty()) {
+            throw new IllegalArgumentException("게시글 제목이 필요합니다.");
+        }
+        if (content.isEmpty()) {
+            throw new IllegalArgumentException("게시글 본문이 필요합니다.");
+        }
+
+        post.update(title, content, imageUrl);
+        return toResponse(post);
+    }
+
+    @Transactional
+    public void deleteCreatorRoomPost(String sessionToken, Long postId) {
+        CreatorSession session = creatorAuthService.requireSession(sessionToken);
+        CreatorRoom room = session.getRoom();
+        CommunityPost post = communityPostRepository.findByIdAndRoom(postId, room)
+            .orElseThrow(() -> new IllegalStateException("게시글을 찾지 못했습니다."));
+        communityPostRepository.delete(post);
     }
 
     private List<CommunityPostResponse> getOrSeedPosts(CreatorRoom room) {

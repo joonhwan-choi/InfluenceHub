@@ -587,6 +587,7 @@ function App() {
   const [selectedPostImage, setSelectedPostImage] = useState<File | null>(null)
   const [postPreviewUrl, setPostPreviewUrl] = useState<string | null>(null)
   const [postStatus, setPostStatus] = useState('아직 초안 생성 전')
+  const [editingCommunityPostId, setEditingCommunityPostId] = useState<number | null>(null)
   const [instagramMediaUrl, setInstagramMediaUrl] = useState('')
   const [instagramPublishStatus, setInstagramPublishStatus] = useState('아직 Instagram 배포 전')
   const [instagramPublishResult, setInstagramPublishResult] = useState<InstagramPublishResult | null>(null)
@@ -1154,6 +1155,91 @@ function App() {
       setCommunityFeed(data)
     } catch {
       setCommunityFeed([])
+    }
+  }
+
+  const startEditingCommunityPost = (post: CommunityPostItem) => {
+    setEditingCommunityPostId(post.post_id)
+    setPostTitle(post.title)
+    setPostBody(post.content)
+    setPostPreviewUrl(post.image_url ?? null)
+    setPostStatus('수정 모드로 불러왔습니다.')
+    setCurrentView('community')
+  }
+
+  const resetCommunityComposer = () => {
+    setEditingCommunityPostId(null)
+    setPostTitle('오늘 유튜브 커뮤니티에 올릴 한 줄')
+    setPostBody('본편 올라가기 전에 현장 스틸 먼저 올립니다. 오늘 밤 라이브에서 비하인드 더 풀게요.')
+    setSelectedPostImage(null)
+    setPostPreviewUrl(null)
+    setPostStatus('새 게시글 작성 모드입니다.')
+  }
+
+  const handleUpdateCommunityPost = async () => {
+    const creatorSessionToken = localStorage.getItem(creatorSessionStorageKey)
+    if (!creatorSessionToken || editingCommunityPostId === null) {
+      setPostStatus('수정할 게시글이 없습니다.')
+      return
+    }
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/community/mine/${editingCommunityPostId}`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${creatorSessionToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: postTitle,
+          content: postBody,
+          image_url: postPreviewUrl,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || '게시글을 수정하지 못했습니다.')
+      }
+
+      const updated = (await response.json()) as CommunityPostItem
+      setCommunityFeed((previous) => previous.map((item) => (item.post_id === updated.post_id ? updated : item)))
+      setPostStatus('게시글이 수정되었습니다.')
+      setEditingCommunityPostId(null)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '게시글을 수정하지 못했습니다.'
+      setPostStatus(message)
+    }
+  }
+
+  const handleDeleteCommunityPost = async (postId: number) => {
+    const creatorSessionToken = localStorage.getItem(creatorSessionStorageKey)
+    if (!creatorSessionToken) {
+      setPostStatus('먼저 인플루언서 로그인이 필요합니다.')
+      return
+    }
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/community/mine/${postId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${creatorSessionToken}`,
+        },
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || '게시글을 삭제하지 못했습니다.')
+      }
+
+      setCommunityFeed((previous) => previous.filter((item) => item.post_id !== postId))
+      if (editingCommunityPostId === postId) {
+        resetCommunityComposer()
+      }
+      setPostStatus('게시글이 삭제되었습니다.')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '게시글을 삭제하지 못했습니다.'
+      setPostStatus(message)
     }
   }
 
@@ -4417,6 +4503,14 @@ function App() {
                   <span className="board-label">{post.post_type}</span>
                   <strong>{post.title}</strong>
                   <p>{post.author_name} · {new Date(post.created_at).toLocaleString('ko-KR')}</p>
+                  <div className="inline-actions compact-actions">
+                    <button className="secondary-action" onClick={() => startEditingCommunityPost(post)} type="button">
+                      수정
+                    </button>
+                    <button className="secondary-action" onClick={() => void handleDeleteCommunityPost(post.post_id)} type="button">
+                      삭제
+                    </button>
+                  </div>
                 </article>
               ))
             ) : (
@@ -4433,19 +4527,22 @@ function App() {
           <div className="panel-head">
             <div>
               <span className="card-kicker">공지 작성기</span>
-              <h3>업로드 후 자동 초안</h3>
+              <h3>{editingCommunityPostId ? '게시글 수정' : '업로드 후 자동 초안'}</h3>
             </div>
           </div>
 
           <div className="composer-card">
-            <strong>오늘 밤 8시 본편 공개 + 팬방 Q&A</strong>
-            <p>
-              본편 공개 직후 Q&A 스레드가 열립니다. 영상 보고 바로 궁금한 점 남겨주세요.
-            </p>
-            <div className="chip-row">
-              <span className="info-chip">상단 고정</span>
-              <span className="info-chip">푸시 발송</span>
-              <span className="info-chip">멤버십 우선 알림</span>
+            <strong>{postTitle.trim() || '게시글 제목을 입력하세요'}</strong>
+            <p>{postBody.trim() || '게시글 본문을 입력하세요.'}</p>
+            <div className="inline-actions compact-actions">
+              <button className="primary-action" onClick={() => void handleUpdateCommunityPost()} type="button">
+                {editingCommunityPostId ? '수정 저장' : '수정할 글을 먼저 선택'}
+              </button>
+              {editingCommunityPostId ? (
+                <button className="secondary-action" onClick={resetCommunityComposer} type="button">
+                  수정 취소
+                </button>
+              ) : null}
             </div>
           </div>
         </section>

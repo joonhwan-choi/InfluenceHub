@@ -8,4 +8,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface CommunityPostRepository extends JpaRepository<CommunityPost, Long> {
 
     List<CommunityPost> findTop20ByRoomOrderByCreatedAtDesc(CreatorRoom room);
+
+    java.util.Optional<CommunityPost> findByIdAndRoom(Long id, CreatorRoom room);
 }

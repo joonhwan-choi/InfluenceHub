@@ -2,9 +2,12 @@ package com.influencehub.backend.community.api;
 
 import com.influencehub.backend.community.dto.CreateCommunityPostRequest;
 import com.influencehub.backend.community.dto.CommunityPostResponse;
+import com.influencehub.backend.community.dto.UpdateCommunityPostRequest;
 import com.influencehub.backend.community.service.CommunityPostService;
 import java.util.List;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -38,6 +41,23 @@ public class CommunityPostController {
         @RequestBody CreateCommunityPostRequest request
     ) {
         return communityPostService.createCreatorRoomPost(extractBearerToken(authorizationHeader), request);
+    }
+
+    @PatchMapping("/mine/{postId}")
+    public CommunityPostResponse update(
+        @RequestHeader("Authorization") String authorizationHeader,
+        @PathVariable Long postId,
+        @RequestBody UpdateCommunityPostRequest request
+    ) {
+        return communityPostService.updateCreatorRoomPost(extractBearerToken(authorizationHeader), postId, request);
+    }
+
+    @DeleteMapping("/mine/{postId}")
+    public void delete(
+        @RequestHeader("Authorization") String authorizationHeader,
+        @PathVariable Long postId
+    ) {
+        communityPostService.deleteCreatorRoomPost(extractBearerToken(authorizationHeader), postId);
     }
 
     private String extractBearerToken(String authorizationHeader) {
