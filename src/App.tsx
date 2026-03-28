@@ -628,6 +628,8 @@ function App() {
   const [instagramAccessToken, setInstagramAccessToken] = useState('')
   const [hasHydratedCreatorSettings, setHasHydratedCreatorSettings] = useState(false)
   const roleMenuRef = useRef<HTMLDivElement | null>(null)
+  const fanPostComposerRef = useRef<HTMLElement | null>(null)
+  const fanPostTitleInputRef = useRef<HTMLInputElement | null>(null)
 
   const activeRoomTheme =
     roomThemePresets.find((preset) => preset.id === selectedRoomTheme) ?? roomThemePresets[0]
@@ -698,6 +700,16 @@ function App() {
     VIP: fanMembers.filter((member) => member.tier === 'VIP').length,
     BIG_SPENDER: fanMembers.filter((member) => member.tier === 'BIG_SPENDER').length,
     CORE_CREW: fanMembers.filter((member) => member.tier === 'CORE_CREW').length,
+  }
+
+  const focusFanComposer = () => {
+    setFanTab('feed')
+    window.requestAnimationFrame(() => {
+      fanPostComposerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      window.setTimeout(() => {
+        fanPostTitleInputRef.current?.focus()
+      }, 120)
+    })
   }
   const dashboardMetricCards = [
     {
@@ -5540,7 +5552,7 @@ function App() {
         </div>
 
         <div className="fan-action-grid">
-          <button className="fan-action-card" onClick={() => setFanTab('feed')} type="button">
+          <button className="fan-action-card" onClick={focusFanComposer} type="button">
             <span className="mini-label">POST</span>
             <strong>글 올리기</strong>
             <p>팬방 얘기, 후기, 짤, 잡담을 바로 남길 수 있습니다.</p>
@@ -5663,7 +5675,7 @@ function App() {
           {fanTab === 'feed' && (
             <>
               {fanSession ? (
-                <article className="mini-board">
+                <article className="mini-board" ref={fanPostComposerRef}>
                   <span className="mini-label">팬 게시글 작성</span>
                   <strong>팬들끼리 자유롭게 글을 올릴 수 있습니다.</strong>
                   <div className="form-stack">
@@ -5671,6 +5683,7 @@ function App() {
                       className="text-input"
                       onChange={(event) => setFanPostTitle(event.target.value)}
                       placeholder="제목을 입력하세요"
+                      ref={fanPostTitleInputRef}
                       value={fanPostTitle}
                     />
                     <textarea
