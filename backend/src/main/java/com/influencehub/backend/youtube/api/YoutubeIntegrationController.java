@@ -7,10 +7,12 @@ import com.influencehub.backend.youtube.dto.YoutubeCommentPublishResponse;
 import com.influencehub.backend.youtube.dto.YoutubeConnectionResponse;
 import com.influencehub.backend.youtube.dto.YoutubeConnectionSnapshotResponse;
 import com.influencehub.backend.youtube.dto.YoutubeOAuthExchangeRequest;
+import com.influencehub.backend.youtube.dto.YoutubeRecentVideoResponse;
 import com.influencehub.backend.youtube.dto.YoutubeUploadResponse;
 import com.influencehub.backend.youtube.service.YoutubeIntegrationService;
 import java.io.IOException;
 import java.net.URI;
+import java.util.List;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import javax.validation.Valid;
@@ -65,6 +67,13 @@ public class YoutubeIntegrationController {
     @GetMapping("/latest-connection")
     public YoutubeConnectionSnapshotResponse latestConnection() {
         return youtubeIntegrationService.latestConnection();
+    }
+
+    @GetMapping("/latest-videos")
+    public List<YoutubeRecentVideoResponse> latestVideos(
+        @RequestParam(value = "limit", defaultValue = "3") int limit
+    ) {
+        return youtubeIntegrationService.latestVideos(limit);
     }
 
     @PostMapping(

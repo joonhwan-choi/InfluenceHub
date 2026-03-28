@@ -2659,6 +2659,69 @@
   box-shadow: 0 22px 64px rgba(0, 0, 0, 0.14);
 }
 
+.fan-video-strip {
+  padding: 24px 28px;
+  border-radius: 30px;
+  background:
+    linear-gradient(180deg, rgba(255, 248, 236, 0.98), rgba(239, 231, 216, 0.95));
+  color: #1c2432;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 22px 64px rgba(0, 0, 0, 0.14);
+}
+
+.fan-video-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.fan-video-card {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border-radius: 22px;
+  text-decoration: none;
+  background: rgba(28, 36, 50, 0.04);
+  color: #1c2432;
+  box-shadow: inset 0 0 0 1px rgba(28, 36, 50, 0.08);
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    background 180ms ease;
+}
+
+.fan-video-card:hover {
+  transform: translateY(-2px);
+}
+
+.fan-video-thumb {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 18px;
+  background: rgba(28, 36, 50, 0.06);
+}
+
+.fan-video-thumb-fallback {
+  display: grid;
+  place-items: center;
+  font: 800 0.9rem/1.25 "Arial Black", "AppleGothic", sans-serif;
+  color: rgba(28, 36, 50, 0.72);
+}
+
+.fan-video-card strong {
+  display: block;
+  color: #1c2432;
+  font: 900 1rem/1.35 "Arial Black", "AppleGothic", sans-serif;
+}
+
+.fan-video-card p {
+  margin: 0;
+  color: rgba(28, 36, 50, 0.68);
+  font: 500 0.92rem/1.55 "AppleGothic", "Arial", sans-serif;
+}
+
 .fan-action-hub {
   padding: 24px 28px;
   border-radius: 30px;
@@ -2754,6 +2817,7 @@
 }
 
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-room-switcher,
+.page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-video-strip,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-action-hub,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-community-card,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-community-spotlight,
@@ -2829,6 +2893,7 @@
 }
 
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-room-card,
+.page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-video-card,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-action-card,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-moment-card,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .calendar-card,
@@ -2849,6 +2914,7 @@
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .panel-head h3,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-community-spotlight h3,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-feed h3,
+.page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-video-card strong,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-room-card strong,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-action-card strong,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .calendar-card strong,
@@ -2862,6 +2928,7 @@
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .mini-label,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .calendar-card span,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .catalog-card span,
+.page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-video-card p,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-community-card p,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-community-spotlight p,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-room-card p,
@@ -2887,6 +2954,7 @@
 }
 
 .fan-scene-classic .fan-room-switcher,
+.fan-scene-classic .fan-video-strip,
 .fan-scene-classic .fan-action-hub,
 .fan-scene-classic .fan-community-card,
 .fan-scene-classic .fan-community-spotlight,
@@ -2902,6 +2970,7 @@
 .fan-scene-classic .panel-head h3,
 .fan-scene-classic .fan-community-spotlight h3,
 .fan-scene-classic .fan-feed h3,
+.fan-scene-classic .fan-video-card strong,
 .fan-scene-classic .fan-room-card strong,
 .fan-scene-classic .fan-action-card strong,
 .fan-scene-classic .calendar-card strong,
@@ -2915,6 +2984,7 @@
 .fan-scene-classic .mini-label,
 .fan-scene-classic .calendar-card span,
 .fan-scene-classic .catalog-card span,
+.fan-scene-classic .fan-video-card p,
 .fan-scene-classic .fan-community-card p,
 .fan-scene-classic .fan-community-spotlight p,
 .fan-scene-classic .fan-room-card p,
@@ -2927,6 +2997,7 @@
 }
 
 .fan-scene-classic .fan-room-card,
+.fan-scene-classic .fan-video-card,
 .fan-scene-classic .fan-moment-card,
 .fan-scene-classic .calendar-card,
 .fan-scene-classic .catalog-card {
@@ -3339,6 +3410,7 @@
   .credential-grid,
   .upload-checklist,
   .fan-room-grid,
+  .fan-video-grid,
   .auth-method-row {
     grid-template-columns: 1fr;
   }
@@ -3358,6 +3430,7 @@
   }
 
   .fan-room-switcher,
+  .fan-video-strip,
   .fan-feed,
   .fan-side-panel,
   .fan-hero {
@@ -3366,6 +3439,7 @@
   }
 
   .fan-room-card,
+  .fan-video-card,
   .fan-moment-card,
   .calendar-card,
   .catalog-card,

@@ -23,6 +23,7 @@ import com.influencehub.backend.youtube.dto.YoutubeCommentPublishRequest;
 import com.influencehub.backend.youtube.dto.YoutubeCommentPublishResponse;
 import com.influencehub.backend.youtube.dto.YoutubeConnectionResponse;
 import com.influencehub.backend.youtube.dto.YoutubeConnectionSnapshotResponse;
+import com.influencehub.backend.youtube.dto.YoutubeRecentVideoResponse;
 import com.influencehub.backend.youtube.dto.YoutubeUploadResponse;
 import com.influencehub.backend.youtube.domain.YoutubeChannelConnection;
 import com.influencehub.backend.youtube.repository.YoutubeChannelConnectionRepository;
@@ -32,6 +33,8 @@ import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Value;
@@ -56,6 +59,7 @@ public class YoutubeIntegrationService {
     private static final String AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
     private static final String TOKEN_URL = "https://oauth2.googleapis.com/token";
     private static final String CHANNELS_URL = "https://www.googleapis.com/youtube/v3/channels";
+    private static final String PLAYLIST_ITEMS_URL = "https://www.googleapis.com/youtube/v3/playlistItems";
     private static final String VIDEO_UPLOAD_URL = "https://www.googleapis.com/upload/youtube/v3/videos";
     private static final String COMMENT_THREAD_URL = "https://www.googleapis.com/youtube/v3/commentThreads";
 
@@ -368,6 +372,98 @@ public class YoutubeIntegrationService {
             connection.getRoom().getSlug(),
             connection.getSubscriberCount()
         );
+    }
+
+    @Transactional(readOnly = true)
+    public List<YoutubeRecentVideoResponse> latestVideos(int limit) {
+        String resolvedAccessToken = resolveAccessToken(null);
+        String uploadsPlaylistId = fetchUploadsPlaylistId(resolvedAccessToken);
+        HttpHeaders headers = authorizedHeaders(resolvedAccessToken);
+        int safeLimit = Math.max(1, Math.min(limit, 6));
+
+        URI uri = UriComponentsBuilder.fromHttpUrl(PLAYLIST_ITEMS_URL)
+            .queryParam("part", "snippet,contentDetails,status")
+            .queryParam("playlistId", uploadsPlaylistId)
+            .queryParam("maxResults", safeLimit)
+            .build(true)
+            .toUri();
+
+        ResponseEntity<String> response = restTemplate.exchange(
+            uri,
+            HttpMethod.GET,
+            new HttpEntity<>(headers),
+            String.class
+        );
+
+        JsonNode root = readJson(response.getBody());
+        JsonNode items = root.path("items");
+        List<YoutubeRecentVideoResponse> videos = new ArrayList<>();
+        if (!items.isArray()) {
+            return videos;
+        }
+
+        for (JsonNode item : items) {
+            JsonNode snippet = item.path("snippet");
+            JsonNode thumbnails = snippet.path("thumbnails");
+            String videoId = firstNonEmpty(
+                textOrEmpty(item.path("contentDetails"), "videoId"),
+                textOrEmpty(snippet.path("resourceId"), "videoId")
+            );
+            String thumbnailUrl = firstNonEmpty(
+                textOrEmpty(thumbnails.path("maxres"), "url"),
+                textOrEmpty(thumbnails.path("standard"), "url"),
+                textOrEmpty(thumbnails.path("high"), "url"),
+                textOrEmpty(thumbnails.path("medium"), "url"),
+                textOrEmpty(thumbnails.path("default"), "url")
+            );
+            videos.add(new YoutubeRecentVideoResponse(
+                videoId,
+                textOrEmpty(snippet, "title"),
+                textOrEmpty(snippet, "description"),
+                thumbnailUrl,
+                videoId.isBlank() ? "" : "https://www.youtube.com/watch?v=" + urlEncode(videoId),
+                textOrEmpty(snippet, "publishedAt"),
+                textOrEmpty(snippet, "liveBroadcastContent")
+            ));
+        }
+
+        return videos;
+    }
+
+    private String fetchUploadsPlaylistId(String accessToken) {
+        HttpHeaders headers = authorizedHeaders(accessToken);
+        URI uri = UriComponentsBuilder.fromHttpUrl(CHANNELS_URL)
+            .queryParam("part", "contentDetails")
+            .queryParam("mine", "true")
+            .build(true)
+            .toUri();
+
+        ResponseEntity<String> response = restTemplate.exchange(
+            uri,
+            HttpMethod.GET,
+            new HttpEntity<>(headers),
+            String.class
+        );
+
+        JsonNode root = readJson(response.getBody());
+        JsonNode firstItem = root.path("items").isArray() && root.path("items").size() > 0
+            ? root.path("items").get(0)
+            : null;
+
+        if (firstItem == null || firstItem.isMissingNode()) {
+            throw new IllegalStateException("No YouTube channel was returned for the authenticated account.");
+        }
+
+        String uploadsPlaylistId = textOrEmpty(
+            firstItem.path("contentDetails").path("relatedPlaylists"),
+            "uploads"
+        );
+
+        if (uploadsPlaylistId.isBlank()) {
+            throw new IllegalStateException("The authenticated YouTube channel does not expose an uploads playlist.");
+        }
+
+        return uploadsPlaylistId;
     }
 
     private String initiateResumableUpload(

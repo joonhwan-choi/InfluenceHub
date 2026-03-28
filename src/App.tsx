@@ -73,6 +73,16 @@ type YoutubeCommentResult = {
   message: string
 }
 
+type YoutubeRecentVideoItem = {
+  videoId: string
+  title: string
+  description: string
+  thumbnailUrl: string
+  watchUrl: string
+  publishedAt: string
+  liveBroadcastContent: string
+}
+
 type InstagramPublishResult = {
   status: string
   mediaId: string
@@ -528,6 +538,7 @@ function App() {
   const [commentTargetUrl, setCommentTargetUrl] = useState('')
   const [commentStatus, setCommentStatus] = useState('아직 댓글 배포 전')
   const [commentResult, setCommentResult] = useState<YoutubeCommentResult | null>(null)
+  const [youtubeRecentVideos, setYoutubeRecentVideos] = useState<YoutubeRecentVideoItem[]>([])
   const [uploadStatus, setUploadStatus] = useState('아직 업로드 전')
   const [uploadError, setUploadError] = useState('')
   const [scheduleStatus, setScheduleStatus] = useState('예약 등록 전')
@@ -677,6 +688,7 @@ function App() {
   ).length
   const youtubeLongformCount = Math.max(youtubePublishHistory.length - youtubeShortsCount, 0)
   const visibleFanFeed = communityFeed.filter((post) => !isTestCommunityPost(post)).slice(0, 10)
+  const fanVideoHighlights = youtubeRecentVideos.slice(0, 3)
   const youtubeCommunityDraft = `${postTitle.trim() || '유튜브 커뮤니티 제목'}\n\n${postBody.trim() || '유튜브 커뮤니티 본문'}`
   const visibleStoreBoard = storeBoard.filter((item) => item.visible)
   const visibleEventBoard = eventBoard.filter((item) => item.visible)
@@ -1149,6 +1161,20 @@ function App() {
     } catch (error) {
       const message = error instanceof Error ? error.message : '업로드 이력을 불러오지 못했습니다.'
       setUploadError(message)
+    }
+  }
+
+  const loadYoutubeRecentVideos = async () => {
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/youtube/latest-videos?limit=3`)
+      if (!response.ok) {
+        throw new Error('최신 유튜브 영상을 불러오지 못했습니다.')
+      }
+
+      const data = (await response.json()) as YoutubeRecentVideoItem[]
+      setYoutubeRecentVideos(data)
+    } catch {
+      setYoutubeRecentVideos([])
     }
   }
 
@@ -2622,6 +2648,14 @@ function App() {
       void loadRoomCommunityPosts(selectedFanRoomId)
     }
   }, [currentView, selectedFanRoomId, fanFeedSort])
+
+  useEffect(() => {
+    if (currentView !== 'fan' && !isCreatorLoggedIn) {
+      return
+    }
+
+    void loadYoutubeRecentVideos()
+  }, [currentView, isCreatorLoggedIn, connectedChannel?.channel_id])
 
   useEffect(() => {
     if (currentView === 'privacy' || currentView === 'terms') {
@@ -5372,6 +5406,53 @@ function App() {
           </div>
         </div>
       </div>
+
+      {fanVideoHighlights.length > 0 ? (
+        <section className="fan-video-strip">
+          <div className="panel-head">
+            <div>
+              <span className="card-kicker">최신 영상</span>
+              <h3>{connectedChannel?.channel_title ?? activeFanRoom?.creator ?? '최근 유튜브 업로드'}</h3>
+            </div>
+          </div>
+
+          <div className="fan-video-grid">
+            {fanVideoHighlights.map((video, index) => {
+              const videoLabel =
+                video.liveBroadcastContent === 'live'
+                  ? '최신 생방송'
+                  : /shorts|쇼츠/i.test(video.title)
+                    ? '최신 숏츠'
+                    : index === 0
+                      ? '최신 영상'
+                      : '최신 업로드'
+
+              return (
+                <a
+                  className="fan-video-card"
+                  href={video.watchUrl}
+                  key={video.videoId || `${video.title}-${index}`}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  <span className="mini-label">{videoLabel}</span>
+                  {video.thumbnailUrl ? (
+                    <img
+                      alt={video.title}
+                      className="fan-video-thumb"
+                      src={video.thumbnailUrl}
+                    />
+                  ) : (
+                    <div className="fan-video-thumb fan-video-thumb-fallback">{videoLabel}</div>
+                  )}
+                  <strong>{video.title}</strong>
+                  <p>{video.description || '유튜브에서 바로 이어서 볼 수 있습니다.'}</p>
+                </a>
+              )
+            })}
+          </div>
+        </section>
+      ) : null}
 
       <section className="fan-room-switcher">
         <div className="panel-head">
