@@ -706,9 +706,11 @@ function App() {
     setFanTab('feed')
     window.requestAnimationFrame(() => {
       fanPostComposerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      window.setTimeout(() => {
-        fanPostTitleInputRef.current?.focus()
-      }, 120)
+      if (fanSession) {
+        window.setTimeout(() => {
+          fanPostTitleInputRef.current?.focus()
+        }, 120)
+      }
     })
   }
   const dashboardMetricCards = [
@@ -5674,10 +5676,12 @@ function App() {
 
           {fanTab === 'feed' && (
             <>
-              {fanSession ? (
-                <article className="mini-board" ref={fanPostComposerRef}>
-                  <span className="mini-label">팬 게시글 작성</span>
-                  <strong>팬들끼리 자유롭게 글을 올릴 수 있습니다.</strong>
+              <article className="mini-board" ref={fanPostComposerRef}>
+                <span className="mini-label">팬 게시글 작성</span>
+                <strong>
+                  {fanSession ? '팬들끼리 자유롭게 글을 올릴 수 있습니다.' : '팬 로그인 후 바로 글을 올릴 수 있습니다.'}
+                </strong>
+                {fanSession ? (
                   <div className="form-stack">
                     <input
                       className="text-input"
@@ -5699,8 +5703,15 @@ function App() {
                       <span className="helper-copy">{fanPostStatus}</span>
                     </div>
                   </div>
-                </article>
-              ) : null}
+                ) : (
+                  <div className="inline-actions compact-actions">
+                    <button className="primary-action" onClick={() => void startFanGoogleLogin()} type="button">
+                      {isStartingFanGoogleLogin ? 'Google로 이동 중...' : 'Google로 팬 로그인'}
+                    </button>
+                    <span className="helper-copy">로그인하면 이 자리에서 바로 글을 쓸 수 있습니다.</span>
+                  </div>
+                )}
+              </article>
 
               {visibleFanFeed.length > 0 ? (
                 <div className="fan-moment-list">
