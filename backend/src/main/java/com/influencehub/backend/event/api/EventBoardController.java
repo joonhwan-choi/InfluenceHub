@@ -1,9 +1,13 @@
 package com.influencehub.backend.event.api;
 
+import com.influencehub.backend.event.dto.CreateEventRequest;
 import com.influencehub.backend.event.dto.EventSummaryResponse;
 import com.influencehub.backend.event.service.EventBoardService;
 import java.util.List;
+import javax.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,6 +25,14 @@ public class EventBoardController {
     @GetMapping("/mine")
     public List<EventSummaryResponse> mine(@RequestHeader("Authorization") String authorizationHeader) {
         return eventBoardService.getMine(extractBearerToken(authorizationHeader));
+    }
+
+    @PostMapping("/mine")
+    public EventSummaryResponse create(
+        @RequestHeader("Authorization") String authorizationHeader,
+        @Valid @RequestBody CreateEventRequest request
+    ) {
+        return eventBoardService.create(extractBearerToken(authorizationHeader), request);
     }
 
     private String extractBearerToken(String authorizationHeader) {

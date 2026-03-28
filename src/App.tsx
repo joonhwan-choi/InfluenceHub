@@ -223,8 +223,11 @@ type CommunityPostItem = {
 }
 
 type EventSummaryItem = {
+  event_id: number
   title: string
   detail: string
+  schedule_label: string
+  visible: boolean
 }
 
 type StoreItemSummary = {
@@ -475,63 +478,6 @@ const googleProfileStorageKey = 'influencehub.google-profile'
 const roomThemeStorageKey = 'influencehub.room-theme'
 const creatorAppearanceStorageKey = 'influencehub.creator-appearance'
 
-const communityPosts = [
-  {
-    label: '공지',
-    title: '오늘 저녁 8시 업로드 후 팬방 Q&A 오픈',
-    meta: '댓글 124 · 공감 811',
-  },
-  {
-    label: '자유글',
-    title: '오늘 티저 장면 중 가장 좋았던 컷 골라보기',
-    meta: '댓글 89 · 공감 302',
-  },
-  {
-    label: '멤버십',
-    title: '비하인드 사진 12장 선공개',
-    meta: '댓글 41 · 공감 520',
-  },
-]
-
-const eventSteps = [
-  {
-    title: '참여 공지 오픈',
-    detail: '팬방 상단 배너와 새 글 알림을 동시에 발행',
-  },
-  {
-    title: '미션 인증 수집',
-    detail: '댓글, 이미지, 해시태그 조건별 응모를 자동 분류',
-  },
-  {
-    title: '추첨 및 발표',
-    detail: '당첨자 카드 생성 후 DM/공지 템플릿 발송',
-  },
-]
-
-const fanFeed: FanFeedItem[] = [
-  {
-    title: '방장 공지',
-    text: '오늘 저녁 8시 업로드 영상 공개 후, 팬방 Q&A도 바로 열릴 예정입니다.',
-    badge: 'NEW',
-  },
-  {
-    title: '미션 인증 이벤트',
-    text: '댓글 인증만 해도 추첨으로 사인 굿즈를 받을 수 있습니다.',
-    badge: 'LIVE',
-  },
-  {
-    title: '멤버십 전용 티저',
-    text: '다음 프로젝트 비하인드 사진이 선공개되었습니다.',
-    badge: 'PLUS',
-  },
-]
-
-const fanCalendar = [
-  { day: '오늘', title: '20:00 영상 공개 + 팬방 Q&A' },
-  { day: '내일', title: '멤버십 전용 미리듣기 공개' },
-  { day: '토요일', title: '굿즈 드롭 사전 알림 발송' },
-]
-
 const postTypeToBadge: Record<string, string> = {
   NOTICE: 'NEW',
   EVENT: 'LIVE',
@@ -659,6 +605,11 @@ function App() {
   const [isCreatorLoggedIn, setIsCreatorLoggedIn] = useState(false)
   const [communityFeed, setCommunityFeed] = useState<CommunityPostItem[]>([])
   const [eventBoard, setEventBoard] = useState<EventSummaryItem[]>([])
+  const [eventTitle, setEventTitle] = useState('')
+  const [eventDetail, setEventDetail] = useState('')
+  const [eventScheduleLabel, setEventScheduleLabel] = useState('오늘')
+  const [eventStatus, setEventStatus] = useState('아직 이벤트 등록 전')
+  const [isSavingEvent, setIsSavingEvent] = useState(false)
   const [storeBoard, setStoreBoard] = useState<StoreItemSummary[]>([])
   const [storeSourceUrl, setStoreSourceUrl] = useState('')
   const [storeProductName, setStoreProductName] = useState('')
@@ -752,16 +703,15 @@ function App() {
   ).length
   const youtubeLongformCount = Math.max(youtubePublishHistory.length - youtubeShortsCount, 0)
   const visibleFanFeed: FanFeedItem[] =
-    isCreatorLoggedIn && communityFeed.length > 0
-      ? communityFeed.filter((post) => !isTestCommunityPost(post)).slice(0, 3).map((post) => ({
-          title: post.title,
-          text: post.content,
-          badge: postTypeToBadge[post.post_type] ?? 'POST',
-          imageUrl: isRenderableImageUrl(post.image_url) ? post.image_url : undefined,
-        }))
-      : fanFeed
+    communityFeed.filter((post) => !isTestCommunityPost(post)).slice(0, 3).map((post) => ({
+      title: post.title,
+      text: post.content,
+      badge: postTypeToBadge[post.post_type] ?? 'POST',
+      imageUrl: isRenderableImageUrl(post.image_url) ? post.image_url : undefined,
+    }))
   const youtubeCommunityDraft = `${postTitle.trim() || '유튜브 커뮤니티 제목'}\n\n${postBody.trim() || '유튜브 커뮤니티 본문'}`
   const visibleStoreBoard = storeBoard.filter((item) => item.visible)
+  const visibleEventBoard = eventBoard.filter((item) => item.visible)
   const homeStatCards = [
     {
       label: '연결 채널',
@@ -1227,6 +1177,55 @@ function App() {
       setEventBoard(data)
     } catch {
       setEventBoard([])
+    }
+  }
+
+  const handleCreateEvent = async () => {
+    const creatorSessionToken = localStorage.getItem(creatorSessionStorageKey)
+    if (!creatorSessionToken) {
+      setEventStatus('먼저 인플루언서 로그인이 필요합니다.')
+      return
+    }
+
+    if (!eventTitle.trim() || !eventDetail.trim()) {
+      setEventStatus('이벤트 제목과 설명을 입력해주세요.')
+      return
+    }
+
+    setIsSavingEvent(true)
+    setEventStatus('이벤트를 저장하는 중입니다...')
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/events/mine`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${creatorSessionToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: eventTitle,
+          detail: eventDetail,
+          schedule_label: eventScheduleLabel,
+          visible: true,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || '이벤트를 저장하지 못했습니다.')
+      }
+
+      const saved = (await response.json()) as EventSummaryItem
+      setEventBoard((previous) => [saved, ...previous])
+      setEventTitle('')
+      setEventDetail('')
+      setEventScheduleLabel('오늘')
+      setEventStatus('이벤트가 등록되었습니다.')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '이벤트를 저장하지 못했습니다.'
+      setEventStatus(message)
+    } finally {
+      setIsSavingEvent(false)
     }
   }
 
@@ -4326,20 +4325,21 @@ function App() {
           </div>
 
           <div className="board-list">
-            {(communityFeed.length > 0
-              ? communityFeed.filter((post) => !isTestCommunityPost(post)).map((post) => ({
-                  label: post.post_type,
-                  title: post.title,
-                  meta: `${post.author_name} · ${new Date(post.created_at).toLocaleString('ko-KR')}`,
-                }))
-              : communityPosts
-            ).map((post) => (
-              <article className="board-card" key={post.title}>
-                <span className="board-label">{post.label}</span>
-                <strong>{post.title}</strong>
-                <p>{post.meta}</p>
+            {communityFeed.filter((post) => !isTestCommunityPost(post)).length > 0 ? (
+              communityFeed.filter((post) => !isTestCommunityPost(post)).map((post) => (
+                <article className="board-card" key={post.post_id}>
+                  <span className="board-label">{post.post_type}</span>
+                  <strong>{post.title}</strong>
+                  <p>{post.author_name} · {new Date(post.created_at).toLocaleString('ko-KR')}</p>
+                </article>
+              ))
+            ) : (
+              <article className="board-card">
+                <span className="board-label">EMPTY</span>
+                <strong>아직 등록된 게시글이 없습니다</strong>
+                <p>콘텐츠 배포나 팬 커뮤니티 화면에서 첫 글을 올리면 여기에 표시됩니다.</p>
               </article>
-            ))}
+            )}
           </div>
         </section>
 
@@ -4390,14 +4390,61 @@ function App() {
       </div>
 
       <div className="three-grid">
-        {(eventBoard.length > 0 ? eventBoard : eventSteps).map((step, index) => (
+        <section className="studio-panel">
+          <div className="panel-head">
+            <div>
+              <span className="card-kicker">이벤트 등록</span>
+              <h3>팬 일정 추가</h3>
+            </div>
+          </div>
+          <div className="field-block">
+            <label htmlFor="event-title">이벤트 제목</label>
+            <input
+              className="text-input"
+              id="event-title"
+              onChange={(event) => setEventTitle(event.target.value)}
+              placeholder="예: 미션 인증 이벤트 오픈"
+              type="text"
+              value={eventTitle}
+            />
+          </div>
+          <div className="field-block">
+            <label htmlFor="event-schedule">일정 라벨</label>
+            <input
+              className="text-input"
+              id="event-schedule"
+              onChange={(event) => setEventScheduleLabel(event.target.value)}
+              placeholder="예: 오늘, 내일, 토요일"
+              type="text"
+              value={eventScheduleLabel}
+            />
+          </div>
+          <div className="field-block">
+            <label htmlFor="event-detail">설명</label>
+            <textarea
+              className="text-area"
+              id="event-detail"
+              onChange={(event) => setEventDetail(event.target.value)}
+              placeholder="팬에게 보여줄 이벤트 설명을 입력하세요"
+              value={eventDetail}
+            />
+          </div>
+          <div className="inline-actions compact-actions">
+            <button className="primary-action" disabled={isSavingEvent} onClick={() => void handleCreateEvent()} type="button">
+              {isSavingEvent ? '저장 중...' : '이벤트 등록'}
+            </button>
+            <span className="helper-copy">{eventStatus}</span>
+          </div>
+        </section>
+
+        {(eventBoard.length > 0 ? eventBoard : []).map((step, index) => (
           <section className="studio-panel" key={step.title}>
             <span className="step-index">0{index + 1}</span>
             <h3>{step.title}</h3>
             <p>{step.detail}</p>
             <div className="mini-board soft">
-              <strong>{index === 0 ? '노출 채널 3곳' : index === 1 ? '인증 482건' : '발표 대기 20명'}</strong>
-              <p>{index === 0 ? '팬방 상단, 푸시, 커뮤니티 카드' : index === 1 ? '댓글/이미지/해시태그 자동 수집' : '당첨 카드와 DM 템플릿 생성 완료'}</p>
+              <strong>{step.schedule_label}</strong>
+              <p>{step.visible ? '팬 일정 탭에 노출 중' : '운영 전용 숨김 상태'}</p>
             </div>
           </section>
         ))}
@@ -4934,36 +4981,52 @@ function App() {
           </div>
 
           {fanTab === 'feed' && (
-            <div className="fan-moment-list">
-              {visibleFanFeed.map((moment) => (
-                <article className="fan-moment-card" key={moment.title}>
-                  {moment.imageUrl ? (
-                    <img
-                      alt={moment.title}
-                      className="fan-moment-media"
-                      onError={(event) => {
-                        event.currentTarget.style.display = 'none'
-                      }}
-                      src={moment.imageUrl}
-                    />
-                  ) : null}
-                  <span className="fan-badge">{moment.badge}</span>
-                  <strong>{moment.title}</strong>
-                  <p>{moment.text}</p>
-                </article>
-              ))}
-            </div>
+            visibleFanFeed.length > 0 ? (
+              <div className="fan-moment-list">
+                {visibleFanFeed.map((moment) => (
+                  <article className="fan-moment-card" key={moment.title}>
+                    {moment.imageUrl ? (
+                      <img
+                        alt={moment.title}
+                        className="fan-moment-media"
+                        onError={(event) => {
+                          event.currentTarget.style.display = 'none'
+                        }}
+                        src={moment.imageUrl}
+                      />
+                    ) : null}
+                    <span className="fan-badge">{moment.badge}</span>
+                    <strong>{moment.title}</strong>
+                    <p>{moment.text}</p>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="mini-board">
+                <span className="mini-label">공지 준비 전</span>
+                <strong>아직 올라온 소식이 없습니다</strong>
+                <p>운영 화면에서 공지나 게시글을 등록하면 여기에서 바로 보이게 됩니다.</p>
+              </div>
+            )
           )}
 
           {fanTab === 'calendar' && (
-            <div className="calendar-list">
-              {fanCalendar.map((item) => (
-                <article className="calendar-card" key={item.title}>
-                  <span>{item.day}</span>
-                  <strong>{item.title}</strong>
-                </article>
-              ))}
-            </div>
+            visibleEventBoard.length > 0 ? (
+              <div className="calendar-list">
+                {visibleEventBoard.map((item) => (
+                  <article className="calendar-card" key={item.event_id}>
+                    <span>{item.schedule_label}</span>
+                    <strong>{item.title}</strong>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="mini-board">
+                <span className="mini-label">일정 준비 전</span>
+                <strong>아직 등록된 이벤트가 없습니다</strong>
+                <p>운영 화면에서 일정을 등록하면 팬 일정 탭에 바로 표시됩니다.</p>
+              </div>
+            )
           )}
 
           {fanTab === 'shop' && (
