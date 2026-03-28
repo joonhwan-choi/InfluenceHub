@@ -91,6 +91,18 @@ public class FanSessionService {
         fanSessionRepository.deleteBySessionToken(sessionToken);
     }
 
+    @Transactional(readOnly = true)
+    public User requireFan(String sessionToken) {
+        FanSession session = fanSessionRepository.findBySessionToken(sessionToken)
+            .orElseThrow(() -> new IllegalStateException("팬 세션이 없습니다."));
+
+        if (session.isExpired(LocalDateTime.now())) {
+            throw new IllegalStateException("팬 세션이 만료되었습니다.");
+        }
+
+        return session.getFan();
+    }
+
     private FanAuthResponse toResponse(FanSession session) {
         List<FanRoomSummaryResponse> joinedRooms = fanMembershipRepository.findByFanOrderByCreatedAtDesc(session.getFan())
             .stream()

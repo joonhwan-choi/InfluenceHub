@@ -43,6 +43,15 @@ public class CommunityPostController {
         return communityPostService.createCreatorRoomPost(extractBearerToken(authorizationHeader), request);
     }
 
+    @PostMapping("/rooms/{roomSlug}/posts")
+    public CommunityPostResponse createFanPost(
+        @RequestHeader("Authorization") String authorizationHeader,
+        @PathVariable String roomSlug,
+        @RequestBody CreateCommunityPostRequest request
+    ) {
+        return communityPostService.createFanRoomPost(extractBearerToken(authorizationHeader), roomSlug, request);
+    }
+
     @PatchMapping("/mine/{postId}")
     public CommunityPostResponse update(
         @RequestHeader("Authorization") String authorizationHeader,

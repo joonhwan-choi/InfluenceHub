@@ -322,19 +322,9 @@ const featureCatalog: FeatureModule[] = [
 
 const contentTimeline = [
   {
-    time: '18:30',
-    title: 'YouTube 본편 예약',
-    body: '제목, 썸네일, 설명란, 해시태그까지 초안 완료',
-  },
-  {
-    time: '18:33',
-    title: 'CHZZK 공지 카드 생성',
-    body: '팬방 공지에 라이브 알림 배너가 함께 붙습니다.',
-  },
-  {
-    time: '18:45',
-    title: '팬방 푸시 예약',
-    body: '멤버십 팬 우선, 일반 팬 후순위로 알림이 나갑니다.',
+    time: 'READY',
+    title: '예약 배포 대기',
+    body: '예약 시간을 넣고 등록하면 실제 배포 이력이 여기에 쌓입니다.',
   },
 ]
 
@@ -595,6 +585,9 @@ function App() {
   const [fanStatus, setFanStatus] = useState('팬 로그인 전')
   const [fanError, setFanError] = useState('')
   const [isJoiningInvite, setIsJoiningInvite] = useState(false)
+  const [fanPostTitle, setFanPostTitle] = useState('')
+  const [fanPostBody, setFanPostBody] = useState('')
+  const [fanPostStatus, setFanPostStatus] = useState('아직 팬 게시글 작성 전')
   const [isStartingFanGoogleLogin, setIsStartingFanGoogleLogin] = useState(false)
   const [pendingGoogleProfile, setPendingGoogleProfile] = useState<PendingGoogleProfile | null>(null)
   const [selectedRoomTheme, setSelectedRoomTheme] = useState<RoomThemeId>('hub-classic')
@@ -1195,6 +1188,25 @@ function App() {
     }
   }
 
+  const loadRoomCommunityPosts = async (roomSlug?: string) => {
+    const targetRoomSlug = roomSlug ?? selectedFanRoomId
+    if (!targetRoomSlug) {
+      setCommunityFeed([])
+      return
+    }
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/community/rooms/${targetRoomSlug}/posts`)
+      if (!response.ok) {
+        throw new Error('팬방 글을 불러오지 못했습니다.')
+      }
+      const data = (await response.json()) as CommunityPostItem[]
+      setCommunityFeed(data)
+    } catch {
+      setCommunityFeed([])
+    }
+  }
+
   const startEditingCommunityPost = (post: CommunityPostItem) => {
     setEditingCommunityPostId(post.post_id)
     setPostTitle(post.title)
@@ -1211,6 +1223,59 @@ function App() {
     setSelectedPostImage(null)
     setPostPreviewUrl(null)
     setPostStatus('새 게시글 작성 모드입니다.')
+  }
+
+  const handleCreateFanPost = async () => {
+    const fanSessionToken = localStorage.getItem(fanSessionStorageKey)
+    if (!fanSessionToken) {
+      setFanPostStatus('먼저 팬 로그인이 필요합니다.')
+      return
+    }
+
+    if (!selectedFanRoomId) {
+      setFanPostStatus('먼저 팬방을 선택해 주세요.')
+      return
+    }
+
+    if (!fanPostTitle.trim()) {
+      setFanPostStatus('게시글 제목이 필요합니다.')
+      return
+    }
+
+    if (!fanPostBody.trim()) {
+      setFanPostStatus('게시글 본문이 필요합니다.')
+      return
+    }
+
+    setFanPostStatus('팬 게시글을 올리는 중입니다...')
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/community/rooms/${selectedFanRoomId}/posts`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${fanSessionToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: fanPostTitle.trim(),
+          content: fanPostBody.trim(),
+        }),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || '팬 게시글 등록에 실패했습니다.')
+      }
+
+      const createdPost = (await response.json()) as CommunityPostItem
+      setCommunityFeed((current) => [createdPost, ...current])
+      setFanPostTitle('')
+      setFanPostBody('')
+      setFanPostStatus('팬 게시글 등록 완료')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '팬 게시글 등록에 실패했습니다.'
+      setFanPostStatus(message)
+    }
   }
 
   const handleUpdateCommunityPost = async () => {
@@ -2460,6 +2525,16 @@ function App() {
       }
     }
   }, [])
+
+  useEffect(() => {
+    if (currentView !== 'fan') {
+      return
+    }
+
+    if (selectedFanRoomId) {
+      void loadRoomCommunityPosts(selectedFanRoomId)
+    }
+  }, [currentView, selectedFanRoomId])
 
   useEffect(() => {
     if (currentView === 'privacy' || currentView === 'terms') {
@@ -4297,15 +4372,6 @@ function App() {
             </div>
             {publishComposerMode === 'video' ? (
               <>
-                {contentTimeline.map((item) => (
-                  <article className="timeline-row" key={item.title}>
-                    <span className="timeline-time">{item.time}</span>
-                    <div>
-                      <strong>{item.title}</strong>
-                      <p>{item.body}</p>
-                    </div>
-                  </article>
-                ))}
                 {publishHistory
                   .filter((job) => job.status === 'READY' || job.status === 'PROCESSING')
                   .slice(0, 4)
@@ -4325,6 +4391,15 @@ function App() {
                       </div>
                     </article>
                   ))}
+                {publishHistory.filter((job) => job.status === 'READY' || job.status === 'PROCESSING').length === 0 ? (
+                  <article className="timeline-row" key={contentTimeline[0].title}>
+                    <span className="timeline-time">{contentTimeline[0].time}</span>
+                    <div>
+                      <strong>{contentTimeline[0].title}</strong>
+                      <p>{contentTimeline[0].body}</p>
+                    </div>
+                  </article>
+                ) : null}
               </>
             ) : (
               <article className="post-preview-card">
@@ -5306,33 +5381,62 @@ function App() {
           </div>
 
           {fanTab === 'feed' && (
-            visibleFanFeed.length > 0 ? (
-              <div className="fan-moment-list">
-                {visibleFanFeed.map((moment) => (
-                  <article className="fan-moment-card" key={moment.title}>
-                    {moment.imageUrl ? (
-                      <img
-                        alt={moment.title}
-                        className="fan-moment-media"
-                        onError={(event) => {
-                          event.currentTarget.style.display = 'none'
-                        }}
-                        src={moment.imageUrl}
-                      />
-                    ) : null}
-                    <span className="fan-badge">{moment.badge}</span>
-                    <strong>{moment.title}</strong>
-                    <p>{moment.text}</p>
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <div className="mini-board">
-                <span className="mini-label">공지 준비 전</span>
-                <strong>아직 올라온 소식이 없습니다</strong>
-                <p>운영 화면에서 공지나 게시글을 등록하면 여기에서 바로 보이게 됩니다.</p>
-              </div>
-            )
+            <>
+              {fanSession ? (
+                <article className="mini-board">
+                  <span className="mini-label">팬 게시글 작성</span>
+                  <strong>팬들끼리 자유롭게 글을 올릴 수 있습니다.</strong>
+                  <div className="form-stack">
+                    <input
+                      className="text-input"
+                      onChange={(event) => setFanPostTitle(event.target.value)}
+                      placeholder="제목을 입력하세요"
+                      value={fanPostTitle}
+                    />
+                    <textarea
+                      className="text-area"
+                      onChange={(event) => setFanPostBody(event.target.value)}
+                      placeholder="오늘 본 영상 이야기나 팬방 잡담을 남겨보세요"
+                      value={fanPostBody}
+                    />
+                    <div className="inline-actions compact-actions">
+                      <button className="primary-action" onClick={() => void handleCreateFanPost()} type="button">
+                        팬 게시글 올리기
+                      </button>
+                      <span className="helper-copy">{fanPostStatus}</span>
+                    </div>
+                  </div>
+                </article>
+              ) : null}
+
+              {visibleFanFeed.length > 0 ? (
+                <div className="fan-moment-list">
+                  {visibleFanFeed.map((moment) => (
+                    <article className="fan-moment-card" key={`${moment.badge}-${moment.title}`}>
+                      {moment.imageUrl ? (
+                        <img
+                          alt={moment.title}
+                          className="fan-moment-media"
+                          onError={(event) => {
+                            event.currentTarget.style.display = 'none'
+                          }}
+                          src={moment.imageUrl}
+                        />
+                      ) : null}
+                      <span className="fan-badge">{moment.badge}</span>
+                      <strong>{moment.title}</strong>
+                      <p>{moment.text}</p>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <div className="mini-board">
+                  <span className="mini-label">게시글 준비 전</span>
+                  <strong>아직 올라온 글이 없습니다</strong>
+                  <p>팬이나 운영자가 글을 등록하면 여기에서 바로 같이 볼 수 있습니다.</p>
+                </div>
+              )}
+            </>
           )}
 
           {fanTab === 'calendar' && (
