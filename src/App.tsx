@@ -20,7 +20,6 @@ type View =
 type FanTab = 'feed' | 'calendar' | 'shop'
 type PrivacyStatus = 'private' | 'unlisted' | 'public'
 type PublishComposerMode = 'video' | 'post'
-type AuthMode = 'influencer' | 'fan'
 type AuthMethod = 'social' | 'email'
 type DashboardSection = 'overview' | 'content' | 'community' | 'events' | 'store' | 'platforms'
 type BannerStyle = 'focus' | 'soft' | 'broadcast'
@@ -88,17 +87,6 @@ type AuthUrlResponse = {
 type FanAuthUrlResponse = {
   auth_url: string
   redirect_uri: string
-}
-
-type GoogleAuthUrlResponse = {
-  auth_url: string
-  redirect_uri: string
-}
-
-type PendingGoogleProfile = {
-  email: string
-  name: string
-  picture: string
 }
 
 type CreatorSession = {
@@ -422,7 +410,6 @@ const platformFieldLabels: Record<string, { client: string; secret: string }> = 
 
 const creatorSessionStorageKey = 'influencehub.creator-session-token'
 const fanSessionStorageKey = 'influencehub.fan-session-token'
-const googleProfileStorageKey = 'influencehub.google-profile'
 const roomThemeStorageKey = 'influencehub.room-theme'
 const creatorAppearanceStorageKey = 'influencehub.creator-appearance'
 
@@ -499,7 +486,6 @@ const roomThemePresets: RoomThemePreset[] = [
 function App() {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080'
   const [currentView, setCurrentView] = useState<View>('home')
-  const [authMode, setAuthMode] = useState<AuthMode>('influencer')
   const [authMethod, setAuthMethod] = useState<AuthMethod>('social')
   const [loginEmail, setLoginEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
@@ -597,7 +583,6 @@ function App() {
   const [fanCommentsByPostId, setFanCommentsByPostId] = useState<Record<number, CommunityCommentItem[]>>({})
   const [fanCommentDrafts, setFanCommentDrafts] = useState<Record<number, string>>({})
   const [isStartingFanGoogleLogin, setIsStartingFanGoogleLogin] = useState(false)
-  const [pendingGoogleProfile, setPendingGoogleProfile] = useState<PendingGoogleProfile | null>(null)
   const [selectedRoomTheme, setSelectedRoomTheme] = useState<RoomThemeId>('hub-classic')
   const [isRoleMenuOpen, setIsRoleMenuOpen] = useState(false)
   const [platformSetup, setPlatformSetup] = useState<Record<string, PlatformSetupState>>({
@@ -897,7 +882,16 @@ function App() {
     : isFanLoggedIn
       ? 'Fan Membership Pass'
       : 'Influencer Room OS'
-  const headerRoleLabel = isCreatorLoggedIn ? 'INFLUENCER MODE' : isFanLoggedIn ? 'FAN MODE' : ''
+  const headerAccountLabel = isCreatorLoggedIn
+    ? connectedChannel?.channel_title ?? '내 계정'
+    : isFanLoggedIn
+      ? fanSession?.nickname ?? '팬 계정'
+      : ''
+  const headerAccountMeta = isCreatorLoggedIn
+    ? '인플루언서'
+    : isFanLoggedIn
+      ? `${fanSession?.joined_rooms.length ?? 0}개 팬방`
+      : ''
   const headerTabs: Array<[View, string]> = isCreatorLoggedIn
     ? [
         ['home', '홈'],
@@ -906,29 +900,11 @@ function App() {
         ['fan', '팬 화면'],
       ]
     : isFanLoggedIn
-      ? [
-          ['home', '홈'],
-          ['fan', '내 팬방'],
-          ['invite', '초대 링크'],
-        ]
+      ? [['home', '홈'], ['fan', '내 팬방'], ['invite', '초대 링크']]
       : [
           ['home', '홈'],
           ['signup', '로그인'],
         ]
-
-  const startSelectedAuthFlow = async () => {
-    if (!pendingGoogleProfile) {
-      await startUnifiedGoogleLogin()
-      return
-    }
-
-    if (authMode === 'influencer') {
-      await startCreatorGoogleLogin()
-      return
-    }
-
-    await completeFanMode()
-  }
 
   const persistCreatorSession = (sessionToken: string) => {
     localStorage.setItem(creatorSessionStorageKey, sessionToken)
@@ -945,16 +921,6 @@ function App() {
 
   const persistFanSession = (sessionToken: string) => {
     localStorage.setItem(fanSessionStorageKey, sessionToken)
-  }
-
-  const persistGoogleProfile = (profile: PendingGoogleProfile) => {
-    localStorage.setItem(googleProfileStorageKey, JSON.stringify(profile))
-    setPendingGoogleProfile(profile)
-  }
-
-  const clearGoogleProfile = () => {
-    localStorage.removeItem(googleProfileStorageKey)
-    setPendingGoogleProfile(null)
   }
 
   const clearFanSession = () => {
@@ -2200,62 +2166,6 @@ function App() {
     }
   }
 
-  const startUnifiedGoogleLogin = async () => {
-    setIsStartingGoogleLogin(true)
-    setAuthFeedback('Google 로그인 페이지로 이동 중')
-
-    try {
-      const response = await fetch(`${apiBaseUrl}/api/v1/auth/google/auth-url`)
-      if (!response.ok) {
-        throw new Error('공통 Google 로그인 주소를 만들지 못했습니다.')
-      }
-
-      const data = (await response.json()) as GoogleAuthUrlResponse
-      window.location.assign(data.auth_url)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Google 로그인을 시작하지 못했습니다.'
-      setAuthFeedback(message)
-      setIsStartingGoogleLogin(false)
-    }
-  }
-
-  const completeFanMode = async () => {
-    if (!pendingGoogleProfile) {
-      setFanError('먼저 Google 로그인이 필요합니다.')
-      return
-    }
-
-    setFanError('')
-    setFanStatus('팬 모드로 전환 중')
-
-    try {
-      const response = await fetch(`${apiBaseUrl}/api/v1/fans/google-login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(pendingGoogleProfile),
-      })
-
-      if (!response.ok) {
-        const errorText = await response.text()
-        throw new Error(errorText || '팬 모드 전환에 실패했습니다.')
-      }
-
-      const data = (await response.json()) as FanAuthResponse
-      setFanSession(data)
-      persistFanSession(data.session_token)
-      setSelectedFanRoomId(data.joined_rooms[0]?.room_slug ?? 'salt-toast')
-      clearGoogleProfile()
-      setCurrentView('fan')
-      setFanStatus(`${data.nickname}님 팬 로그인 완료`)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : '팬 모드 전환에 실패했습니다.'
-      setFanError(message)
-      setFanStatus('팬 모드 전환 실패')
-    }
-  }
-
   const handleEmailLogin = () => {
     if (!loginEmail.trim() || !loginPassword.trim()) {
       setAuthFeedback('이메일과 비밀번호를 입력하세요.')
@@ -2630,7 +2540,6 @@ function App() {
       if (appToken) {
         persistCreatorSession(appToken)
       }
-      clearGoogleProfile()
       setCurrentView('dashboard')
       setAuthFeedback('구글 로그인 완료, 연결된 유튜브 채널 정보를 불러왔습니다.')
       void loadLatestConnection()
@@ -2639,16 +2548,6 @@ function App() {
     if (youtubeState === 'error') {
       setCurrentView('signup')
       setAuthFeedback(message || '구글 로그인 중 오류가 발생했습니다.')
-    }
-
-    if (googleState === 'connected' && googleEmail && googleName) {
-      persistGoogleProfile({
-        email: googleEmail,
-        name: googleName,
-        picture: googlePicture ?? '',
-      })
-      setCurrentView('signup')
-      setAuthFeedback('Google 로그인 완료')
     }
 
     if (googleState === 'error') {
@@ -2712,14 +2611,6 @@ function App() {
       void fetchFanSession(storedFanSessionToken, { silent: true })
     }
 
-    const storedGoogleProfile = localStorage.getItem(googleProfileStorageKey)
-    if (storedGoogleProfile) {
-      try {
-        setPendingGoogleProfile(JSON.parse(storedGoogleProfile) as PendingGoogleProfile)
-      } catch {
-        localStorage.removeItem(googleProfileStorageKey)
-      }
-    }
   }, [])
 
   useEffect(() => {
@@ -2885,6 +2776,8 @@ function App() {
     root.style.setProperty('--room-theme-muted', activeRoomTheme.mutedColor)
   }, [activeRoomTheme, useRoomThemeSurface])
 
+  const accountMenuVisible = isCreatorLoggedIn || isFanLoggedIn
+
   const renderHeader = () => (
     <header className="top-nav">
       <button
@@ -2912,25 +2805,28 @@ function App() {
               {label}
             </button>
           ))}
-          {headerRoleLabel ? (
+          {accountMenuVisible ? (
             <div className="role-menu-wrap" ref={roleMenuRef}>
               <button
-                className="nav-role-chip"
+                className="nav-account-chip"
                 onClick={() => setIsRoleMenuOpen((current) => !current)}
                 type="button"
               >
-                {headerRoleLabel}
+                <span className="nav-account-copy">
+                  <strong>{headerAccountLabel}</strong>
+                  <span>{headerAccountMeta}</span>
+                </span>
               </button>
               {isRoleMenuOpen ? (
                 <div className="role-menu-dropdown">
                   {isCreatorLoggedIn ? (
                     <button className="role-menu-item" onClick={handleCreatorLogout} type="button">
-                      인플루언서 로그아웃
+                      로그아웃
                     </button>
                   ) : null}
                   {isFanLoggedIn && !isCreatorLoggedIn ? (
                     <button className="role-menu-item" onClick={handleFanLogout} type="button">
-                      팬 로그아웃
+                      로그아웃
                     </button>
                   ) : null}
                 </div>
@@ -3313,95 +3209,58 @@ function App() {
         <div className="card-header">
           <div>
             <span className="card-kicker">LOGIN</span>
-            <h2>{pendingGoogleProfile ? '모드 선택' : '로그인'}</h2>
+            <h2>로그인</h2>
           </div>
           <span className="status-badge">LIVE UI</span>
         </div>
 
-        {!pendingGoogleProfile ? (
-          <>
-            <div className="auth-method-row">
-              <button
-                className={authMethod === 'social' ? 'auth-method-tab active' : 'auth-method-tab'}
-                onClick={() => setAuthMethod('social')}
-                type="button"
-              >
-                SNS 로그인
-              </button>
-              <button
-                className={authMethod === 'email' ? 'auth-method-tab active' : 'auth-method-tab'}
-                onClick={() => setAuthMethod('email')}
-                type="button"
-              >
-                일반 로그인
-              </button>
-            </div>
+        <div className="auth-method-row">
+          <button
+            className={authMethod === 'social' ? 'auth-method-tab active' : 'auth-method-tab'}
+            onClick={() => setAuthMethod('social')}
+            type="button"
+          >
+            SNS 로그인
+          </button>
+          <button
+            className={authMethod === 'email' ? 'auth-method-tab active' : 'auth-method-tab'}
+            onClick={() => setAuthMethod('email')}
+            type="button"
+          >
+            일반 로그인
+          </button>
+        </div>
 
-            {authMethod === 'social' ? (
-              <div className="auth-block">
-                <button className="primary-action auth-main-button" onClick={() => void startUnifiedGoogleLogin()}>
-                  {isStartingGoogleLogin ? 'Google로 이동 중...' : 'Google로 로그인'}
-                </button>
-                <p className="auth-helper-copy">로그인 뒤 인플루언서 또는 팬 모드를 고릅니다.</p>
-              </div>
-            ) : (
-              <div className="form-stack auth-form-stack">
-                <div className="field-block">
-                  <span className="mini-label">이메일</span>
-                  <input
-                    className="text-input"
-                    onChange={(event) => setLoginEmail(event.target.value)}
-                    placeholder="you@example.com"
-                    value={loginEmail}
-                  />
-                </div>
-                <div className="field-block">
-                  <span className="mini-label">비밀번호</span>
-                  <input
-                    className="text-input"
-                    onChange={(event) => setLoginPassword(event.target.value)}
-                    placeholder="비밀번호 입력"
-                    type="password"
-                    value={loginPassword}
-                  />
-                </div>
-                <button className="primary-action auth-main-button" onClick={handleEmailLogin}>
-                  일반 로그인
-                </button>
-              </div>
-            )}
-          </>
-        ) : (
+        {authMethod === 'social' ? (
           <div className="auth-block">
-            <div className="highlight-card auth-profile-card">
-              <span className="mini-label">로그인 완료</span>
-              <strong>{pendingGoogleProfile.name}</strong>
-              <p>{pendingGoogleProfile.email}</p>
+            <button className="primary-action auth-main-button" onClick={() => void startCreatorGoogleLogin()}>
+              {isStartingGoogleLogin ? 'Google로 이동 중...' : 'Google로 로그인'}
+            </button>
+            <p className="auth-helper-copy">로그인하면 바로 인플루언서 채널 연결과 운영 화면으로 이어집니다.</p>
+          </div>
+        ) : (
+          <div className="form-stack auth-form-stack">
+            <div className="field-block">
+              <span className="mini-label">이메일</span>
+              <input
+                className="text-input"
+                onChange={(event) => setLoginEmail(event.target.value)}
+                placeholder="you@example.com"
+                value={loginEmail}
+              />
             </div>
-
-            <div className="detail-grid auth-mode-grid">
-              <button
-                className={authMode === 'influencer' ? 'detail-card auth-mode-card active' : 'detail-card auth-mode-card'}
-                onClick={() => setAuthMode('influencer')}
-                type="button"
-              >
-                <span className="mini-label">인플루언서</span>
-                <strong>채널 연결하고 시작</strong>
-                <p>운영 화면으로 이어집니다.</p>
-              </button>
-              <button
-                className={authMode === 'fan' ? 'detail-card auth-mode-card active' : 'detail-card auth-mode-card'}
-                onClick={() => setAuthMode('fan')}
-                type="button"
-              >
-                <span className="mini-label">팬</span>
-                <strong>팬방으로 들어가기</strong>
-                <p>가입한 팬방을 불러옵니다.</p>
-              </button>
+            <div className="field-block">
+              <span className="mini-label">비밀번호</span>
+              <input
+                className="text-input"
+                onChange={(event) => setLoginPassword(event.target.value)}
+                placeholder="비밀번호 입력"
+                type="password"
+                value={loginPassword}
+              />
             </div>
-
-            <button className="primary-action auth-main-button" onClick={() => void startSelectedAuthFlow()}>
-              {isStartingFanGoogleLogin ? '이동 중...' : authMode === 'influencer' ? '인플루언서 모드로 계속' : '팬 모드로 계속'}
+            <button className="primary-action auth-main-button" onClick={handleEmailLogin}>
+              일반 로그인
             </button>
           </div>
         )}
@@ -3409,7 +3268,7 @@ function App() {
         <div className="notice-preview auth-status-card">
           <span className="mini-label">상태</span>
           <strong>{isCreatorLoggedIn ? authFeedback : fanStatus}</strong>
-          <p>{pendingGoogleProfile ? '모드를 고르면 다음 화면으로 바로 이어집니다.' : 'Google 또는 일반 로그인으로 시작할 수 있습니다.'}</p>
+          <p>인플루언서는 여기서 로그인하고, 팬은 초대 링크를 통해 바로 팬방에 입장합니다.</p>
         </div>
 
         <div className="inline-actions">
@@ -5402,22 +5261,22 @@ function App() {
     !fanSession && !isCreatorLoggedIn ? (
       <section className="scene-panel light">
         <div className="scene-copy">
-          <span className="section-label dark">FAN LOGIN</span>
-          <h2>팬 로그인</h2>
-          <p>가입한 팬방으로 다시 들어오세요.</p>
+          <span className="section-label dark">FAN ENTRY</span>
+          <h2>팬방은 초대 링크로 입장합니다</h2>
+          <p>별도 팬 로그인 화면 대신, 영상 설명란이나 라이브 링크를 통해 바로 팬방에 들어옵니다.</p>
 
           <div className="highlight-card">
             <span className="mini-label">현재 상태</span>
             <strong>{fanStatus}</strong>
-            <p>Google 계정으로 바로 이어집니다.</p>
+            <p>초대 링크를 열면 가입 후 바로 이 팬 화면으로 이어집니다.</p>
           </div>
 
           <div className="inline-actions">
-            <button className="primary-action" onClick={() => void startFanGoogleLogin()}>
-              {isStartingFanGoogleLogin ? 'Google로 이동 중...' : 'Google로 팬 로그인'}
+            <button className="primary-action" onClick={() => setCurrentView('invite')}>
+              초대 링크로 입장하기
             </button>
-            <button className="secondary-action dark" onClick={() => setCurrentView('invite')}>
-              초대 링크로 가입하기
+            <button className="secondary-action dark" onClick={() => setCurrentView('home')}>
+              홈으로
             </button>
           </div>
         </div>
@@ -5438,9 +5297,9 @@ function App() {
               <p>Google 로그인 후 바로 팬방에 들어갑니다.</p>
             </article>
             <article className="detail-card">
-              <span className="mini-label">다시 로그인</span>
-              <strong>팬방 목록 복원</strong>
-              <p>같은 Google 계정으로 다시 들어옵니다.</p>
+              <span className="mini-label">입장 방식</span>
+              <strong>링크가 팬 자격이 됩니다</strong>
+              <p>따로 팬 로그인 화면을 거치지 않고, 초대 링크를 열어 바로 이어집니다.</p>
             </article>
           </div>
 
@@ -5679,7 +5538,7 @@ function App() {
               <article className="mini-board" ref={fanPostComposerRef}>
                 <span className="mini-label">팬 게시글 작성</span>
                 <strong>
-                  {fanSession ? '팬들끼리 자유롭게 글을 올릴 수 있습니다.' : '팬 로그인 후 바로 글을 올릴 수 있습니다.'}
+                  {fanSession ? '팬들끼리 자유롭게 글을 올릴 수 있습니다.' : '초대 링크로 입장하면 바로 글을 올릴 수 있습니다.'}
                 </strong>
                 {fanSession ? (
                   <div className="form-stack">
@@ -5705,10 +5564,10 @@ function App() {
                   </div>
                 ) : (
                   <div className="inline-actions compact-actions">
-                    <button className="primary-action" onClick={() => void startFanGoogleLogin()} type="button">
-                      {isStartingFanGoogleLogin ? 'Google로 이동 중...' : 'Google로 팬 로그인'}
+                    <button className="primary-action" onClick={() => setCurrentView('invite')} type="button">
+                      초대 링크로 입장하기
                     </button>
-                    <span className="helper-copy">로그인하면 이 자리에서 바로 글을 쓸 수 있습니다.</span>
+                    <span className="helper-copy">초대 링크를 통해 팬방에 입장하면 이 자리에서 바로 글을 쓸 수 있습니다.</span>
                   </div>
                 )}
               </article>

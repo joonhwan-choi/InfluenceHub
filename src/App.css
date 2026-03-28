@@ -56,14 +56,14 @@
 
 .page-shell.room-themed .top-nav .brand-text strong,
 .page-shell.room-themed .top-nav .nav-tab,
-.page-shell.room-themed .top-nav .nav-role-chip,
+.page-shell.room-themed .top-nav .nav-account-chip,
 .page-shell.room-themed .top-nav .header-logout {
   color: #1c2432;
 }
 
 .page-shell.room-themed.room-theme-classic .top-nav .brand-text strong,
 .page-shell.room-themed.room-theme-classic .top-nav .nav-tab,
-.page-shell.room-themed.room-theme-classic .top-nav .nav-role-chip,
+.page-shell.room-themed.room-theme-classic .top-nav .nav-account-chip,
 .page-shell.room-themed.room-theme-classic .top-nav .header-logout {
   color: #f5f1e8;
 }
@@ -186,24 +186,42 @@
   color: #fff3cb;
 }
 
-.nav-role-chip {
+.nav-account-chip {
   display: inline-flex;
   align-items: center;
-  min-height: 34px;
-  padding: 0 12px;
+  min-height: 42px;
+  padding: 0 14px;
   border-radius: 999px;
   background: rgba(255, 122, 69, 0.16);
   color: #ffd9bf;
-  font: 800 0.72rem/1 "Arial Black", "AppleGothic", sans-serif;
-  letter-spacing: 0.08em;
+  border: 0;
+  cursor: pointer;
 }
 
-.page-shell.room-themed .nav-role-chip {
+.nav-account-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  text-align: left;
+}
+
+.nav-account-copy strong {
+  font: 800 0.82rem/1 "Arial Black", "AppleGothic", sans-serif;
+  letter-spacing: -0.01em;
+}
+
+.nav-account-copy span {
+  font-size: 0.68rem;
+  opacity: 0.76;
+}
+
+.page-shell.room-themed .nav-account-chip {
   background: color-mix(in srgb, var(--room-theme-accent) 28%, rgba(255, 255, 255, 0.92));
   color: #1c2432;
 }
 
-.page-shell.room-themed.room-theme-classic .nav-role-chip {
+.page-shell.room-themed.room-theme-classic .nav-account-chip {
   background: rgba(255, 122, 69, 0.16);
   color: #ffd9bf;
 }
