@@ -315,61 +315,6 @@ const featureCatalog: FeatureModule[] = [
   },
 ]
 
-const dashboardMetrics = [
-  { label: '오늘 방문 팬', value: '3,284', change: '+18%' },
-  { label: '새 글 반응', value: '1,902', change: '+31%' },
-  { label: '굿즈 매출', value: '₩2.8M', change: '+12%' },
-  { label: '초대된 팬 수', value: '842', change: '링크 전환율 37%' },
-]
-
-const invitePerformance = [
-  {
-    title: '오늘 영상 설명란 링크',
-    body: '영상 공개 후 1,124명이 초대 링크를 열었고, 418명이 팬 가입을 완료했습니다.',
-    time: '18:42',
-  },
-  {
-    title: '라이브 고정 댓글 링크',
-    body: '라이브 중 링크 유입 팬 233명 중 129명이 팬방 입장까지 완료했습니다.',
-    time: '어제',
-  },
-  {
-    title: '커뮤니티 탭 이벤트 링크',
-    body: '이벤트 참여 유입으로 92명이 신규 팬방 가입을 마쳤습니다.',
-    time: '이번 주',
-  },
-]
-
-const inviteFunnelCards = [
-  { label: '초대 링크 오픈', value: '1,124', meta: '영상 설명란 + 라이브 고정 댓글' },
-  { label: '팬 가입 완료', value: '418', meta: '신규 팬 전환' },
-  { label: '다른 팬방 추가 가입', value: '126', meta: '멀티 크리에이터 팬' },
-]
-
-const fanRooms: FanRoom[] = [
-  {
-    id: 'salt-toast',
-    creator: '소금토스트',
-    label: '소금토스트 공식 팬방',
-    meta: '오늘 라이브 예고 있음',
-    joinedVia: '라이브 고정 댓글 초대 링크',
-  },
-  {
-    id: 'devtv',
-    creator: '침착한개발자TV',
-    label: '침착한개발자TV 공식 팬방',
-    meta: 'Q&A 공지 새로 올라옴',
-    joinedVia: '영상 설명란 초대 링크',
-  },
-  {
-    id: 'travel-lab',
-    creator: '트래블랩',
-    label: '트래블랩 팬 클럽',
-    meta: '굿즈 선공개 진행 중',
-    joinedVia: '인스타 스토리 초대 링크',
-  },
-]
-
 const contentTimeline = [
   {
     time: '18:30',
@@ -682,16 +627,30 @@ function App() {
   const isClassicRoomTheme = selectedRoomTheme === 'hub-classic'
   const creatorExperienceClasses = `banner-${bannerStyle} buttons-${buttonStyle} density-${cardDensity}`
 
+  const creatorPreviewRoom: FanRoom[] =
+    isCreatorLoggedIn && connectedChannel
+      ? [
+          {
+            id: connectedChannel.room_slug,
+            creator: connectedChannel.channel_title,
+            label: connectedChannel.room_name,
+            meta: communityFeed[0]?.title ?? '팬방 미리보기',
+            joinedVia: '인플루언서 미리보기',
+          },
+        ]
+      : []
   const displayedFanRooms =
-    fanSession?.joined_rooms.map((room) => ({
-      id: room.room_slug,
-      creator: room.creator_name,
-      label: room.room_name,
-      meta: '가입 완료된 팬방',
-      joinedVia: room.joined_via,
-    })) ?? fanRooms
+    fanSession?.joined_rooms.length
+      ? fanSession.joined_rooms.map((room) => ({
+          id: room.room_slug,
+          creator: room.creator_name,
+          label: room.room_name,
+          meta: '가입 완료된 팬방',
+          joinedVia: room.joined_via,
+        }))
+      : creatorPreviewRoom
   const activeFanRoom =
-    displayedFanRooms.find((room) => room.id === selectedFanRoomId) ?? displayedFanRooms[0]
+    displayedFanRooms.find((room) => room.id === selectedFanRoomId) ?? displayedFanRooms[0] ?? null
   const selectedPlatformConfig = platformSetup[selectedPlatformName]
   const selectedPlatformLabels = platformFieldLabels[selectedPlatformName] ?? {
     client: '연결 값',
@@ -732,6 +691,47 @@ function App() {
   const youtubeCommunityDraft = `${postTitle.trim() || '유튜브 커뮤니티 제목'}\n\n${postBody.trim() || '유튜브 커뮤니티 본문'}`
   const visibleStoreBoard = storeBoard.filter((item) => item.visible)
   const visibleEventBoard = eventBoard.filter((item) => item.visible)
+  const dashboardMetricCards = [
+    {
+      label: '연결 채널',
+      value: connectedChannel ? '1개' : '0개',
+      change: connectedChannel?.channel_title ?? '채널 연결 필요',
+    },
+    {
+      label: '커뮤니티 글',
+      value: `${communityFeed.filter((post) => !isTestCommunityPost(post)).length}개`,
+      change: visibleFanFeed[0]?.title ?? '아직 등록 없음',
+    },
+    {
+      label: '노출 굿즈',
+      value: `${visibleStoreBoard.length}개`,
+      change: visibleStoreBoard[0]?.name ?? '등록 상품 없음',
+    },
+    {
+      label: '초대된 팬 수',
+      value: inviteDashboard ? `${inviteDashboard.total_join_count}` : '0',
+      change: inviteDashboard
+        ? `멀티 팬 ${inviteDashboard.multi_room_fan_count}명`
+        : '초대 링크 생성 후 집계',
+    },
+  ]
+  const inviteSummaryCards = [
+    {
+      label: '초대 링크 오픈',
+      value: `${inviteDashboard?.total_open_count ?? 0}`,
+      meta: inviteDashboard ? '전체 링크 합산' : '생성된 링크 없음',
+    },
+    {
+      label: '팬 가입 완료',
+      value: `${inviteDashboard?.total_join_count ?? 0}`,
+      meta: inviteDashboard ? '초대 링크 가입 수' : '가입 집계 대기',
+    },
+    {
+      label: '다른 팬방 추가 가입',
+      value: `${inviteDashboard?.multi_room_fan_count ?? 0}`,
+      meta: inviteDashboard ? '멀티 팬 계정' : '멀티 팬 없음',
+    },
+  ]
   const homeStatCards = [
     {
       label: '연결 채널',
@@ -2704,13 +2704,13 @@ function App() {
               </article>
               <article className="stat-card">
                 <span className="stat-label">현재 선택 팬방</span>
-                <strong>{activeFanRoom.creator}</strong>
-                <span className="stat-meta">{activeFanRoom.label}</span>
+                <strong>{activeFanRoom?.creator ?? '없음'}</strong>
+                <span className="stat-meta">{activeFanRoom?.label ?? '가입한 팬방이 없습니다.'}</span>
               </article>
               <article className="stat-card">
                 <span className="stat-label">최근 입장 경로</span>
-                <strong>Invite</strong>
-                <span className="stat-meta">{activeFanRoom.joinedVia}</span>
+                <strong>{activeFanRoom ? 'Invite' : '대기'}</strong>
+                <span className="stat-meta">{activeFanRoom?.joinedVia ?? '초대 링크 가입 후 표시됩니다.'}</span>
               </article>
             </div>
           </div>
@@ -2725,21 +2725,29 @@ function App() {
                 <span className="status-badge">FAN</span>
               </div>
 
-              <div className="journey-list">
-                {displayedFanRooms.map((room) => (
-                  <button
-                    className="journey-card"
-                    key={room.id}
-                    onClick={() => {
-                      setSelectedFanRoomId(room.id)
-                      setCurrentView('fan')
-                    }}
-                  >
-                    <span>{room.creator.slice(0, 1)}</span>
-                    <strong>{room.label}</strong>
-                  </button>
-                ))}
-              </div>
+              {displayedFanRooms.length > 0 ? (
+                <div className="journey-list">
+                  {displayedFanRooms.map((room) => (
+                    <button
+                      className="journey-card"
+                      key={room.id}
+                      onClick={() => {
+                        setSelectedFanRoomId(room.id)
+                        setCurrentView('fan')
+                      }}
+                    >
+                      <span>{room.creator.slice(0, 1)}</span>
+                      <strong>{room.label}</strong>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="notice-preview compact-highlight">
+                  <span className="mini-label">가입한 팬방 없음</span>
+                  <strong>아직 입장한 팬방이 없습니다.</strong>
+                  <p>초대 링크를 통해 팬방에 가입하면 이 목록에 자동으로 추가됩니다.</p>
+                </div>
+              )}
             </section>
 
             <section className="room-preview-card">
@@ -2747,8 +2755,8 @@ function App() {
                 <div className="creator-chip">
                   <span className="chip-avatar">FAN</span>
                   <div>
-                    <strong>{activeFanRoom.creator}</strong>
-                    <span>{activeFanRoom.joinedVia}</span>
+                    <strong>{activeFanRoom?.creator ?? '팬방 미리보기'}</strong>
+                    <span>{activeFanRoom?.joinedVia ?? '가입 후 최근 입장 경로가 표시됩니다.'}</span>
                   </div>
                 </div>
                 <button className="tiny-action" onClick={() => setCurrentView('fan')}>
@@ -2759,13 +2767,17 @@ function App() {
               <div className="role-home-stack">
                 <article className="role-home-note">
                   <span className="section-label">최근 공지</span>
-                  <strong>오늘 밤 8시 새 영상 공개 + 팬방 Q&amp;A</strong>
-                  <p>업로드 직후 팬방 공지와 일정 카드가 같이 열리도록 구성했습니다.</p>
+                  <strong>{visibleFanFeed[0]?.title ?? '아직 등록된 공지가 없습니다.'}</strong>
+                  <p>{visibleFanFeed[0]?.text ?? '커뮤니티 글이 올라오면 여기서 바로 최근 소식을 확인할 수 있습니다.'}</p>
                 </article>
                 <article className="role-home-note">
                   <span className="section-label">다음 액션</span>
-                  <strong>굿즈 선오픈 알림 받기</strong>
-                  <p>팬방 탭에서 일정과 굿즈를 오가며 필요한 방을 바로 선택하면 됩니다.</p>
+                  <strong>{visibleStoreBoard[0]?.name ?? visibleEventBoard[0]?.title ?? '다음 액션 대기 중'}</strong>
+                  <p>
+                    {visibleStoreBoard[0]?.description ??
+                      visibleEventBoard[0]?.detail ??
+                      '굿즈나 일정이 등록되면 팬 화면에서 바로 이어서 볼 수 있습니다.'}
+                  </p>
                 </article>
               </div>
             </section>
@@ -3525,16 +3537,7 @@ function App() {
 
       <div className="dashboard-main">
         <div className="metrics-grid">
-          {[
-            ...dashboardMetrics.slice(0, 3),
-            {
-              label: '초대된 팬 수',
-              value: inviteDashboard ? `${inviteDashboard.total_join_count}` : '842',
-              change: inviteDashboard
-                ? `멀티 팬 ${inviteDashboard.multi_room_fan_count}명`
-                : '링크 전환율 37%',
-            },
-          ].map((metric) => (
+          {dashboardMetricCards.map((metric) => (
             <article className="metric-card" key={metric.label}>
               <span className="mini-label">{metric.label}</span>
               <strong>{metric.value}</strong>
@@ -3582,26 +3585,7 @@ function App() {
             </div>
 
             <div className="selected-module-list">
-              {(inviteDashboard
-                ? [
-                    {
-                      label: '초대 링크 오픈',
-                      value: `${inviteDashboard.total_open_count}`,
-                      meta: '전체 링크 합산',
-                    },
-                    {
-                      label: '팬 가입 완료',
-                      value: `${inviteDashboard.total_join_count}`,
-                      meta: '초대 링크 가입 수',
-                    },
-                    {
-                      label: '다른 팬방 추가 가입',
-                      value: `${inviteDashboard.multi_room_fan_count}`,
-                      meta: '멀티 팬 계정',
-                    },
-                  ]
-                : inviteFunnelCards
-              ).map((card) => (
+              {inviteSummaryCards.map((card) => (
                 <div className="selected-module" key={card.label}>
                   <div>
                     <strong>{card.label}</strong>
@@ -3670,10 +3654,8 @@ function App() {
             </div>
 
             <div className="activity-list">
-              {(inviteDashboard?.invite_links.length
-                ? inviteDashboard.invite_links.slice(0, 3)
-                : invitePerformance
-              ).map((item) => {
+              {inviteDashboard?.invite_links.length ? (
+                inviteDashboard.invite_links.slice(0, 3).map((item) => {
                 if ('invite_link_id' in item) {
                   return (
                     <article className="activity-card" key={item.invite_link_id}>
@@ -3701,15 +3683,15 @@ function App() {
                     </article>
                   )
                 }
-
-                return (
-                  <article className="activity-card" key={item.title}>
-                    <span className="activity-time">{item.time}</span>
-                    <strong>{item.title}</strong>
-                    <p>{item.body}</p>
-                  </article>
-                )
-              })}
+                return null
+                })
+              ) : (
+                <div className="notice-preview compact-highlight">
+                  <span className="mini-label">최근 초대 링크 없음</span>
+                  <strong>아직 생성된 초대 링크가 없습니다.</strong>
+                  <p>위에서 링크 제목과 유입 위치를 정한 뒤 첫 초대 링크를 만들어보세요.</p>
+                </div>
+              )}
             </div>
           </section>
 
@@ -5112,8 +5094,10 @@ function App() {
           <div className="creator-chip">
             <span className="chip-avatar" style={{ background: activeRoomTheme.accent, color: '#fffaf1' }}>TV</span>
             <div>
-              <strong>{activeFanRoom.label}</strong>
-              <span style={{ color: activeRoomTheme.mutedColor }}>{activeFanRoom.meta} · {activeFanRoom.joinedVia}</span>
+              <strong>{activeFanRoom?.label ?? '아직 선택된 팬방이 없습니다'}</strong>
+              <span style={{ color: activeRoomTheme.mutedColor }}>
+                {activeFanRoom ? `${activeFanRoom.meta} · ${activeFanRoom.joinedVia}` : '초대 링크 가입 후 팬방 정보가 표시됩니다.'}
+              </span>
             </div>
           </div>
 
@@ -5128,8 +5112,12 @@ function App() {
         <div className="fan-hero-side">
           <div className="fan-hero-stat-card">
             <span className="mini-label">이번 주 팬 룸 포인트</span>
-            <strong>{activeFanRoom.creator}</strong>
-            <p>새 공지, 일정, 굿즈 드롭까지 같은 톤으로 이어집니다.</p>
+            <strong>{activeFanRoom?.creator ?? '팬방 대기 중'}</strong>
+            <p>
+              {visibleFanFeed[0]?.title
+                ? `${visibleFanFeed[0].title} 같은 최근 소식이 여기서 이어집니다.`
+                : '새 공지, 일정, 굿즈 드롭이 생기면 여기서 먼저 보입니다.'}
+            </p>
           </div>
 
           <div className="fan-actions">
@@ -5161,19 +5149,27 @@ function App() {
           </div>
         </div>
 
-        <div className="fan-room-grid">
-          {displayedFanRooms.map((room) => (
-            <button
-              className={room.id === selectedFanRoomId ? 'fan-room-card active' : 'fan-room-card'}
-              key={room.id}
-              onClick={() => setSelectedFanRoomId(room.id)}
-            >
-              <span className="mini-label">{room.joinedVia}</span>
-              <strong>{room.creator}</strong>
-              <p>{room.label}</p>
-            </button>
-          ))}
-        </div>
+        {displayedFanRooms.length > 0 ? (
+          <div className="fan-room-grid">
+            {displayedFanRooms.map((room) => (
+              <button
+                className={room.id === selectedFanRoomId ? 'fan-room-card active' : 'fan-room-card'}
+                key={room.id}
+                onClick={() => setSelectedFanRoomId(room.id)}
+              >
+                <span className="mini-label">{room.joinedVia}</span>
+                <strong>{room.creator}</strong>
+                <p>{room.label}</p>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="notice-preview compact-highlight">
+            <span className="mini-label">팬방 없음</span>
+            <strong>아직 표시할 팬방이 없습니다.</strong>
+            <p>초대 링크를 통해 팬방에 가입하거나 인플루언서 채널을 먼저 연결해 주세요.</p>
+          </div>
+        )}
       </section>
 
       <div className="fan-tab-row">
@@ -5292,7 +5288,7 @@ function App() {
         <aside className="fan-side-panel">
           <div className="mini-board">
             <span className="mini-label">팬 입장 방식</span>
-            <strong>{activeFanRoom.joinedVia}</strong>
+            <strong>{activeFanRoom?.joinedVia ?? '입장 대기 중'}</strong>
             <p>
               팬은 초대 링크를 통해 들어오고, 가입이 끝나면 여러 크리에이터 팬방 중
               원하는 방을 선택해 이동할 수 있습니다.
