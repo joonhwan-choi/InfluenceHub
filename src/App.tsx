@@ -610,6 +610,7 @@ function App() {
   const [eventScheduleLabel, setEventScheduleLabel] = useState('오늘')
   const [eventStatus, setEventStatus] = useState('아직 이벤트 등록 전')
   const [isSavingEvent, setIsSavingEvent] = useState(false)
+  const [editingEventId, setEditingEventId] = useState<number | null>(null)
   const [storeBoard, setStoreBoard] = useState<StoreItemSummary[]>([])
   const [storeSourceUrl, setStoreSourceUrl] = useState('')
   const [storeProductName, setStoreProductName] = useState('')
@@ -1196,8 +1197,9 @@ function App() {
     setEventStatus('이벤트를 저장하는 중입니다...')
 
     try {
-      const response = await fetch(`${apiBaseUrl}/api/v1/events/mine`, {
-        method: 'POST',
+      const isEditing = editingEventId !== null
+      const response = await fetch(`${apiBaseUrl}/api/v1/events/mine${isEditing ? `/${editingEventId}` : ''}`, {
+        method: isEditing ? 'PATCH' : 'POST',
         headers: {
           Authorization: `Bearer ${creatorSessionToken}`,
           'Content-Type': 'application/json',
@@ -1216,16 +1218,100 @@ function App() {
       }
 
       const saved = (await response.json()) as EventSummaryItem
-      setEventBoard((previous) => [saved, ...previous])
+      setEventBoard((previous) => {
+        if (isEditing) {
+          return previous.map((item) => (item.event_id === saved.event_id ? saved : item))
+        }
+        return [saved, ...previous]
+      })
       setEventTitle('')
       setEventDetail('')
       setEventScheduleLabel('오늘')
-      setEventStatus('이벤트가 등록되었습니다.')
+      setEditingEventId(null)
+      setEventStatus(isEditing ? '이벤트가 수정되었습니다.' : '이벤트가 등록되었습니다.')
     } catch (error) {
       const message = error instanceof Error ? error.message : '이벤트를 저장하지 못했습니다.'
       setEventStatus(message)
     } finally {
       setIsSavingEvent(false)
+    }
+  }
+
+  const startEditingEvent = (item: EventSummaryItem) => {
+    setEditingEventId(item.event_id)
+    setEventTitle(item.title)
+    setEventDetail(item.detail)
+    setEventScheduleLabel(item.schedule_label)
+    setEventStatus('수정 모드로 불러왔습니다.')
+  }
+
+  const resetEventComposer = () => {
+    setEditingEventId(null)
+    setEventTitle('')
+    setEventDetail('')
+    setEventScheduleLabel('오늘')
+    setEventStatus('새 이벤트 등록 모드입니다.')
+  }
+
+  const handleToggleEventVisibility = async (item: EventSummaryItem) => {
+    const creatorSessionToken = localStorage.getItem(creatorSessionStorageKey)
+    if (!creatorSessionToken) {
+      setEventStatus('먼저 인플루언서 로그인이 필요합니다.')
+      return
+    }
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/events/mine/${item.event_id}/visibility`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${creatorSessionToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ visible: !item.visible }),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || '노출 상태를 바꾸지 못했습니다.')
+      }
+
+      const updated = (await response.json()) as EventSummaryItem
+      setEventBoard((previous) => previous.map((current) => (current.event_id === updated.event_id ? updated : current)))
+      setEventStatus(updated.visible ? '팬 일정 노출로 변경되었습니다.' : '팬 일정 숨김으로 변경되었습니다.')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '노출 상태를 바꾸지 못했습니다.'
+      setEventStatus(message)
+    }
+  }
+
+  const handleDeleteEvent = async (eventId: number) => {
+    const creatorSessionToken = localStorage.getItem(creatorSessionStorageKey)
+    if (!creatorSessionToken) {
+      setEventStatus('먼저 인플루언서 로그인이 필요합니다.')
+      return
+    }
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/events/mine/${eventId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${creatorSessionToken}`,
+        },
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || '이벤트 삭제에 실패했습니다.')
+      }
+
+      setEventBoard((previous) => previous.filter((item) => item.event_id !== eventId))
+      if (editingEventId === eventId) {
+        resetEventComposer()
+      }
+      setEventStatus('이벤트가 삭제되었습니다.')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '이벤트 삭제에 실패했습니다.'
+      setEventStatus(message)
     }
   }
 
@@ -4431,8 +4517,13 @@ function App() {
           </div>
           <div className="inline-actions compact-actions">
             <button className="primary-action" disabled={isSavingEvent} onClick={() => void handleCreateEvent()} type="button">
-              {isSavingEvent ? '저장 중...' : '이벤트 등록'}
+              {isSavingEvent ? '저장 중...' : editingEventId ? '이벤트 수정' : '이벤트 등록'}
             </button>
+            {editingEventId ? (
+              <button className="secondary-action" onClick={resetEventComposer} type="button">
+                새 이벤트로 전환
+              </button>
+            ) : null}
             <span className="helper-copy">{eventStatus}</span>
           </div>
         </section>
@@ -4445,6 +4536,17 @@ function App() {
             <div className="mini-board soft">
               <strong>{step.schedule_label}</strong>
               <p>{step.visible ? '팬 일정 탭에 노출 중' : '운영 전용 숨김 상태'}</p>
+            </div>
+            <div className="inline-actions compact-actions">
+              <button className="secondary-action" onClick={() => startEditingEvent(step)} type="button">
+                수정
+              </button>
+              <button className="secondary-action" onClick={() => void handleToggleEventVisibility(step)} type="button">
+                {step.visible ? '숨기기' : '노출하기'}
+              </button>
+              <button className="secondary-action" onClick={() => void handleDeleteEvent(step.event_id)} type="button">
+                삭제
+              </button>
             </div>
           </section>
         ))}

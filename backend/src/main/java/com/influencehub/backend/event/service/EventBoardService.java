@@ -5,6 +5,7 @@ import com.influencehub.backend.auth.service.CreatorAuthService;
 import com.influencehub.backend.event.domain.EventItem;
 import com.influencehub.backend.event.dto.CreateEventRequest;
 import com.influencehub.backend.event.dto.EventSummaryResponse;
+import com.influencehub.backend.event.dto.UpdateEventRequest;
 import com.influencehub.backend.event.repository.EventItemRepository;
 import com.influencehub.backend.room.domain.CreatorRoom;
 import java.util.List;
@@ -48,6 +49,42 @@ public class EventBoardService {
             eventItem.updateVisible(request.getVisible());
         }
         return toResponse(eventItem);
+    }
+
+    @Transactional
+    public EventSummaryResponse update(String sessionToken, Long eventId, UpdateEventRequest request) {
+        CreatorSession session = creatorAuthService.requireSession(sessionToken);
+        CreatorRoom room = session.getRoom();
+        EventItem eventItem = eventItemRepository.findByIdAndRoom(eventId, room)
+            .orElseThrow(() -> new IllegalStateException("이벤트를 찾지 못했습니다."));
+        eventItem.update(
+            request.getTitle().trim(),
+            request.getDetail().trim(),
+            request.getScheduleLabel().trim()
+        );
+        if (request.getVisible() != null) {
+            eventItem.updateVisible(request.getVisible());
+        }
+        return toResponse(eventItem);
+    }
+
+    @Transactional
+    public EventSummaryResponse updateVisibility(String sessionToken, Long eventId, boolean visible) {
+        CreatorSession session = creatorAuthService.requireSession(sessionToken);
+        CreatorRoom room = session.getRoom();
+        EventItem eventItem = eventItemRepository.findByIdAndRoom(eventId, room)
+            .orElseThrow(() -> new IllegalStateException("이벤트를 찾지 못했습니다."));
+        eventItem.updateVisible(visible);
+        return toResponse(eventItem);
+    }
+
+    @Transactional
+    public void delete(String sessionToken, Long eventId) {
+        CreatorSession session = creatorAuthService.requireSession(sessionToken);
+        CreatorRoom room = session.getRoom();
+        EventItem eventItem = eventItemRepository.findByIdAndRoom(eventId, room)
+            .orElseThrow(() -> new IllegalStateException("이벤트를 찾지 못했습니다."));
+        eventItemRepository.delete(eventItem);
     }
 
     private List<EventSummaryResponse> getOrSeedEvents(CreatorRoom room) {
