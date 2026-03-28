@@ -10,4 +10,6 @@ public interface CommunityPostRepository extends JpaRepository<CommunityPost, Lo
     List<CommunityPost> findTop20ByRoomOrderByCreatedAtDesc(CreatorRoom room);
 
     java.util.Optional<CommunityPost> findByIdAndRoom(Long id, CreatorRoom room);
+
+    List<CommunityPost> findTop20ByRoomOrderByCreatedAtDescIdDesc(CreatorRoom room);
 }

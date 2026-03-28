@@ -1,10 +1,14 @@
 package com.influencehub.backend.community.api;
 
+import com.influencehub.backend.community.dto.CommunityCommentRequest;
+import com.influencehub.backend.community.dto.CommunityCommentResponse;
 import com.influencehub.backend.community.dto.CreateCommunityPostRequest;
 import com.influencehub.backend.community.dto.CommunityPostResponse;
+import com.influencehub.backend.community.dto.CommunityReactionResponse;
 import com.influencehub.backend.community.dto.UpdateCommunityPostRequest;
 import com.influencehub.backend.community.service.CommunityPostService;
 import java.util.List;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -31,8 +35,12 @@ public class CommunityPostController {
     }
 
     @GetMapping("/rooms/{roomSlug}/posts")
-    public List<CommunityPostResponse> roomPosts(@PathVariable String roomSlug) {
-        return communityPostService.getRoomPosts(roomSlug);
+    public List<CommunityPostResponse> roomPosts(
+        @PathVariable String roomSlug,
+        @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
+        @RequestParam(defaultValue = "latest") String sort
+    ) {
+        return communityPostService.getRoomPosts(roomSlug, extractOptionalBearerToken(authorizationHeader), sort);
     }
 
     @PostMapping("/mine")
@@ -61,6 +69,28 @@ public class CommunityPostController {
         return communityPostService.updateCreatorRoomPost(extractBearerToken(authorizationHeader), postId, request);
     }
 
+    @GetMapping("/posts/{postId}/comments")
+    public List<CommunityCommentResponse> comments(@PathVariable Long postId) {
+        return communityPostService.getComments(postId);
+    }
+
+    @PostMapping("/posts/{postId}/comments")
+    public CommunityCommentResponse createComment(
+        @RequestHeader("Authorization") String authorizationHeader,
+        @PathVariable Long postId,
+        @RequestBody CommunityCommentRequest request
+    ) {
+        return communityPostService.createComment(postId, extractBearerToken(authorizationHeader), request);
+    }
+
+    @PostMapping("/posts/{postId}/reactions/toggle")
+    public CommunityReactionResponse toggleReaction(
+        @RequestHeader("Authorization") String authorizationHeader,
+        @PathVariable Long postId
+    ) {
+        return communityPostService.toggleReaction(postId, extractBearerToken(authorizationHeader));
+    }
+
     @DeleteMapping("/mine/{postId}")
     public void delete(
         @RequestHeader("Authorization") String authorizationHeader,
@@ -72,6 +102,13 @@ public class CommunityPostController {
     private String extractBearerToken(String authorizationHeader) {
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
             throw new IllegalArgumentException("유효한 Bearer 토큰이 필요합니다.");
+        }
+        return authorizationHeader.substring("Bearer ".length()).trim();
+    }
+
+    private String extractOptionalBearerToken(String authorizationHeader) {
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+            return null;
         }
         return authorizationHeader.substring("Bearer ".length()).trim();
     }

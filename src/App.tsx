@@ -49,13 +49,6 @@ type FanRoom = {
   joinedVia: string
 }
 
-type FanFeedItem = {
-  title: string
-  text: string
-  badge: string
-  imageUrl?: string
-}
-
 type ChannelConnection = {
   connection_id: number
   channel_id: string
@@ -220,6 +213,16 @@ type CommunityPostItem = {
   author_name: string
   created_at: string
   image_url?: string
+  like_count: number
+  comment_count: number
+  liked_by_viewer: boolean
+}
+
+type CommunityCommentItem = {
+  comment_id: number
+  author_name: string
+  content: string
+  created_at: string
 }
 
 type EventSummaryItem = {
@@ -588,6 +591,9 @@ function App() {
   const [fanPostTitle, setFanPostTitle] = useState('')
   const [fanPostBody, setFanPostBody] = useState('')
   const [fanPostStatus, setFanPostStatus] = useState('아직 팬 게시글 작성 전')
+  const [fanFeedSort, setFanFeedSort] = useState<'latest' | 'popular'>('latest')
+  const [fanCommentsByPostId, setFanCommentsByPostId] = useState<Record<number, CommunityCommentItem[]>>({})
+  const [fanCommentDrafts, setFanCommentDrafts] = useState<Record<number, string>>({})
   const [isStartingFanGoogleLogin, setIsStartingFanGoogleLogin] = useState(false)
   const [pendingGoogleProfile, setPendingGoogleProfile] = useState<PendingGoogleProfile | null>(null)
   const [selectedRoomTheme, setSelectedRoomTheme] = useState<RoomThemeId>('hub-classic')
@@ -681,13 +687,7 @@ function App() {
     /shorts|쇼츠/i.test(job.title),
   ).length
   const youtubeLongformCount = Math.max(youtubePublishHistory.length - youtubeShortsCount, 0)
-  const visibleFanFeed: FanFeedItem[] =
-    communityFeed.filter((post) => !isTestCommunityPost(post)).slice(0, 3).map((post) => ({
-      title: post.title,
-      text: post.content,
-      badge: postTypeToBadge[post.post_type] ?? 'POST',
-      imageUrl: isRenderableImageUrl(post.image_url) ? post.image_url : undefined,
-    }))
+  const visibleFanFeed = communityFeed.filter((post) => !isTestCommunityPost(post)).slice(0, 10)
   const youtubeCommunityDraft = `${postTitle.trim() || '유튜브 커뮤니티 제목'}\n\n${postBody.trim() || '유튜브 커뮤니티 본문'}`
   const visibleStoreBoard = storeBoard.filter((item) => item.visible)
   const visibleEventBoard = eventBoard.filter((item) => item.visible)
@@ -1196,7 +1196,17 @@ function App() {
     }
 
     try {
-      const response = await fetch(`${apiBaseUrl}/api/v1/community/rooms/${targetRoomSlug}/posts`)
+      const fanSessionToken = localStorage.getItem(fanSessionStorageKey)
+      const response = await fetch(
+        `${apiBaseUrl}/api/v1/community/rooms/${targetRoomSlug}/posts?sort=${fanFeedSort}`,
+        {
+          headers: fanSessionToken
+            ? {
+                Authorization: `Bearer ${fanSessionToken}`,
+              }
+            : undefined,
+        },
+      )
       if (!response.ok) {
         throw new Error('팬방 글을 불러오지 못했습니다.')
       }
@@ -1204,6 +1214,19 @@ function App() {
       setCommunityFeed(data)
     } catch {
       setCommunityFeed([])
+    }
+  }
+
+  const loadFanComments = async (postId: number) => {
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/community/posts/${postId}/comments`)
+      if (!response.ok) {
+        throw new Error('댓글을 불러오지 못했습니다.')
+      }
+      const data = (await response.json()) as CommunityCommentItem[]
+      setFanCommentsByPostId((current) => ({ ...current, [postId]: data }))
+    } catch {
+      setFanCommentsByPostId((current) => ({ ...current, [postId]: [] }))
     }
   }
 
@@ -1274,6 +1297,88 @@ function App() {
       setFanPostStatus('팬 게시글 등록 완료')
     } catch (error) {
       const message = error instanceof Error ? error.message : '팬 게시글 등록에 실패했습니다.'
+      setFanPostStatus(message)
+    }
+  }
+
+  const handleToggleFanReaction = async (postId: number) => {
+    const fanSessionToken = localStorage.getItem(fanSessionStorageKey)
+    if (!fanSessionToken) {
+      setFanPostStatus('팬 로그인 후 추천할 수 있습니다.')
+      return
+    }
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/community/posts/${postId}/reactions/toggle`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${fanSessionToken}`,
+        },
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || '추천 처리에 실패했습니다.')
+      }
+
+      const data = (await response.json()) as { post_id: number; like_count: number; liked_by_viewer: boolean }
+      setCommunityFeed((current) =>
+        current.map((post) =>
+          post.post_id === data.post_id
+            ? { ...post, like_count: data.like_count, liked_by_viewer: data.liked_by_viewer }
+            : post,
+        ),
+      )
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '추천 처리에 실패했습니다.'
+      setFanPostStatus(message)
+    }
+  }
+
+  const handleCreateFanComment = async (postId: number) => {
+    const fanSessionToken = localStorage.getItem(fanSessionStorageKey)
+    if (!fanSessionToken) {
+      setFanPostStatus('팬 로그인 후 댓글을 달 수 있습니다.')
+      return
+    }
+
+    const draft = fanCommentDrafts[postId]?.trim() ?? ''
+    if (!draft) {
+      setFanPostStatus('댓글 내용을 입력해 주세요.')
+      return
+    }
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/v1/community/posts/${postId}/comments`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${fanSessionToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content: draft,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || '댓글 등록에 실패했습니다.')
+      }
+
+      const data = (await response.json()) as CommunityCommentItem
+      setFanCommentsByPostId((current) => ({
+        ...current,
+        [postId]: [...(current[postId] ?? []), data],
+      }))
+      setCommunityFeed((current) =>
+        current.map((post) =>
+          post.post_id === postId ? { ...post, comment_count: post.comment_count + 1 } : post,
+        ),
+      )
+      setFanCommentDrafts((current) => ({ ...current, [postId]: '' }))
+      setFanPostStatus('댓글 등록 완료')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '댓글 등록에 실패했습니다.'
       setFanPostStatus(message)
     }
   }
@@ -2534,7 +2639,7 @@ function App() {
     if (selectedFanRoomId) {
       void loadRoomCommunityPosts(selectedFanRoomId)
     }
-  }, [currentView, selectedFanRoomId])
+  }, [currentView, selectedFanRoomId, fanFeedSort])
 
   useEffect(() => {
     if (currentView === 'privacy' || currentView === 'terms') {
@@ -2907,7 +3012,7 @@ function App() {
                 <article className="role-home-note">
                   <span className="section-label">최근 공지</span>
                   <strong>{visibleFanFeed[0]?.title ?? '아직 등록된 공지가 없습니다.'}</strong>
-                  <p>{visibleFanFeed[0]?.text ?? '커뮤니티 글이 올라오면 여기서 바로 최근 소식을 확인할 수 있습니다.'}</p>
+                  <p>{visibleFanFeed[0]?.content ?? '커뮤니티 글이 올라오면 여기서 바로 최근 소식을 확인할 수 있습니다.'}</p>
                 </article>
                 <article className="role-home-note">
                   <span className="section-label">다음 액션</span>
@@ -5365,6 +5470,25 @@ function App() {
         </button>
       </div>
 
+      {fanTab === 'feed' ? (
+        <div className="chip-row">
+          <button
+            className={fanFeedSort === 'latest' ? 'info-chip interactive-chip active' : 'info-chip interactive-chip'}
+            onClick={() => setFanFeedSort('latest')}
+            type="button"
+          >
+            최신순
+          </button>
+          <button
+            className={fanFeedSort === 'popular' ? 'info-chip interactive-chip active' : 'info-chip interactive-chip'}
+            onClick={() => setFanFeedSort('popular')}
+            type="button"
+          >
+            인기순
+          </button>
+        </div>
+      ) : null}
+
       <div className="fan-layout">
         <section className="fan-feed">
           <div className="panel-head">
@@ -5412,20 +5536,51 @@ function App() {
               {visibleFanFeed.length > 0 ? (
                 <div className="fan-moment-list">
                   {visibleFanFeed.map((moment) => (
-                    <article className="fan-moment-card" key={`${moment.badge}-${moment.title}`}>
-                      {moment.imageUrl ? (
+                    <article className="fan-moment-card" key={`${moment.post_id}-${moment.title}`}>
+                      {isRenderableImageUrl(moment.image_url) ? (
                         <img
                           alt={moment.title}
                           className="fan-moment-media"
                           onError={(event) => {
                             event.currentTarget.style.display = 'none'
                           }}
-                          src={moment.imageUrl}
+                          src={moment.image_url}
                         />
                       ) : null}
-                      <span className="fan-badge">{moment.badge}</span>
+                      <span className="fan-badge">{postTypeToBadge[moment.post_type] ?? 'POST'}</span>
                       <strong>{moment.title}</strong>
-                      <p>{moment.text}</p>
+                      <p>{moment.content}</p>
+                      <div className="chip-row">
+                        <button className="info-chip interactive-chip" onClick={() => void handleToggleFanReaction(moment.post_id)} type="button">
+                          {moment.liked_by_viewer ? `추천 취소 · ${moment.like_count}` : `추천 · ${moment.like_count}`}
+                        </button>
+                        <button className="info-chip interactive-chip" onClick={() => void loadFanComments(moment.post_id)} type="button">
+                          댓글 {moment.comment_count}
+                        </button>
+                      </div>
+                      <div className="comment-stack">
+                        {(fanCommentsByPostId[moment.post_id] ?? []).map((comment) => (
+                          <div className="comment-row" key={comment.comment_id}>
+                            <strong>{comment.author_name}</strong>
+                            <p>{comment.content}</p>
+                          </div>
+                        ))}
+                        {fanSession ? (
+                          <div className="comment-compose">
+                            <input
+                              className="text-input"
+                              onChange={(event) =>
+                                setFanCommentDrafts((current) => ({ ...current, [moment.post_id]: event.target.value }))
+                              }
+                              placeholder="댓글을 입력하세요"
+                              value={fanCommentDrafts[moment.post_id] ?? ''}
+                            />
+                            <button className="secondary-action" onClick={() => void handleCreateFanComment(moment.post_id)} type="button">
+                              댓글 달기
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
                     </article>
                   ))}
                 </div>

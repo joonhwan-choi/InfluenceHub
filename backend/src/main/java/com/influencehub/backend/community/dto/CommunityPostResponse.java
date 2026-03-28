@@ -10,6 +10,9 @@ public class CommunityPostResponse {
     private final String content;
     private final String authorName;
     private final String imageUrl;
+    private final long likeCount;
+    private final long commentCount;
+    private final boolean likedByViewer;
     private final LocalDateTime createdAt;
 
     public CommunityPostResponse(
@@ -19,6 +22,9 @@ public class CommunityPostResponse {
         String content,
         String authorName,
         String imageUrl,
+        long likeCount,
+        long commentCount,
+        boolean likedByViewer,
         LocalDateTime createdAt
     ) {
         this.postId = postId;
@@ -27,6 +33,9 @@ public class CommunityPostResponse {
         this.content = content;
         this.authorName = authorName;
         this.imageUrl = imageUrl;
+        this.likeCount = likeCount;
+        this.commentCount = commentCount;
+        this.likedByViewer = likedByViewer;
         this.createdAt = createdAt;
     }
 
@@ -52,6 +61,18 @@ public class CommunityPostResponse {
 
     public String getImageUrl() {
         return imageUrl;
+    }
+
+    public long getLikeCount() {
+        return likeCount;
+    }
+
+    public long getCommentCount() {
+        return commentCount;
+    }
+
+    public boolean isLikedByViewer() {
+        return likedByViewer;
     }
 
     public LocalDateTime getCreatedAt() {
