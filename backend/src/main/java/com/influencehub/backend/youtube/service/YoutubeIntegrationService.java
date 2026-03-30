@@ -348,14 +348,54 @@ public class YoutubeIntegrationService {
             return accessToken;
         }
 
+        requireConfiguredCredentials();
         YoutubeChannelConnection connection = youtubeChannelConnectionRepository.findTopByOrderByCreatedAtDesc()
             .orElseThrow(() -> new IllegalStateException("No saved YouTube connection exists yet."));
+
+        if (connection.getRefreshToken() != null && !connection.getRefreshToken().isBlank()) {
+            String refreshedAccessToken = refreshAccessToken(connection.getRefreshToken());
+            connection.updateChannelMetadata(
+                connection.getChannelTitle(),
+                connection.getChannelDescription(),
+                connection.getCustomUrl(),
+                connection.getThumbnailUrl(),
+                connection.getSubscriberCount(),
+                refreshedAccessToken,
+                connection.getRefreshToken()
+            );
+            return refreshedAccessToken;
+        }
 
         if (connection.getAccessToken() == null || connection.getAccessToken().isBlank()) {
             throw new IllegalStateException("The latest YouTube connection does not have a valid access token.");
         }
 
         return connection.getAccessToken();
+    }
+
+    private String refreshAccessToken(String refreshToken) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+        body.add("client_id", clientId);
+        body.add("client_secret", clientSecret);
+        body.add("refresh_token", refreshToken);
+        body.add("grant_type", "refresh_token");
+
+        ResponseEntity<String> tokenResponse = restTemplate.postForEntity(
+            TOKEN_URL,
+            new HttpEntity<>(body, headers),
+            String.class
+        );
+
+        JsonNode tokenJson = readJson(tokenResponse.getBody());
+        String nextAccessToken = textOrEmpty(tokenJson, "access_token");
+        if (nextAccessToken.isBlank()) {
+            throw new IllegalStateException("Failed to refresh the YouTube access token.");
+        }
+
+        return nextAccessToken;
     }
 
     @Transactional(readOnly = true)
