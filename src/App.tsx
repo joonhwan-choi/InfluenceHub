@@ -6226,30 +6226,6 @@ function App() {
           )}
         </section>
 
-        <aside className="fan-side-panel">
-          <div className="mini-board">
-            <span className="mini-label">팬 입장 방식</span>
-            <strong>{activeFanRoom?.joinedVia ?? '입장 대기 중'}</strong>
-            <p>
-              팬은 초대 링크를 통해 들어오고, 가입이 끝나면 여러 크리에이터 팬방 중
-              원하는 방을 선택해 이동할 수 있습니다.
-            </p>
-          </div>
-
-          <div className="mini-board dark">
-            <span className="mini-label">운영자 시점 연결</span>
-            <strong>
-              {inviteDashboard
-                ? `초대 팬 ${inviteDashboard.total_join_count}명 · 멀티 팬 ${inviteDashboard.multi_room_fan_count}명`
-                : '초대 링크 생성 후 운영 집계가 열립니다'}
-            </strong>
-            <p>
-              {inviteDashboard
-                ? '대시보드에서 링크별 유입과 가입 수를 확인하고, 팬은 같은 계정으로 여러 인플루언서 팬방에 입장합니다.'
-                : '초대 링크를 만들면 여기서 팬 유입과 멀티 팬 가입 흐름을 함께 확인할 수 있습니다.'}
-            </p>
-          </div>
-        </aside>
       </div>
     </section>
     )
