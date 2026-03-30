@@ -964,6 +964,7 @@ function App() {
   const youtubeLongformCount = Math.max(youtubePublishHistory.length - youtubeShortsCount, 0)
   const visibleFanFeed = communityFeed.filter((post) => !isTestCommunityPost(post)).slice(0, 10)
   const fanVideoHighlights = youtubeRecentVideos.slice(0, 5)
+  const canWriteFanCommunity = Boolean(fanSession || isCreatorLoggedIn)
   const filteredFanFeed = visibleFanFeed.filter((post) => {
     if (fanBoardFilter === 'ALL') {
       return true
@@ -1590,8 +1591,9 @@ function App() {
 
   const handleCreateFanPost = async () => {
     const fanSessionToken = localStorage.getItem(fanSessionStorageKey)
-    if (!fanSessionToken) {
-      setFanPostStatus('먼저 팬 로그인이 필요합니다.')
+    const creatorSessionToken = localStorage.getItem(creatorSessionStorageKey)
+    if (!fanSessionToken && !creatorSessionToken) {
+      setFanPostStatus('먼저 로그인해 주세요.')
       return
     }
 
@@ -1613,17 +1615,27 @@ function App() {
     setFanPostStatus('팬 게시글을 올리는 중입니다...')
 
     try {
-      const response = await fetch(`${apiBaseUrl}/api/v1/community/rooms/${selectedFanRoomId}/posts`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${fanSessionToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: fanPostTitle.trim(),
-          content: fanPostBody.trim(),
-        }),
+      const requestBody = JSON.stringify({
+        title: fanPostTitle.trim(),
+        content: fanPostBody.trim(),
       })
+      const response = fanSessionToken
+        ? await fetch(`${apiBaseUrl}/api/v1/community/rooms/${selectedFanRoomId}/posts`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${fanSessionToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: requestBody,
+          })
+        : await fetch(`${apiBaseUrl}/api/v1/community/mine`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${creatorSessionToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: requestBody,
+          })
 
       if (!response.ok) {
         const errorText = await response.text()
@@ -6105,9 +6117,9 @@ function App() {
               <article className="mini-board" ref={fanPostComposerRef}>
                 <span className="mini-label">{activeFanRoomUi.composerLabel}</span>
                 <strong>
-                  {fanSession ? activeFanRoomUi.composerTitle : '초대 링크로 입장하면 바로 글을 올릴 수 있습니다.'}
+                  {canWriteFanCommunity ? activeFanRoomUi.composerTitle : '로그인하면 바로 글을 올릴 수 있습니다.'}
                 </strong>
-                {fanSession ? (
+                {canWriteFanCommunity ? (
                   <div className="form-stack">
                     <input
                       className="text-input"
@@ -6131,10 +6143,10 @@ function App() {
                   </div>
                 ) : (
                   <div className="inline-actions compact-actions">
-                    <button className="primary-action" onClick={() => setCurrentView('invite')} type="button">
-                      초대 링크로 입장하기
+                    <button className="primary-action" onClick={() => setCurrentView('signup')} type="button">
+                      로그인하고 글쓰기
                     </button>
-                    <span className="helper-copy">초대 링크를 통해 팬방에 입장하면 이 자리에서 바로 글을 쓸 수 있습니다.</span>
+                    <span className="helper-copy">로그인 후 바로 글을 쓰고 추천과 댓글도 남길 수 있습니다.</span>
                   </div>
                 )}
               </article>
