@@ -1019,17 +1019,6 @@ function App() {
     CORE_CREW: fanMembers.filter((member) => member.tier === 'CORE_CREW').length,
   }
 
-  const focusFanComposer = () => {
-    setFanTab('feed')
-    window.requestAnimationFrame(() => {
-      fanPostComposerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      if (fanSession) {
-        window.setTimeout(() => {
-          fanPostTitleInputRef.current?.focus()
-        }, 120)
-      }
-    })
-  }
   const dashboardMetricCards = [
     {
       label: '연결 채널',
@@ -1077,12 +1066,6 @@ function App() {
     { label: 'BIG_SPENDER', value: `${fanTierCounts.BIG_SPENDER}명`, meta: '굿즈/이벤트 강한 팬' },
     { label: 'CORE_CREW', value: `${fanTierCounts.CORE_CREW}명`, meta: '코어 팬 그룹' },
   ]
-  const fanFeedLikeTotal = visibleFanFeed.reduce((sum, post) => sum + post.like_count, 0)
-  const fanFeedCommentTotal = visibleFanFeed.reduce((sum, post) => sum + post.comment_count, 0)
-  const hottestFanPost =
-    visibleFanFeed.length > 0
-      ? [...visibleFanFeed].sort((left, right) => (right.like_count + right.comment_count) - (left.like_count + left.comment_count))[0]
-      : null
   const homeStatCards = [
     {
       label: '연결 채널',
@@ -5902,123 +5885,6 @@ function App() {
         </section>
       ) : null}
 
-      <section className="fan-action-hub">
-        <div className="panel-head">
-          <div>
-            <span className="card-kicker">팬이 할 수 있는 것</span>
-            <h3>{activeFanRoomUi.actionTitle}</h3>
-          </div>
-        </div>
-
-        <div className="fan-action-grid">
-          {activeFanRoomUi.actionCards.map((action, index) => (
-            <button
-              className="fan-action-card"
-              key={`${selectedFanRoomType}-${action.label}`}
-              onClick={() => {
-                if (index === 0) {
-                  focusFanComposer()
-                  return
-                }
-                if (index === 4) {
-                  setFanTab('calendar')
-                  return
-                }
-                if (index === 5) {
-                  setFanTab('shop')
-                  return
-                }
-                setFanTab('feed')
-              }}
-              type="button"
-            >
-              <span className="mini-label">{action.label}</span>
-              <strong>{action.title}</strong>
-              <p>{action.description}</p>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <div className="fan-tab-row">
-        <button
-          className={fanTab === 'feed' ? 'fan-tab active' : 'fan-tab'}
-          onClick={() => setFanTab('feed')}
-        >
-          홈 피드
-        </button>
-        <button
-          className={fanTab === 'calendar' ? 'fan-tab active' : 'fan-tab'}
-          onClick={() => setFanTab('calendar')}
-        >
-          일정
-        </button>
-        <button
-          className={fanTab === 'shop' ? 'fan-tab active' : 'fan-tab'}
-          onClick={() => setFanTab('shop')}
-        >
-          굿즈
-        </button>
-      </div>
-
-      {fanTab === 'feed' ? (
-        <div className="chip-row">
-          <button
-            className={fanFeedSort === 'latest' ? 'info-chip interactive-chip active' : 'info-chip interactive-chip'}
-            onClick={() => setFanFeedSort('latest')}
-            type="button"
-          >
-            최신순
-          </button>
-          <button
-            className={fanFeedSort === 'popular' ? 'info-chip interactive-chip active' : 'info-chip interactive-chip'}
-            onClick={() => setFanFeedSort('popular')}
-            type="button"
-          >
-            인기순
-          </button>
-        </div>
-      ) : null}
-
-      {fanTab === 'feed' ? (
-        <section className="fan-community-hub">
-          <div className="panel-head">
-            <div>
-              <span className="card-kicker">{activeFanRoomUi.boardLabel}</span>
-              <h3>{activeFanRoomUi.communityTitle}</h3>
-            </div>
-          </div>
-
-          <div className="fan-community-stats">
-            <article className="fan-community-card">
-              <span className="mini-label">{activeFanRoomUi.boardLabel}</span>
-              <strong>{visibleFanFeed.length}개</strong>
-              <p>{activeFanRoomUi.feedTitle}에 쌓인 최근 글 수</p>
-            </article>
-            <article className="fan-community-card">
-              <span className="mini-label">추천 반응</span>
-              <strong>{fanFeedLikeTotal}개</strong>
-              <p>팬들이 눌러준 총 추천 수</p>
-            </article>
-            <article className="fan-community-card">
-              <span className="mini-label">댓글 대화</span>
-              <strong>{fanFeedCommentTotal}개</strong>
-              <p>팬들끼리 이어진 댓글 수</p>
-            </article>
-          </div>
-
-          <div className="fan-community-spotlight">
-            <span className="card-kicker">{activeFanRoomUi.communitySpotlight}</span>
-            <h3>{hottestFanPost?.title ?? '아직 인기글이 없습니다'}</h3>
-            <p>
-              {hottestFanPost
-                ? `${hottestFanPost.author_name} · 추천 ${hottestFanPost.like_count} · 댓글 ${hottestFanPost.comment_count}`
-                : `${activeFanRoomUi.feedTitle}에 첫 글이 올라오면 여기서 가장 반응 좋은 글을 바로 보여줍니다.`}
-            </p>
-          </div>
-        </section>
-      ) : null}
-
       <div className="fan-layout fan-layout-wide">
         <aside className="fan-left-menu">
           <section className="fan-menu-panel">
@@ -6053,6 +5919,45 @@ function App() {
             )}
           </section>
 
+          <section className="fan-menu-panel">
+            <div className="panel-head">
+              <div>
+                <span className="card-kicker">커뮤니티</span>
+                <h3>{activeFanRoomUi.boardTitle}</h3>
+              </div>
+            </div>
+
+            <div className="fan-room-menu">
+              <button
+                className={fanTab === 'feed' ? 'fan-menu-button active' : 'fan-menu-button'}
+                onClick={() => setFanTab('feed')}
+                type="button"
+              >
+                <span className="mini-label">BOARD</span>
+                <strong>{activeFanRoomUi.feedTitle}</strong>
+                <p>팬 글과 공지를 보는 메인 게시판</p>
+              </button>
+              <button
+                className={fanTab === 'calendar' ? 'fan-menu-button active' : 'fan-menu-button'}
+                onClick={() => setFanTab('calendar')}
+                type="button"
+              >
+                <span className="mini-label">SCHEDULE</span>
+                <strong>일정</strong>
+                <p>다가오는 방송과 이벤트 일정</p>
+              </button>
+              <button
+                className={fanTab === 'shop' ? 'fan-menu-button active' : 'fan-menu-button'}
+                onClick={() => setFanTab('shop')}
+                type="button"
+              >
+                <span className="mini-label">GOODS</span>
+                <strong>굿즈</strong>
+                <p>팬방에서 열리는 상품과 드롭</p>
+              </button>
+            </div>
+          </section>
+
         </aside>
 
         <section className="fan-feed">
@@ -6078,6 +5983,43 @@ function App() {
               </h3>
             </div>
           </div>
+
+          {fanTab === 'feed' ? (
+            <div className="fan-board-topline">
+              <div className="fan-board-tabs">
+                {activeFanRoomUi.boards.map((board) => (
+                  <button
+                    className={fanBoardFilter === board.key ? 'fan-board-tab active' : 'fan-board-tab'}
+                    key={board.key}
+                    onClick={() => {
+                      setFanTab('feed')
+                      setFanBoardFilter(board.key as FanBoardFilter)
+                    }}
+                    type="button"
+                  >
+                    {board.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="chip-row">
+                <button
+                  className={fanFeedSort === 'latest' ? 'info-chip interactive-chip active' : 'info-chip interactive-chip'}
+                  onClick={() => setFanFeedSort('latest')}
+                  type="button"
+                >
+                  최신순
+                </button>
+                <button
+                  className={fanFeedSort === 'popular' ? 'info-chip interactive-chip active' : 'info-chip interactive-chip'}
+                  onClick={() => setFanFeedSort('popular')}
+                  type="button"
+                >
+                  인기순
+                </button>
+              </div>
+            </div>
+          ) : null}
 
           {fanTab === 'feed' && (
             <>
@@ -6120,22 +6062,6 @@ function App() {
 
               {filteredFanFeed.length > 0 ? (
                 <div className="fan-board-shell">
-                  <div className="fan-board-tabs">
-                    {activeFanRoomUi.boards.map((board) => (
-                      <button
-                        className={fanBoardFilter === board.key ? 'fan-board-tab active' : 'fan-board-tab'}
-                        key={board.key}
-                        onClick={() => {
-                          setFanTab('feed')
-                          setFanBoardFilter(board.key as FanBoardFilter)
-                        }}
-                        type="button"
-                      >
-                        {board.label}
-                      </button>
-                    ))}
-                  </div>
-
                   <div className="fan-board-columns">
                     {fanBoardColumns.map((column, columnIndex) => (
                       <div className="fan-board-column" key={`column-${columnIndex}`}>
