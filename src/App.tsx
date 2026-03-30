@@ -861,6 +861,7 @@ function App() {
   const [fanPostStatus, setFanPostStatus] = useState('아직 팬 게시글 작성 전')
   const [fanFeedSort, setFanFeedSort] = useState<'latest' | 'popular'>('latest')
   const [fanBoardFilter, setFanBoardFilter] = useState<FanBoardFilter>('ALL')
+  const [selectedFanPostId, setSelectedFanPostId] = useState<number | null>(null)
   const [fanCommentsByPostId, setFanCommentsByPostId] = useState<Record<number, CommunityCommentItem[]>>({})
   const [fanCommentDrafts, setFanCommentDrafts] = useState<Record<number, string>>({})
   const [isStartingFanGoogleLogin, setIsStartingFanGoogleLogin] = useState(false)
@@ -975,6 +976,34 @@ function App() {
     }
     return post.post_type === fanBoardFilter
   })
+  const selectedFanPost =
+    filteredFanFeed.find((post) => post.post_id === selectedFanPostId) ?? filteredFanFeed[0] ?? null
+  const formatRelativeTime = (value: string) => {
+    const target = new Date(value).getTime()
+    if (Number.isNaN(target)) {
+      return ''
+    }
+
+    const diffMinutes = Math.max(1, Math.floor((Date.now() - target) / 60000))
+    if (diffMinutes < 60) {
+      return `${diffMinutes}분 전`
+    }
+
+    const diffHours = Math.floor(diffMinutes / 60)
+    if (diffHours < 24) {
+      return `${diffHours}시간 전`
+    }
+
+    const diffDays = Math.floor(diffHours / 24)
+    if (diffDays < 7) {
+      return `${diffDays}일 전`
+    }
+
+    return new Date(value).toLocaleDateString('ko-KR', {
+      month: 'numeric',
+      day: 'numeric',
+    })
+  }
   const youtubeCommunityDraft = `${postTitle.trim() || '유튜브 커뮤니티 제목'}\n\n${postBody.trim() || '유튜브 커뮤니티 본문'}`
   const visibleStoreBoard = storeBoard.filter((item) => item.visible)
   const visibleEventBoard = eventBoard.filter((item) => item.visible)
@@ -2945,6 +2974,17 @@ function App() {
       void loadRoomCommunityPosts(selectedFanRoomId)
     }
   }, [currentView, selectedFanRoomId, fanFeedSort])
+
+  useEffect(() => {
+    if (filteredFanFeed.length === 0) {
+      setSelectedFanPostId(null)
+      return
+    }
+
+    if (!filteredFanFeed.some((post) => post.post_id === selectedFanPostId)) {
+      setSelectedFanPostId(filteredFanFeed[0].post_id)
+    }
+  }, [filteredFanFeed, selectedFanPostId])
 
   useEffect(() => {
     if (currentView !== 'fan' && !isCreatorLoggedIn) {
@@ -6100,38 +6140,87 @@ function App() {
               </article>
 
               {filteredFanFeed.length > 0 ? (
-                <div className="fan-moment-list">
-                  {filteredFanFeed.map((moment) => (
-                    <article className="fan-moment-card" key={`${moment.post_id}-${moment.title}`}>
-                      {isRenderableImageUrl(moment.image_url) ? (
+                <div className="fan-board-shell">
+                  <div className="fan-board-header">
+                    <span>말머리</span>
+                    <span>제목</span>
+                    <span>추천</span>
+                    <span>댓글</span>
+                    <span>작성자</span>
+                    <span>시간</span>
+                  </div>
+
+                  <div className="fan-board-list">
+                    {filteredFanFeed.map((post) => (
+                      <button
+                        className={selectedFanPost?.post_id === post.post_id ? 'fan-board-row active' : 'fan-board-row'}
+                        key={`${post.post_id}-${post.title}`}
+                        onClick={() => {
+                          setSelectedFanPostId(post.post_id)
+                          void loadFanComments(post.post_id)
+                        }}
+                        type="button"
+                      >
+                        <span className="fan-board-type">
+                          {post.highlighted ? 'BEST' : postTypeToBadge[post.post_type] ?? 'POST'}
+                        </span>
+                        <strong className="fan-board-title">{post.title}</strong>
+                        <span className="fan-board-metric">👍 {post.like_count}</span>
+                        <span className="fan-board-metric">💬 {post.comment_count}</span>
+                        <span className="fan-board-author">{post.author_name}</span>
+                        <span className="fan-board-time">{formatRelativeTime(post.created_at)}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {selectedFanPost ? (
+                    <article className="fan-board-detail">
+                      <div className="chip-row">
+                        <span className="fan-badge">{postTypeToBadge[selectedFanPost.post_type] ?? 'POST'}</span>
+                        {selectedFanPost.highlighted ? <span className="info-chip">BEST</span> : null}
+                        <span className="mini-label">
+                          {selectedFanPost.author_name} · {formatRelativeTime(selectedFanPost.created_at)}
+                        </span>
+                      </div>
+                      <strong>{selectedFanPost.title}</strong>
+                      {isRenderableImageUrl(selectedFanPost.image_url) ? (
                         <img
-                          alt={moment.title}
+                          alt={selectedFanPost.title}
                           className="fan-moment-media"
                           onError={(event) => {
                             event.currentTarget.style.display = 'none'
                           }}
-                          src={moment.image_url}
+                          src={selectedFanPost.image_url}
                         />
                       ) : null}
+                      <p>{selectedFanPost.content}</p>
                       <div className="chip-row">
-                        <span className="fan-badge">{postTypeToBadge[moment.post_type] ?? 'POST'}</span>
-                        {moment.highlighted ? <span className="info-chip">BEST</span> : null}
-                      </div>
-                      <strong>{moment.title}</strong>
-                      <p>{moment.content}</p>
-                      <div className="chip-row">
-                        <button className="info-chip interactive-chip" onClick={() => void handleToggleFanReaction(moment.post_id)} type="button">
-                          {moment.liked_by_viewer ? `추천 취소 · ${moment.like_count}` : `추천 · ${moment.like_count}`}
+                        <button
+                          className="info-chip interactive-chip"
+                          onClick={() => void handleToggleFanReaction(selectedFanPost.post_id)}
+                          type="button"
+                        >
+                          {selectedFanPost.liked_by_viewer
+                            ? `추천 취소 · ${selectedFanPost.like_count}`
+                            : `추천 · ${selectedFanPost.like_count}`}
                         </button>
-                        <button className="info-chip interactive-chip" onClick={() => void loadFanComments(moment.post_id)} type="button">
-                          댓글 {moment.comment_count}
+                        <button
+                          className="info-chip interactive-chip"
+                          onClick={() => void loadFanComments(selectedFanPost.post_id)}
+                          type="button"
+                        >
+                          댓글 {selectedFanPost.comment_count}
                         </button>
-                        <button className="info-chip interactive-chip" onClick={() => void handleReportCommunityPost(moment.post_id)} type="button">
-                          신고 {moment.report_count}
+                        <button
+                          className="info-chip interactive-chip"
+                          onClick={() => void handleReportCommunityPost(selectedFanPost.post_id)}
+                          type="button"
+                        >
+                          신고 {selectedFanPost.report_count}
                         </button>
                       </div>
                       <div className="comment-stack">
-                        {(fanCommentsByPostId[moment.post_id] ?? []).map((comment) => (
+                        {(fanCommentsByPostId[selectedFanPost.post_id] ?? []).map((comment) => (
                           <div className="comment-row" key={comment.comment_id}>
                             <strong>{comment.author_name}</strong>
                             <p>{comment.content}</p>
@@ -6142,19 +6231,23 @@ function App() {
                             <input
                               className="text-input"
                               onChange={(event) =>
-                                setFanCommentDrafts((current) => ({ ...current, [moment.post_id]: event.target.value }))
+                                setFanCommentDrafts((current) => ({ ...current, [selectedFanPost.post_id]: event.target.value }))
                               }
                               placeholder="댓글을 입력하세요"
-                              value={fanCommentDrafts[moment.post_id] ?? ''}
+                              value={fanCommentDrafts[selectedFanPost.post_id] ?? ''}
                             />
-                            <button className="secondary-action" onClick={() => void handleCreateFanComment(moment.post_id)} type="button">
+                            <button
+                              className="secondary-action"
+                              onClick={() => void handleCreateFanComment(selectedFanPost.post_id)}
+                              type="button"
+                            >
                               댓글 달기
                             </button>
                           </div>
                         ) : null}
                       </div>
                     </article>
-                  ))}
+                  ) : null}
                 </div>
               ) : (
                 <div className="mini-board">

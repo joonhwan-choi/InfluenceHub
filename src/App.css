@@ -1494,6 +1494,101 @@
   margin-top: 12px;
 }
 
+.fan-board-shell {
+  display: grid;
+  gap: 14px;
+}
+
+.fan-board-header,
+.fan-board-row {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1.8fr) 88px 88px 132px 96px;
+  gap: 12px;
+  align-items: center;
+}
+
+.fan-board-header {
+  padding: 0 16px;
+  color: rgba(28, 36, 50, 0.46);
+  font: 800 0.76rem/1 "Arial Black", "AppleGothic", sans-serif;
+  text-transform: uppercase;
+}
+
+.fan-board-list {
+  display: grid;
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(28, 36, 50, 0.08);
+}
+
+.fan-board-row {
+  width: 100%;
+  padding: 16px;
+  border: 0;
+  border-bottom: 1px solid rgba(28, 36, 50, 0.08);
+  background: rgba(255, 255, 255, 0.68);
+  color: #1c2432;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fan-board-row:last-child {
+  border-bottom: 0;
+}
+
+.fan-board-row:hover,
+.fan-board-row.active {
+  background:
+    radial-gradient(circle at top right, rgba(255, 122, 69, 0.12), transparent 24%),
+    rgba(255, 245, 228, 0.96);
+}
+
+.fan-board-type {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(28, 36, 50, 0.08);
+  color: rgba(28, 36, 50, 0.72);
+  font: 800 0.72rem/1 "Arial Black", "AppleGothic", sans-serif;
+}
+
+.fan-board-title {
+  display: block;
+  min-width: 0;
+  color: #1c2432;
+  font: 900 1rem/1.35 "Arial Black", "AppleGothic", sans-serif;
+}
+
+.fan-board-metric,
+.fan-board-author,
+.fan-board-time {
+  color: rgba(28, 36, 50, 0.68);
+  font: 700 0.88rem/1.35 "AppleGothic", "Arial", sans-serif;
+}
+
+.fan-board-detail {
+  padding: 20px 22px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.74);
+  box-shadow: inset 0 0 0 1px rgba(28, 36, 50, 0.08);
+}
+
+.fan-board-detail > strong {
+  display: block;
+  margin: 12px 0 10px;
+  color: #1c2432;
+  font: 900 1.32rem/1.3 "Arial Black", "AppleGothic", sans-serif;
+}
+
+.fan-board-detail > p {
+  margin: 0;
+  color: rgba(28, 36, 50, 0.76);
+  font: 500 0.98rem/1.7 "AppleGothic", "Arial", sans-serif;
+}
+
 .comment-row {
   padding: 12px 14px;
   border-radius: 16px;
@@ -3217,6 +3312,7 @@
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-feed h3,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-video-featured-copy h4,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-video-list-copy strong,
+.page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-board-title,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-menu-button strong,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-room-card strong,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-action-card strong,
@@ -3233,6 +3329,10 @@
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .catalog-card span,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-video-featured-copy p,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-video-list-copy p,
+.page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-board-metric,
+.page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-board-author,
+.page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-board-time,
+.page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-board-header,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-menu-button p,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-community-card p,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-community-spotlight p,
@@ -3248,8 +3348,19 @@
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-video-featured-copy h4,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-video-list-copy strong,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-video-watch-pill,
+.page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-board-detail > strong,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-video-thumb-fallback {
   color: #f7f3ea;
+}
+
+.page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-board-row,
+.page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-board-detail {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.96),
+      color-mix(in srgb, var(--room-theme-panel) 26%, rgba(255, 255, 255, 0.96))
+    );
 }
 
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-room-card.active {
@@ -3285,6 +3396,7 @@
 .fan-scene-classic .fan-feed h3,
 .fan-scene-classic .fan-video-featured-copy h4,
 .fan-scene-classic .fan-video-list-copy strong,
+.fan-scene-classic .fan-board-title,
 .fan-scene-classic .fan-menu-button strong,
 .fan-scene-classic .fan-room-card strong,
 .fan-scene-classic .fan-action-card strong,
@@ -3301,6 +3413,10 @@
 .fan-scene-classic .catalog-card span,
 .fan-scene-classic .fan-video-featured-copy p,
 .fan-scene-classic .fan-video-list-copy p,
+.fan-scene-classic .fan-board-metric,
+.fan-scene-classic .fan-board-author,
+.fan-scene-classic .fan-board-time,
+.fan-scene-classic .fan-board-header,
 .fan-scene-classic .fan-menu-button p,
 .fan-scene-classic .fan-community-card p,
 .fan-scene-classic .fan-community-spotlight p,
@@ -3316,6 +3432,8 @@
 .fan-scene-classic .fan-room-card,
 .fan-scene-classic .fan-video-featured,
 .fan-scene-classic .fan-video-list-item,
+.fan-scene-classic .fan-board-row,
+.fan-scene-classic .fan-board-detail,
 .fan-scene-classic .fan-menu-button,
 .fan-scene-classic .fan-moment-card,
 .fan-scene-classic .calendar-card,
@@ -3739,6 +3857,10 @@
     grid-template-columns: 1fr;
   }
 
+  .fan-board-header {
+    display: none;
+  }
+
   .hero-actions,
   .inline-actions,
   .fan-actions {
@@ -3775,6 +3897,16 @@
 
   .fan-video-list-item {
     grid-template-columns: 1fr;
+  }
+
+  .fan-board-row {
+    grid-template-columns: 88px minmax(0, 1fr);
+  }
+
+  .fan-board-row .fan-board-metric,
+  .fan-board-row .fan-board-author,
+  .fan-board-row .fan-board-time {
+    display: none;
   }
 
   .fan-video-list-thumb {
