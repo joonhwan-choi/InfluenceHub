@@ -3079,6 +3079,8 @@
   grid-template-columns: 220px minmax(0, 1fr);
   align-items: start;
   gap: 18px;
+  justify-content: start;
+  width: 100%;
 }
 
 .fan-left-menu {
@@ -3088,6 +3090,7 @@
   top: 18px;
   align-self: start;
   width: 220px;
+  min-width: 220px;
 }
 
 .fan-menu-panel {
@@ -3135,6 +3138,8 @@
 .fan-feed {
   min-width: 0;
   width: 100%;
+  justify-self: stretch;
+  align-self: start;
 }
 
 .fan-menu-button strong {
