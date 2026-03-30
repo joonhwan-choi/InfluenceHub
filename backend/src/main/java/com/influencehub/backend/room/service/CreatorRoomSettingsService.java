@@ -25,6 +25,7 @@ public class CreatorRoomSettingsService {
     private static final String DEFAULT_BANNER = "focus";
     private static final String DEFAULT_BUTTON = "rounded";
     private static final String DEFAULT_DENSITY = "comfortable";
+    private static final String DEFAULT_ROOM_TYPE = "community-board";
     private static final String DEFAULT_DISCORD_WEBHOOK = "";
     private static final String DEFAULT_INSTAGRAM_ACCOUNT_ID = "";
     private static final String DEFAULT_INSTAGRAM_ACCESS_TOKEN = "";
@@ -56,12 +57,13 @@ public class CreatorRoomSettingsService {
         String bannerStyle = defaultIfBlank(request.getBannerStyle(), DEFAULT_BANNER);
         String buttonStyle = defaultIfBlank(request.getButtonStyle(), DEFAULT_BUTTON);
         String cardDensity = defaultIfBlank(request.getCardDensity(), DEFAULT_DENSITY);
+        String roomLayoutType = defaultIfBlank(request.getRoomLayoutType(), DEFAULT_ROOM_TYPE);
         String discordWebhookUrl = defaultIfBlank(request.getDiscordWebhookUrl(), DEFAULT_DISCORD_WEBHOOK);
         boolean discordEnabled = request.getDiscordEnabled() != null && request.getDiscordEnabled();
         String instagramAccountId = defaultIfBlank(request.getInstagramAccountId(), DEFAULT_INSTAGRAM_ACCOUNT_ID);
         String instagramAccessToken = defaultIfBlank(request.getInstagramAccessToken(), DEFAULT_INSTAGRAM_ACCESS_TOKEN);
         boolean instagramEnabled = request.getInstagramEnabled() != null && request.getInstagramEnabled();
-        room.updateAppearance(roomThemeId, bannerStyle, buttonStyle, cardDensity);
+        room.updateAppearance(roomThemeId, bannerStyle, buttonStyle, cardDensity, roomLayoutType);
         room.updateDiscordSettings(discordWebhookUrl, discordEnabled);
         room.updateInstagramSettings(instagramAccountId, instagramAccessToken, instagramEnabled);
 
@@ -86,6 +88,7 @@ public class CreatorRoomSettingsService {
             defaultIfBlank(room.getBannerStyle(), DEFAULT_BANNER),
             defaultIfBlank(room.getButtonStyle(), DEFAULT_BUTTON),
             defaultIfBlank(room.getCardDensity(), DEFAULT_DENSITY),
+            defaultIfBlank(room.getRoomLayoutType(), DEFAULT_ROOM_TYPE),
             defaultIfBlank(room.getDiscordWebhookUrl(), DEFAULT_DISCORD_WEBHOOK),
             room.isDiscordEnabled(),
             defaultIfBlank(room.getInstagramAccountId(), DEFAULT_INSTAGRAM_ACCOUNT_ID),

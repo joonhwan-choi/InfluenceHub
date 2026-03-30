@@ -18,7 +18,7 @@ type View =
   | 'fan'
 
 type FanTab = 'feed' | 'calendar' | 'shop'
-type FanBoardFilter = 'ALL' | 'BEST' | 'NOTICE' | 'FREE' | 'QUESTION'
+type FanBoardFilter = string
 type PrivacyStatus = 'private' | 'unlisted' | 'public'
 type PublishComposerMode = 'video' | 'post'
 type AuthMethod = 'social' | 'email'
@@ -27,6 +27,7 @@ type BannerStyle = 'focus' | 'soft' | 'broadcast'
 type ButtonStyle = 'rounded' | 'solid' | 'outlined'
 type CardDensity = 'compact' | 'comfortable' | 'airy'
 type RoomSettingsSection = 'theme' | 'platforms' | 'modules'
+type FanRoomType = 'community-board' | 'feed' | 'chat' | 'challenge' | 'fan-creation' | 'archive'
 type RoomThemeId =
   | 'hub-classic'
   | 'sunset-sand'
@@ -39,6 +40,14 @@ type FeatureModule = {
   name: string
   description: string
   liveMetric: string
+}
+
+type FanRoomTypePreset = {
+  id: FanRoomType
+  name: string
+  purpose: string
+  description: string
+  recommendedFor: string
 }
 
 type FanRoom = {
@@ -196,6 +205,7 @@ type CreatorRoomSettingsResponse = {
   banner_style: BannerStyle
   button_style: ButtonStyle
   card_density: CardDensity
+  room_layout_type: FanRoomType
   discord_webhook_url: string
   discord_enabled: boolean
   instagram_account_id: string
@@ -333,6 +343,254 @@ const featureCatalog: FeatureModule[] = [
     liveMetric: '예정된 라이브 1개',
   },
 ]
+
+const fanRoomTypePresets: FanRoomTypePreset[] = [
+  {
+    id: 'community-board',
+    name: '게시판형',
+    purpose: '침하하처럼 팬들끼리 커뮤니티가 쌓이는 구조',
+    description: '공지, 자유글, 인기글, 질문, 짤/밈을 중심으로 추천과 댓글이 쌓입니다.',
+    recommendedFor: '입담형 · 예능형 · 팬덤 결속형',
+  },
+  {
+    id: 'feed',
+    name: '피드형',
+    purpose: '인플루언서 중심으로 콘텐츠를 소비하는 단일 타임라인',
+    description: '짧은 영상, 이미지, 스토리 느낌의 업로드를 한 줄 피드로 소비합니다.',
+    recommendedFor: '패션 · 뷰티 · 라이프스타일',
+  },
+  {
+    id: 'chat',
+    name: '채팅형',
+    purpose: '실시간으로 반응이 빠르게 흐르는 소통형 구조',
+    description: '라이브 연동 채팅, 주제방, 공지 핀 중심으로 빠르게 대화가 이어집니다.',
+    recommendedFor: '방송형 · 스트리머 · 실시간 소통형',
+  },
+  {
+    id: 'challenge',
+    name: '챌린지형',
+    purpose: '출석과 미션으로 체류시간을 끌어올리는 참여형 구조',
+    description: '오늘의 미션, 인증 게시판, 출석체크, 랭킹으로 팬 참여를 유도합니다.',
+    recommendedFor: '운동 · 공부 · 루틴형',
+  },
+  {
+    id: 'fan-creation',
+    name: '팬작업형',
+    purpose: '팬아트, 밈, 편집물 같은 2차 창작이 메인이 되는 구조',
+    description: '팬아트, 짤/밈, 편집 영상, 인플루언서 PICK이 중심이 됩니다.',
+    recommendedFor: '캐릭터성 강한 크리에이터 · 밈 생성형',
+  },
+  {
+    id: 'archive',
+    name: '아카이브형',
+    purpose: '신규 팬도 쉽게 들어오는 정리형 라이브러리 구조',
+    description: '입문 가이드, 명장면, 방송 요약, FAQ를 카테고리로 정리합니다.',
+    recommendedFor: '장기 활동형 · 정보형 채널',
+  },
+]
+
+const fanRoomTypeUi = {
+  'community-board': {
+    heroLabel: '게시판형 팬방',
+    boardLabel: '게시판',
+    boardTitle: '커뮤니티 메뉴',
+    feedTitle: '게시판',
+    communityTitle: '팬들끼리 글과 댓글로 노는 커뮤니티',
+    communitySpotlight: '지금 인기글',
+    composerLabel: '팬 게시글 작성',
+    composerTitle: '팬들끼리 자유롭게 글을 올릴 수 있습니다.',
+    composerPlaceholderTitle: '제목을 입력하세요',
+    composerPlaceholderBody: '오늘 본 영상 이야기나 팬방 잡담을 남겨보세요',
+    emptyTitle: '이 게시판에는 아직 글이 없습니다',
+    emptyDescription: '다른 게시판을 보거나 첫 글을 올려서 팬방 대화를 시작해 보세요.',
+    actionTitle: '침하하처럼 팬들끼리 놀 수 있는 구조',
+    actionCards: [
+      { label: 'POST', title: '글 올리기', description: '공지, 자유글, 질문, 짤을 바로 남길 수 있습니다.' },
+      { label: 'REACT', title: '추천 누르기', description: '재밌는 글은 추천해서 인기글로 올릴 수 있습니다.' },
+      { label: 'TALK', title: '댓글 달기', description: '팬들끼리 댓글로 반응을 주고받습니다.' },
+      { label: 'BEST', title: '베스트 보기', description: '추천이 많이 쌓인 글을 바로 볼 수 있습니다.' },
+      { label: 'EVENT', title: '일정 체크하기', description: '라이브, 팬미팅, 이벤트 일정을 같이 봅니다.' },
+      { label: 'SHOP', title: '굿즈 둘러보기', description: '팬방 한정 굿즈나 드롭 상품을 확인합니다.' },
+    ],
+    boards: [
+      { key: 'ALL', label: '전체 글' },
+      { key: 'BEST', label: '인기글' },
+      { key: 'NOTICE', label: '공지' },
+      { key: 'FREE', label: '자유게시판' },
+      { key: 'QUESTION', label: '질문/상담' },
+      { key: 'MEME', label: '짤/밈' },
+    ],
+  },
+  feed: {
+    heroLabel: '피드형 팬방',
+    boardLabel: '피드',
+    boardTitle: '피드 메뉴',
+    feedTitle: '메인 피드',
+    communityTitle: '인플루언서 중심으로 빠르게 소비하는 피드',
+    communitySpotlight: '지금 반응 좋은 포스트',
+    composerLabel: '팬 피드 업로드',
+    composerTitle: '스토리처럼 짧은 감상과 반응을 남길 수 있습니다.',
+    composerPlaceholderTitle: '짧은 한 줄 제목',
+    composerPlaceholderBody: '오늘 올라온 사진이나 영상에 대한 반응을 남겨보세요',
+    emptyTitle: '아직 메인 피드가 비어 있습니다',
+    emptyDescription: '첫 피드가 올라오면 여기서 바로 이어서 반응을 남길 수 있습니다.',
+    actionTitle: '짧은 영상과 이미지 반응 중심 팬 피드',
+    actionCards: [
+      { label: 'STORY', title: '짧은 피드 남기기', description: '스토리처럼 짧은 반응을 바로 올릴 수 있습니다.' },
+      { label: 'LIKE', title: '좋아요 남기기', description: '좋아하는 포스트에 빠르게 반응합니다.' },
+      { label: 'POLL', title: '투표 참여하기', description: '다음 콘텐츠나 룩을 팬 투표로 고릅니다.' },
+      { label: 'PIN', title: '고정 포스트 보기', description: '방장이 고정한 핵심 포스트를 확인합니다.' },
+      { label: 'EVENT', title: '일정 체크하기', description: '업로드 일정과 라이브 일정을 함께 봅니다.' },
+      { label: 'SHOP', title: '굿즈 둘러보기', description: '피드에 소개된 굿즈 링크로 이어집니다.' },
+    ],
+    boards: [
+      { key: 'ALL', label: '메인 피드' },
+      { key: 'BEST', label: '인기 포스트' },
+      { key: 'NOTICE', label: '고정 포스트' },
+      { key: 'FREE', label: '짧은 후기' },
+      { key: 'QUESTION', label: '투표/질문' },
+    ],
+  },
+  chat: {
+    heroLabel: '채팅형 팬방',
+    boardLabel: '채팅',
+    boardTitle: '실시간 메뉴',
+    feedTitle: '실시간 채팅 흐름',
+    communityTitle: '메시지 흐름이 빠른 실시간 팬 소통 구조',
+    communitySpotlight: '지금 대화 많은 방',
+    composerLabel: '채팅 메시지 남기기',
+    composerTitle: '짧은 메시지와 실시간 반응으로 분위기를 만듭니다.',
+    composerPlaceholderTitle: '짧은 주제 한 줄',
+    composerPlaceholderBody: '실시간 채팅처럼 짧고 빠르게 메시지를 남겨보세요',
+    emptyTitle: '아직 채팅 흐름이 없습니다',
+    emptyDescription: '첫 메시지가 올라오면 실시간 대화가 여기서 쌓입니다.',
+    actionTitle: '라이브 채팅처럼 빠르게 반응을 주고받는 공간',
+    actionCards: [
+      { label: 'LIVE', title: '실시간 채팅 참여', description: '바로 메시지를 남기고 다른 팬과 이어서 얘기합니다.' },
+      { label: 'PIN', title: '공지 핀 보기', description: '방장이 고정한 중요한 메시지를 확인합니다.' },
+      { label: 'TOPIC', title: '주제방 이동', description: '게임, 일상, 라이브 등 주제별 대화방을 나눕니다.' },
+      { label: 'REACT', title: '리액션 남기기', description: '메시지마다 빠르게 리액션을 남깁니다.' },
+      { label: 'EVENT', title: '라이브 일정 보기', description: '곧 열릴 생방송 일정을 체크합니다.' },
+      { label: 'SHOP', title: '드롭 알림 받기', description: '실시간 드롭 굿즈를 놓치지 않게 봅니다.' },
+    ],
+    boards: [
+      { key: 'ALL', label: '실시간 채팅' },
+      { key: 'BEST', label: '핫 토픽' },
+      { key: 'NOTICE', label: '공지 핀' },
+      { key: 'FREE', label: '잡담방' },
+      { key: 'QUESTION', label: '질문방' },
+    ],
+  },
+  challenge: {
+    heroLabel: '챌린지형 팬방',
+    boardLabel: '미션',
+    boardTitle: '챌린지 메뉴',
+    feedTitle: '오늘의 챌린지',
+    communityTitle: '미션과 출석으로 팬 참여를 끌어올리는 구조',
+    communitySpotlight: '지금 반응 좋은 인증글',
+    composerLabel: '인증글 올리기',
+    composerTitle: '오늘의 미션이나 출석 인증을 바로 올릴 수 있습니다.',
+    composerPlaceholderTitle: '오늘 인증 제목',
+    composerPlaceholderBody: '운동, 공부, 루틴, 출석 인증을 남겨보세요',
+    emptyTitle: '아직 챌린지 인증글이 없습니다',
+    emptyDescription: '첫 인증글이 올라오면 팬들의 참여 흐름이 열립니다.',
+    actionTitle: '미션, 출석, 랭킹으로 계속 들어오게 만드는 팬방',
+    actionCards: [
+      { label: 'MISSION', title: '오늘의 미션 보기', description: '지금 참여할 수 있는 미션을 바로 확인합니다.' },
+      { label: 'CHECK', title: '출석 체크하기', description: '연속 참여 streak를 쌓습니다.' },
+      { label: 'POST', title: '인증글 올리기', description: '사진이나 글로 오늘 미션 완료를 인증합니다.' },
+      { label: 'RANK', title: '랭킹 보기', description: '참여 점수와 배지를 비교합니다.' },
+      { label: 'EVENT', title: '보상 일정 확인', description: '챌린지 마감과 보상 일정을 확인합니다.' },
+      { label: 'SHOP', title: '혜택 굿즈 보기', description: '뱃지나 보상형 상품을 같이 봅니다.' },
+    ],
+    boards: [
+      { key: 'ALL', label: '오늘의 미션' },
+      { key: 'BEST', label: '인기 인증글' },
+      { key: 'NOTICE', label: '공지/규칙' },
+      { key: 'FREE', label: '출석체크' },
+      { key: 'QUESTION', label: '질문/응원' },
+    ],
+  },
+  'fan-creation': {
+    heroLabel: '팬작업형 팬방',
+    boardLabel: '팬작업',
+    boardTitle: '창작 메뉴',
+    feedTitle: '팬 창작 게시판',
+    communityTitle: '팬아트, 밈, 편집물로 팬 콘텐츠가 쌓이는 구조',
+    communitySpotlight: '지금 화제인 팬작업',
+    composerLabel: '팬작업 올리기',
+    composerTitle: '팬아트, 짤, 밈, 편집물을 팬방에 올릴 수 있습니다.',
+    composerPlaceholderTitle: '작품 제목',
+    composerPlaceholderBody: '팬아트, 짤, 편집 영상 소개를 적어보세요',
+    emptyTitle: '아직 등록된 팬작업이 없습니다',
+    emptyDescription: '첫 번째 팬 창작물이 올라오면 여기서 큐레이션됩니다.',
+    actionTitle: '2차 창작과 밈이 중심이 되는 팬 제작형 팬방',
+    actionCards: [
+      { label: 'ART', title: '팬아트 올리기', description: '그림, 캡처, 짤 이미지를 공유합니다.' },
+      { label: 'MEME', title: '짤/밈 공유하기', description: '캐릭터성과 세계관을 살린 밈을 올립니다.' },
+      { label: 'CLIP', title: '편집물 소개하기', description: '영상 편집물이나 리액션 링크를 공유합니다.' },
+      { label: 'PICK', title: 'PICK 작품 보기', description: '방장이 고른 인기 팬작업을 모아봅니다.' },
+      { label: 'EVENT', title: '콘테스트 일정 보기', description: '팬작업 이벤트 마감일을 확인합니다.' },
+      { label: 'SHOP', title: '창작 굿즈 보기', description: '작품 기반 굿즈나 드롭 소식을 봅니다.' },
+    ],
+    boards: [
+      { key: 'ALL', label: '전체 작품' },
+      { key: 'BEST', label: '인기 작품' },
+      { key: 'NOTICE', label: '공지/가이드' },
+      { key: 'FREE', label: '짤/밈' },
+      { key: 'QUESTION', label: '리액션/질문' },
+    ],
+  },
+  archive: {
+    heroLabel: '아카이브형 팬방',
+    boardLabel: '아카이브',
+    boardTitle: '아카이브 메뉴',
+    feedTitle: '입문 가이드',
+    communityTitle: '입문 가이드와 명장면을 정리하는 라이브러리 구조',
+    communitySpotlight: '지금 많이 보는 정리글',
+    composerLabel: '정리글 올리기',
+    composerTitle: '명장면 요약, 입문 가이드, FAQ를 정리할 수 있습니다.',
+    composerPlaceholderTitle: '정리글 제목',
+    composerPlaceholderBody: '입문용 가이드나 명장면 요약을 남겨보세요',
+    emptyTitle: '아직 정리된 아카이브가 없습니다',
+    emptyDescription: '첫 가이드가 올라오면 신규 팬도 바로 따라올 수 있습니다.',
+    actionTitle: '신규 팬이 빠르게 적응할 수 있게 정리하는 팬방',
+    actionCards: [
+      { label: 'GUIDE', title: '입문 가이드 보기', description: '처음 들어온 팬도 빠르게 적응할 수 있습니다.' },
+      { label: 'SCENE', title: '명장면 보기', description: '대표 장면과 밈 포인트를 모아봅니다.' },
+      { label: 'SUMMARY', title: '방송 요약 읽기', description: '길었던 방송도 핵심만 빠르게 봅니다.' },
+      { label: 'FAQ', title: 'FAQ 확인하기', description: '자주 묻는 질문과 팬 문화 설명을 봅니다.' },
+      { label: 'EVENT', title: '다음 일정 보기', description: '앞으로의 라이브와 업로드 일정을 확인합니다.' },
+      { label: 'SHOP', title: '관련 굿즈 보기', description: '입문 굿즈나 대표 상품을 같이 봅니다.' },
+    ],
+    boards: [
+      { key: 'ALL', label: '입문 가이드' },
+      { key: 'BEST', label: '명장면 모음' },
+      { key: 'NOTICE', label: '공지/규칙' },
+      { key: 'FREE', label: '방송 요약' },
+      { key: 'QUESTION', label: 'FAQ' },
+    ],
+  },
+} satisfies Record<
+  FanRoomType,
+  {
+    heroLabel: string
+    boardLabel: string
+    boardTitle: string
+    feedTitle: string
+    communityTitle: string
+    communitySpotlight: string
+    composerLabel: string
+    composerTitle: string
+    composerPlaceholderTitle: string
+    composerPlaceholderBody: string
+    emptyTitle: string
+    emptyDescription: string
+    actionTitle: string
+    actionCards: { label: string; title: string; description: string }[]
+    boards: { key: string; label: string }[]
+  }
+>
 
 const contentTimeline = [
   {
@@ -607,6 +865,7 @@ function App() {
   const [fanCommentDrafts, setFanCommentDrafts] = useState<Record<number, string>>({})
   const [isStartingFanGoogleLogin, setIsStartingFanGoogleLogin] = useState(false)
   const [selectedRoomTheme, setSelectedRoomTheme] = useState<RoomThemeId>('hub-classic')
+  const [selectedFanRoomType, setSelectedFanRoomType] = useState<FanRoomType>('community-board')
   const [isRoleMenuOpen, setIsRoleMenuOpen] = useState(false)
   const [platformSetup, setPlatformSetup] = useState<Record<string, PlatformSetupState>>({
     YouTube: {
@@ -641,6 +900,9 @@ function App() {
 
   const activeRoomTheme =
     roomThemePresets.find((preset) => preset.id === selectedRoomTheme) ?? roomThemePresets[0]
+  const activeFanRoomType =
+    fanRoomTypePresets.find((preset) => preset.id === selectedFanRoomType) ?? fanRoomTypePresets[0]
+  const activeFanRoomUi = fanRoomTypeUi[selectedFanRoomType]
   const useRoomThemeSurface = currentView === 'fan'
   const isClassicRoomTheme = selectedRoomTheme === 'hub-classic'
   const creatorExperienceClasses = `banner-${bannerStyle} buttons-${buttonStyle} density-${cardDensity}`
@@ -707,6 +969,9 @@ function App() {
     }
     if (fanBoardFilter === 'BEST') {
       return post.highlighted
+    }
+    if (fanBoardFilter === 'MEME') {
+      return post.post_type === 'FREE'
     }
     return post.post_type === fanBoardFilter
   })
@@ -1131,6 +1396,7 @@ function App() {
       setBannerStyle(data.banner_style)
       setButtonStyle(data.button_style)
       setCardDensity(data.card_density)
+      setSelectedFanRoomType(data.room_layout_type ?? 'community-board')
       setDiscordWebhookUrl(data.discord_webhook_url ?? '')
       setInstagramAccountId(data.instagram_account_id ?? '')
       setInstagramAccessToken(data.instagram_access_token ?? '')
@@ -2760,6 +3026,14 @@ function App() {
   }, [publishComposerMode, platformSetup])
 
   useEffect(() => {
+    const nextDefaultBoard = activeFanRoomUi.boards[0]?.key ?? 'ALL'
+    const hasCurrentBoard = activeFanRoomUi.boards.some((board) => board.key === fanBoardFilter)
+    if (!hasCurrentBoard) {
+      setFanBoardFilter(nextDefaultBoard)
+    }
+  }, [selectedFanRoomType])
+
+  useEffect(() => {
     if (!isCreatorLoggedIn || !hasHydratedCreatorSettings) {
       return
     }
@@ -2776,6 +3050,7 @@ function App() {
         banner_style: bannerStyle,
         button_style: buttonStyle,
         card_density: cardDensity,
+        room_layout_type: selectedFanRoomType,
         discord_webhook_url: discordWebhookUrl,
         discord_enabled: platformSetup.Discord.isEnabled,
         instagram_account_id: instagramAccountId,
@@ -2792,6 +3067,7 @@ function App() {
     bannerStyle,
     buttonStyle,
     cardDensity,
+    selectedFanRoomType,
     selectedFeatures,
   ])
 
@@ -3730,6 +4006,34 @@ function App() {
               </p>
 
               <div className="selection-summary settings-save-card">
+                <span className="mini-label">팬방 유형</span>
+                <strong>{activeFanRoomType.name}</strong>
+                <p>{activeFanRoomType.purpose}</p>
+              </div>
+
+              <div className="room-type-grid">
+                {fanRoomTypePresets.map((preset) => {
+                  const selected = preset.id === selectedFanRoomType
+                  return (
+                    <button
+                      className={selected ? 'room-type-card active' : 'room-type-card'}
+                      key={preset.id}
+                      onClick={() => setSelectedFanRoomType(preset.id)}
+                      type="button"
+                    >
+                      <div className="feature-card-top">
+                        <span className="mini-label">{selected ? '선택됨' : '팬방 유형'}</span>
+                        <span className={selected ? 'toggle on' : 'toggle'}>{selected ? 'ON' : 'OFF'}</span>
+                      </div>
+                      <strong>{preset.name}</strong>
+                      <p>{preset.description}</p>
+                      <span className="feature-metric">{preset.recommendedFor}</span>
+                    </button>
+                  )
+                })}
+              </div>
+
+              <div className="selection-summary settings-save-card">
                 <span className="mini-label">현재 활성화</span>
                 <strong>{selectedFeatures.length}개 모듈 선택됨</strong>
                 <p>{selectedFeatures.join(' · ')}</p>
@@ -3760,6 +4064,12 @@ function App() {
 
             <section className="editor-card accent">
               <span className="card-kicker">적용 결과</span>
+              <div className="notice-preview compact-highlight">
+                <span className="mini-label">선택한 팬방 유형</span>
+                <strong>{activeFanRoomType.name}</strong>
+                <p>{activeFanRoomType.description}</p>
+              </div>
+
               <div className="selected-module-list">
                 {selectedFeatures.map((feature) => (
                   <div className="selected-module" key={feature}>
@@ -5500,41 +5810,37 @@ function App() {
         <div className="panel-head">
           <div>
             <span className="card-kicker">팬이 할 수 있는 것</span>
-            <h3>들어오자마자 바로 참여할 수 있는 액션</h3>
+            <h3>{activeFanRoomUi.actionTitle}</h3>
           </div>
         </div>
 
         <div className="fan-action-grid">
-          <button className="fan-action-card" onClick={focusFanComposer} type="button">
-            <span className="mini-label">POST</span>
-            <strong>글 올리기</strong>
-            <p>팬방 얘기, 후기, 짤, 잡담을 바로 남길 수 있습니다.</p>
-          </button>
-          <button className="fan-action-card" onClick={() => setFanTab('feed')} type="button">
-            <span className="mini-label">REACT</span>
-            <strong>추천 누르기</strong>
-            <p>재밌는 글은 추천해서 인기순으로 올릴 수 있습니다.</p>
-          </button>
-          <button className="fan-action-card" onClick={() => setFanTab('feed')} type="button">
-            <span className="mini-label">TALK</span>
-            <strong>댓글 달기</strong>
-            <p>팬들끼리 실시간으로 반응을 주고받으며 놀 수 있습니다.</p>
-          </button>
-          <button className="fan-action-card" onClick={() => setFanTab('calendar')} type="button">
-            <span className="mini-label">EVENT</span>
-            <strong>일정 체크하기</strong>
-            <p>라이브, 이벤트, 인증 미션을 일정 탭에서 바로 확인합니다.</p>
-          </button>
-          <button className="fan-action-card" onClick={() => setFanTab('shop')} type="button">
-            <span className="mini-label">SHOP</span>
-            <strong>굿즈 둘러보기</strong>
-            <p>팬방 한정 굿즈나 드롭 상품을 바로 볼 수 있습니다.</p>
-          </button>
-          <button className="fan-action-card" onClick={() => setCurrentView('invite')} type="button">
-            <span className="mini-label">INVITE</span>
-            <strong>다른 팬방 추가</strong>
-            <p>초대 링크로 다른 인플루언서 팬방도 같은 계정으로 들어갑니다.</p>
-          </button>
+          {activeFanRoomUi.actionCards.map((action, index) => (
+            <button
+              className="fan-action-card"
+              key={`${selectedFanRoomType}-${action.label}`}
+              onClick={() => {
+                if (index === 0) {
+                  focusFanComposer()
+                  return
+                }
+                if (index === 4) {
+                  setFanTab('calendar')
+                  return
+                }
+                if (index === 5) {
+                  setFanTab('shop')
+                  return
+                }
+                setFanTab('feed')
+              }}
+              type="button"
+            >
+              <span className="mini-label">{action.label}</span>
+              <strong>{action.title}</strong>
+              <p>{action.description}</p>
+            </button>
+          ))}
         </div>
       </section>
 
@@ -5580,11 +5886,18 @@ function App() {
 
       {fanTab === 'feed' ? (
         <section className="fan-community-hub">
+          <div className="panel-head">
+            <div>
+              <span className="card-kicker">{activeFanRoomUi.boardLabel}</span>
+              <h3>{activeFanRoomUi.communityTitle}</h3>
+            </div>
+          </div>
+
           <div className="fan-community-stats">
             <article className="fan-community-card">
-              <span className="mini-label">커뮤니티 글</span>
+              <span className="mini-label">{activeFanRoomUi.boardLabel}</span>
               <strong>{visibleFanFeed.length}개</strong>
-              <p>지금 팬방에 올라온 최근 글 수</p>
+              <p>{activeFanRoomUi.feedTitle}에 쌓인 최근 글 수</p>
             </article>
             <article className="fan-community-card">
               <span className="mini-label">추천 반응</span>
@@ -5599,12 +5912,12 @@ function App() {
           </div>
 
           <div className="fan-community-spotlight">
-            <span className="card-kicker">지금 인기글</span>
+            <span className="card-kicker">{activeFanRoomUi.communitySpotlight}</span>
             <h3>{hottestFanPost?.title ?? '아직 인기글이 없습니다'}</h3>
             <p>
               {hottestFanPost
                 ? `${hottestFanPost.author_name} · 추천 ${hottestFanPost.like_count} · 댓글 ${hottestFanPost.comment_count}`
-                : '첫 글이 올라오면 여기서 팬들이 가장 반응한 글을 바로 보여줍니다.'}
+                : `${activeFanRoomUi.feedTitle}에 첫 글이 올라오면 여기서 가장 반응 좋은 글을 바로 보여줍니다.`}
             </p>
           </div>
         </section>
@@ -5647,19 +5960,27 @@ function App() {
           <section className="fan-menu-panel">
             <div className="panel-head">
               <div>
-                <span className="card-kicker">게시판</span>
-                <h3>커뮤니티 메뉴</h3>
+                <span className="card-kicker">{activeFanRoomUi.boardLabel}</span>
+                <h3>{activeFanRoomUi.boardTitle}</h3>
               </div>
             </div>
 
             <div className="fan-board-menu">
-              {[
-                { key: 'ALL', label: '전체 글', count: visibleFanFeed.length },
-                { key: 'BEST', label: '베스트', count: visibleFanFeed.filter((post) => post.highlighted).length },
-                { key: 'NOTICE', label: '공지', count: visibleFanFeed.filter((post) => post.post_type === 'NOTICE').length },
-                { key: 'FREE', label: '자유글', count: visibleFanFeed.filter((post) => post.post_type === 'FREE').length },
-                { key: 'QUESTION', label: '질문', count: visibleFanFeed.filter((post) => post.post_type === 'QUESTION').length },
-              ].map((board) => (
+              {activeFanRoomUi.boards.map((board) => {
+                const count =
+                  board.key === 'ALL'
+                    ? visibleFanFeed.length
+                    : board.key === 'BEST'
+                      ? visibleFanFeed.filter((post) => post.highlighted).length
+                      : board.key === 'NOTICE'
+                        ? visibleFanFeed.filter((post) => post.post_type === 'NOTICE').length
+                        : board.key === 'FREE' || board.key === 'MEME'
+                          ? visibleFanFeed.filter((post) => post.post_type === 'FREE').length
+                          : board.key === 'QUESTION'
+                            ? visibleFanFeed.filter((post) => post.post_type === 'QUESTION').length
+                            : visibleFanFeed.length
+
+                return (
                 <button
                   className={fanBoardFilter === board.key ? 'fan-menu-button active' : 'fan-menu-button'}
                   key={board.key}
@@ -5670,9 +5991,10 @@ function App() {
                   type="button"
                 >
                   <strong>{board.label}</strong>
-                  <p>{board.count}개 글</p>
+                  <p>{count}개 글</p>
                 </button>
-              ))}
+                )
+              })}
             </div>
           </section>
         </aside>
@@ -5680,18 +6002,20 @@ function App() {
         <section className="fan-feed">
           <div className="panel-head">
             <div>
-              <span className="card-kicker">팬 홈</span>
+              <span className="card-kicker">{activeFanRoomUi.heroLabel}</span>
               <h3>
                 {fanTab === 'feed'
                   ? fanBoardFilter === 'ALL'
-                    ? '게시판'
+                    ? activeFanRoomUi.feedTitle
                     : fanBoardFilter === 'BEST'
-                      ? '베스트 게시판'
+                      ? `${activeFanRoomUi.boards.find((board) => board.key === 'BEST')?.label ?? '베스트'}`
                       : fanBoardFilter === 'NOTICE'
-                        ? '공지 게시판'
+                        ? `${activeFanRoomUi.boards.find((board) => board.key === 'NOTICE')?.label ?? '공지'}`
                         : fanBoardFilter === 'FREE'
-                          ? '자유 게시판'
-                          : '질문 게시판'
+                          ? `${activeFanRoomUi.boards.find((board) => board.key === 'FREE')?.label ?? '자유글'}`
+                          : fanBoardFilter === 'QUESTION'
+                            ? `${activeFanRoomUi.boards.find((board) => board.key === 'QUESTION')?.label ?? '질문'}`
+                            : `${activeFanRoomUi.boards.find((board) => board.key === fanBoardFilter)?.label ?? activeFanRoomUi.feedTitle}`
                   : fanTab === 'calendar'
                     ? '다가오는 일정'
                     : '팬방 한정 굿즈'}
@@ -5702,28 +6026,28 @@ function App() {
           {fanTab === 'feed' && (
             <>
               <article className="mini-board" ref={fanPostComposerRef}>
-                <span className="mini-label">팬 게시글 작성</span>
+                <span className="mini-label">{activeFanRoomUi.composerLabel}</span>
                 <strong>
-                  {fanSession ? '팬들끼리 자유롭게 글을 올릴 수 있습니다.' : '초대 링크로 입장하면 바로 글을 올릴 수 있습니다.'}
+                  {fanSession ? activeFanRoomUi.composerTitle : '초대 링크로 입장하면 바로 글을 올릴 수 있습니다.'}
                 </strong>
                 {fanSession ? (
                   <div className="form-stack">
                     <input
                       className="text-input"
                       onChange={(event) => setFanPostTitle(event.target.value)}
-                      placeholder="제목을 입력하세요"
+                      placeholder={activeFanRoomUi.composerPlaceholderTitle}
                       ref={fanPostTitleInputRef}
                       value={fanPostTitle}
                     />
                     <textarea
                       className="text-area"
                       onChange={(event) => setFanPostBody(event.target.value)}
-                      placeholder="오늘 본 영상 이야기나 팬방 잡담을 남겨보세요"
+                      placeholder={activeFanRoomUi.composerPlaceholderBody}
                       value={fanPostBody}
                     />
                     <div className="inline-actions compact-actions">
                       <button className="primary-action" onClick={() => void handleCreateFanPost()} type="button">
-                        팬 게시글 올리기
+                        {activeFanRoomUi.composerLabel}
                       </button>
                       <span className="helper-copy">{fanPostStatus}</span>
                     </div>
@@ -5797,9 +6121,9 @@ function App() {
                 </div>
               ) : (
                 <div className="mini-board">
-                  <span className="mini-label">게시판 비어 있음</span>
-                  <strong>이 게시판에는 아직 글이 없습니다</strong>
-                  <p>다른 게시판을 보거나 첫 글을 올려서 팬방 대화를 시작해 보세요.</p>
+                  <span className="mini-label">{activeFanRoomUi.boardLabel} 비어 있음</span>
+                  <strong>{activeFanRoomUi.emptyTitle}</strong>
+                  <p>{activeFanRoomUi.emptyDescription}</p>
                 </div>
               )}
             </>

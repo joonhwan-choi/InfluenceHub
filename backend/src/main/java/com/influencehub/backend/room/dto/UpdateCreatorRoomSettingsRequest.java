@@ -8,6 +8,7 @@ public class UpdateCreatorRoomSettingsRequest {
     private String bannerStyle;
     private String buttonStyle;
     private String cardDensity;
+    private String roomLayoutType;
     private String discordWebhookUrl;
     private Boolean discordEnabled;
     private String instagramAccountId;
@@ -29,6 +30,10 @@ public class UpdateCreatorRoomSettingsRequest {
 
     public String getCardDensity() {
         return cardDensity;
+    }
+
+    public String getRoomLayoutType() {
+        return roomLayoutType;
     }
 
     public String getDiscordWebhookUrl() {

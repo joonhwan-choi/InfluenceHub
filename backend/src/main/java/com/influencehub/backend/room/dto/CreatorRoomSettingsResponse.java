@@ -8,6 +8,7 @@ public class CreatorRoomSettingsResponse {
     private final String bannerStyle;
     private final String buttonStyle;
     private final String cardDensity;
+    private final String roomLayoutType;
     private final String discordWebhookUrl;
     private final boolean discordEnabled;
     private final String instagramAccountId;
@@ -20,6 +21,7 @@ public class CreatorRoomSettingsResponse {
         String bannerStyle,
         String buttonStyle,
         String cardDensity,
+        String roomLayoutType,
         String discordWebhookUrl,
         boolean discordEnabled,
         String instagramAccountId,
@@ -31,6 +33,7 @@ public class CreatorRoomSettingsResponse {
         this.bannerStyle = bannerStyle;
         this.buttonStyle = buttonStyle;
         this.cardDensity = cardDensity;
+        this.roomLayoutType = roomLayoutType;
         this.discordWebhookUrl = discordWebhookUrl;
         this.discordEnabled = discordEnabled;
         this.instagramAccountId = instagramAccountId;
@@ -53,6 +56,10 @@ public class CreatorRoomSettingsResponse {
 
     public String getCardDensity() {
         return cardDensity;
+    }
+
+    public String getRoomLayoutType() {
+        return roomLayoutType;
     }
 
     public String getDiscordWebhookUrl() {
