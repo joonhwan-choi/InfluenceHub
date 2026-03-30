@@ -5757,9 +5757,11 @@ function App() {
             </div>
           </div>
 
-          <div className="fan-video-grid">
-            {fanVideoHighlights.map((video, index) => {
-              const videoLabel =
+          <div className="fan-video-showcase">
+            {(() => {
+              const featuredVideo = fanVideoHighlights[0]
+              const sideVideos = fanVideoHighlights.slice(1, 5)
+              const getVideoLabel = (video: YoutubeRecentVideoItem, index: number) =>
                 video.liveBroadcastContent === 'live'
                   ? '최신 생방송'
                   : /shorts|쇼츠/i.test(video.title)
@@ -5769,39 +5771,74 @@ function App() {
                       : '최신 업로드'
 
               return (
-                <a
-                  className="fan-video-card"
-                  href={video.watchUrl}
-                  key={video.videoId || `${video.title}-${index}`}
-                  rel="noreferrer"
-                  target="_blank"
-                >
-                  <div className="fan-video-card-head">
-                    <span className="fan-video-youtube">YouTube</span>
-                    <span className="mini-label">{videoLabel}</span>
-                  </div>
-                  <div className="fan-video-media">
-                    {video.thumbnailUrl ? (
-                      <img
-                        alt={video.title}
-                        className="fan-video-thumb"
-                        src={video.thumbnailUrl}
-                      />
-                    ) : (
-                      <div className="fan-video-thumb fan-video-thumb-fallback">{videoLabel}</div>
-                    )}
-                    <div className="fan-video-overlay">
-                      <span className="fan-video-play">▶</span>
-                      <span className="fan-video-cta">유튜브에서 보기</span>
+                <>
+                  <a
+                    className="fan-video-featured"
+                    href={featuredVideo.watchUrl}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    <div className="fan-video-featured-top">
+                      <span className="fan-video-youtube">YouTube</span>
+                      <strong>{getVideoLabel(featuredVideo, 0)}</strong>
                     </div>
+                    <div className="fan-video-featured-media">
+                      {featuredVideo.thumbnailUrl ? (
+                        <img
+                          alt={featuredVideo.title}
+                          className="fan-video-thumb"
+                          loading="lazy"
+                          src={featuredVideo.thumbnailUrl}
+                        />
+                      ) : (
+                        <div className="fan-video-thumb fan-video-thumb-fallback">최신 영상</div>
+                      )}
+                      <div className="fan-video-overlay fan-video-overlay-featured">
+                        <span className="fan-video-play">▶</span>
+                      </div>
+                    </div>
+                    <div className="fan-video-featured-copy">
+                      <h4>{featuredVideo.title}</h4>
+                      <p>{connectedChannel?.channel_title ?? activeFanRoom?.creator ?? 'YouTube 채널'}</p>
+                      <span className="fan-video-watch-pill">유튜브에서 바로 보기</span>
+                    </div>
+                  </a>
+
+                  <div className="fan-video-list">
+                    {sideVideos.map((video, index) => (
+                      <a
+                        className="fan-video-list-item"
+                        href={video.watchUrl}
+                        key={video.videoId || `${video.title}-${index + 1}`}
+                        rel="noreferrer"
+                        target="_blank"
+                      >
+                        <div className="fan-video-list-thumb-wrap">
+                          {video.thumbnailUrl ? (
+                            <img
+                              alt={video.title}
+                              className="fan-video-list-thumb"
+                              loading="lazy"
+                              src={video.thumbnailUrl}
+                            />
+                          ) : (
+                            <div className="fan-video-list-thumb fan-video-thumb-fallback">
+                              {getVideoLabel(video, index + 1)}
+                            </div>
+                          )}
+                          <span className="fan-video-list-play">▶</span>
+                        </div>
+                        <div className="fan-video-list-copy">
+                          <span className="mini-label">{getVideoLabel(video, index + 1)}</span>
+                          <strong>{video.title}</strong>
+                          <p>{connectedChannel?.channel_title ?? activeFanRoom?.creator ?? 'YouTube 채널'}</p>
+                        </div>
+                      </a>
+                    ))}
                   </div>
-                  <div className="fan-video-copy">
-                    <strong>{video.title}</strong>
-                    <p>{connectedChannel?.channel_title ?? activeFanRoom?.creator ?? 'YouTube 채널'}</p>
-                  </div>
-                </a>
+                </>
               )
-            })}
+            })()}
           </div>
         </section>
       ) : null}
