@@ -1644,6 +1644,9 @@ function App() {
 
       const createdPost = (await response.json()) as CommunityPostItem
       setCommunityFeed((current) => [createdPost, ...current])
+      setFanBoardFilter('ALL')
+      setSelectedFanPostId(createdPost.post_id)
+      void loadFanComments(createdPost.post_id)
       setFanPostTitle('')
       setFanPostBody('')
       setFanPostStatus('팬 게시글 등록 완료')

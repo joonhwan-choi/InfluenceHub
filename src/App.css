@@ -3349,6 +3349,8 @@
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-video-list-copy strong,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-video-watch-pill,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-board-detail > strong,
+.page-shell.room-themed .fan-scene:not(.fan-scene-classic) .text-input,
+.page-shell.room-themed .fan-scene:not(.fan-scene-classic) .text-area,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-video-thumb-fallback {
   color: #f7f3ea;
 }
@@ -3361,6 +3363,24 @@
       rgba(255, 255, 255, 0.96),
       color-mix(in srgb, var(--room-theme-panel) 26%, rgba(255, 255, 255, 0.96))
     );
+}
+
+.page-shell.room-themed .fan-scene:not(.fan-scene-classic) .text-input,
+.page-shell.room-themed .fan-scene:not(.fan-scene-classic) .text-area {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--room-theme-panel) 84%, rgba(18, 28, 44, 0.98)),
+      rgba(16, 24, 38, 0.98)
+    );
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--room-theme-accent) 18%, rgba(255, 255, 255, 0.08)),
+    0 10px 24px rgba(0, 0, 0, 0.12);
+}
+
+.page-shell.room-themed .fan-scene:not(.fan-scene-classic) .text-input::placeholder,
+.page-shell.room-themed .fan-scene:not(.fan-scene-classic) .text-area::placeholder {
+  color: rgba(247, 243, 234, 0.54);
 }
 
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-room-card.active {
@@ -3434,6 +3454,8 @@
 .fan-scene-classic .fan-video-list-item,
 .fan-scene-classic .fan-board-row,
 .fan-scene-classic .fan-board-detail,
+.fan-scene-classic .text-input,
+.fan-scene-classic .text-area,
 .fan-scene-classic .fan-menu-button,
 .fan-scene-classic .fan-moment-card,
 .fan-scene-classic .calendar-card,
@@ -3441,6 +3463,11 @@
   background: rgba(255, 255, 255, 0.06);
   color: #f5f1e8;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.fan-scene-classic .text-input::placeholder,
+.fan-scene-classic .text-area::placeholder {
+  color: rgba(245, 241, 232, 0.5);
 }
 
 .fan-scene-classic .fan-room-card.active {
