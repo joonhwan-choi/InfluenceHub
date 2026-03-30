@@ -84,6 +84,16 @@ type YoutubeRecentVideoItem = {
   liveBroadcastContent: string
 }
 
+type YoutubeRecentVideoApiItem = {
+  video_id: string
+  title: string
+  description: string
+  thumbnail_url: string
+  watch_url: string
+  published_at: string
+  live_broadcast_content: string
+}
+
 type InstagramPublishResult = {
   status: string
   mediaId: string
@@ -1182,8 +1192,18 @@ function App() {
         throw new Error('최신 유튜브 영상을 불러오지 못했습니다.')
       }
 
-      const data = (await response.json()) as YoutubeRecentVideoItem[]
-      setYoutubeRecentVideos(data)
+      const data = (await response.json()) as YoutubeRecentVideoApiItem[]
+      setYoutubeRecentVideos(
+        data.map((item) => ({
+          videoId: item.video_id,
+          title: item.title,
+          description: item.description,
+          thumbnailUrl: item.thumbnail_url,
+          watchUrl: item.watch_url,
+          publishedAt: item.published_at,
+          liveBroadcastContent: item.live_broadcast_content,
+        })),
+      )
     } catch {
       setYoutubeRecentVideos([])
     }
@@ -5446,18 +5466,29 @@ function App() {
                   rel="noreferrer"
                   target="_blank"
                 >
-                  <span className="mini-label">{videoLabel}</span>
-                  {video.thumbnailUrl ? (
-                    <img
-                      alt={video.title}
-                      className="fan-video-thumb"
-                      src={video.thumbnailUrl}
-                    />
-                  ) : (
-                    <div className="fan-video-thumb fan-video-thumb-fallback">{videoLabel}</div>
-                  )}
-                  <strong>{video.title}</strong>
-                  <p>{video.description || '유튜브에서 바로 이어서 볼 수 있습니다.'}</p>
+                  <div className="fan-video-card-head">
+                    <span className="fan-video-youtube">YouTube</span>
+                    <span className="mini-label">{videoLabel}</span>
+                  </div>
+                  <div className="fan-video-media">
+                    {video.thumbnailUrl ? (
+                      <img
+                        alt={video.title}
+                        className="fan-video-thumb"
+                        src={video.thumbnailUrl}
+                      />
+                    ) : (
+                      <div className="fan-video-thumb fan-video-thumb-fallback">{videoLabel}</div>
+                    )}
+                    <div className="fan-video-overlay">
+                      <span className="fan-video-play">▶</span>
+                      <span className="fan-video-cta">유튜브에서 보기</span>
+                    </div>
+                  </div>
+                  <div className="fan-video-copy">
+                    <strong>{video.title}</strong>
+                    <p>{connectedChannel?.channel_title ?? activeFanRoom?.creator ?? 'YouTube 채널'}</p>
+                  </div>
                 </a>
               )
             })}

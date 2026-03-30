@@ -2678,13 +2678,15 @@
 
 .fan-video-card {
   display: grid;
-  gap: 12px;
-  padding: 18px;
-  border-radius: 22px;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 24px;
   text-decoration: none;
-  background: rgba(28, 36, 50, 0.04);
-  color: #1c2432;
-  box-shadow: inset 0 0 0 1px rgba(28, 36, 50, 0.08);
+  background: linear-gradient(180deg, rgba(24, 24, 24, 0.98), rgba(16, 16, 16, 0.98));
+  color: #f7f3ea;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 18px 38px rgba(0, 0, 0, 0.18);
   transition:
     transform 180ms ease,
     box-shadow 180ms ease,
@@ -2695,31 +2697,92 @@
   transform: translateY(-2px);
 }
 
+.fan-video-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.fan-video-youtube {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(255, 0, 0, 0.16);
+  color: #ffd7d3;
+  font: 800 0.72rem/1 "Arial Black", "AppleGothic", sans-serif;
+}
+
+.fan-video-media {
+  position: relative;
+}
+
 .fan-video-thumb {
   width: 100%;
   aspect-ratio: 16 / 9;
   object-fit: cover;
   border-radius: 18px;
-  background: rgba(28, 36, 50, 0.06);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .fan-video-thumb-fallback {
   display: grid;
   place-items: center;
   font: 800 0.9rem/1.25 "Arial Black", "AppleGothic", sans-serif;
-  color: rgba(28, 36, 50, 0.72);
+  color: rgba(247, 243, 234, 0.72);
+}
+
+.fan-video-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 12px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.34));
+}
+
+.fan-video-play {
+  display: grid;
+  place-items: center;
+  width: 74px;
+  height: 52px;
+  border-radius: 18px;
+  background: rgba(255, 30, 30, 0.92);
+  color: #ffffff;
+  font: 900 1.7rem/1 "Arial Black", "AppleGothic", sans-serif;
+  box-shadow: 0 12px 30px rgba(255, 30, 30, 0.28);
+}
+
+.fan-video-cta {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.44);
+  color: #f7f3ea;
+  font: 800 0.76rem/1 "Arial Black", "AppleGothic", sans-serif;
 }
 
 .fan-video-card strong {
   display: block;
-  color: #1c2432;
-  font: 900 1rem/1.35 "Arial Black", "AppleGothic", sans-serif;
+  color: #ffffff;
+  font: 900 1.08rem/1.35 "Arial Black", "AppleGothic", sans-serif;
 }
 
 .fan-video-card p {
   margin: 0;
-  color: rgba(28, 36, 50, 0.68);
-  font: 500 0.92rem/1.55 "AppleGothic", "Arial", sans-serif;
+  color: rgba(247, 243, 234, 0.76);
+  font: 600 0.94rem/1.55 "AppleGothic", "Arial", sans-serif;
+}
+
+.fan-video-copy {
+  display: grid;
+  gap: 6px;
 }
 
 .fan-action-hub {
@@ -2974,6 +3037,15 @@
     0 18px 38px color-mix(in srgb, var(--room-theme-accent) 8%, rgba(28, 36, 50, 0.08));
 }
 
+.page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-video-card {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--room-theme-panel) 86%, rgba(12, 18, 28, 0.98)),
+      rgba(12, 18, 28, 0.98)
+    );
+}
+
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .panel-head h3,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-community-spotlight h3,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-feed h3,
@@ -3003,6 +3075,12 @@
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .mini-board p,
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .mini-board .mini-label {
   color: color-mix(in srgb, var(--room-theme-text) 72%, rgba(28, 36, 50, 0.72));
+}
+
+.page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-video-card strong,
+.page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-video-cta,
+.page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-video-thumb-fallback {
+  color: #f7f3ea;
 }
 
 .page-shell.room-themed .fan-scene:not(.fan-scene-classic) .fan-room-card.active {
