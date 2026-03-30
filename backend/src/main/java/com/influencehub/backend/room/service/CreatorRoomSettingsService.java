@@ -2,6 +2,9 @@ package com.influencehub.backend.room.service;
 
 import com.influencehub.backend.auth.domain.CreatorSession;
 import com.influencehub.backend.auth.service.CreatorAuthService;
+import com.influencehub.backend.community.domain.CommunityPost;
+import com.influencehub.backend.community.domain.PostType;
+import com.influencehub.backend.community.repository.CommunityPostRepository;
 import com.influencehub.backend.feature.domain.RoomFeature;
 import com.influencehub.backend.feature.domain.RoomFeatureType;
 import com.influencehub.backend.feature.repository.RoomFeatureRepository;
@@ -33,13 +36,16 @@ public class CreatorRoomSettingsService {
 
     private final CreatorAuthService creatorAuthService;
     private final RoomFeatureRepository roomFeatureRepository;
+    private final CommunityPostRepository communityPostRepository;
 
     public CreatorRoomSettingsService(
         CreatorAuthService creatorAuthService,
-        RoomFeatureRepository roomFeatureRepository
+        RoomFeatureRepository roomFeatureRepository,
+        CommunityPostRepository communityPostRepository
     ) {
         this.creatorAuthService = creatorAuthService;
         this.roomFeatureRepository = roomFeatureRepository;
+        this.communityPostRepository = communityPostRepository;
     }
 
     @Transactional(readOnly = true)
@@ -72,7 +78,57 @@ public class CreatorRoomSettingsService {
             : request.getSelectedFeatures();
 
         syncRoomFeatures(room, selectedFeatures);
+        seedInitialPostsIfEmpty(room, roomLayoutType);
         return toResponse(room, roomFeatureRepository.findByRoom(room));
+    }
+
+    private void seedInitialPostsIfEmpty(CreatorRoom room, String roomLayoutType) {
+        if (communityPostRepository.countByRoom(room) > 0) {
+            return;
+        }
+
+        List<CommunityPost> seeds = new ArrayList<>();
+        switch (defaultIfBlank(roomLayoutType, DEFAULT_ROOM_TYPE)) {
+            case "feed":
+                seeds.add(highlightedPost(room, PostType.NOTICE, "고정 포스트 | 오늘 룩 미리보기", "저녁 업로드 전에 오늘 코디 디테일과 촬영 무드를 먼저 공개합니다."));
+                seeds.add(new CommunityPost(room, room.getOwner(), PostType.FREE, "오늘 올라온 사진 톤 진짜 좋다", "민트 팝 테마처럼 밝은 분위기라 팬방 피드 분위기도 같이 살아나는 느낌."));
+                seeds.add(new CommunityPost(room, room.getOwner(), PostType.QUESTION, "투표 | 다음에 보고 싶은 콘텐츠는?", "브이로그 / 먹방 / 라이브 클립 중에 다음 업로드로 보고 싶은 걸 댓글로 남겨주세요."));
+                break;
+            case "chat":
+                seeds.add(highlightedPost(room, PostType.NOTICE, "공지 핀 | 실시간 채팅 규칙", "도배 없이 한 줄씩, 라이브 질문은 질문방처럼 남겨주시면 순서대로 읽겠습니다."));
+                seeds.add(new CommunityPost(room, room.getOwner(), PostType.FREE, "실시간 오프닝 반응방", "라이브 시작하자마자 바로 반응 남기는 방입니다. 오늘 텐션 어떤지 한 줄씩 남겨봐요."));
+                seeds.add(new CommunityPost(room, room.getOwner(), PostType.QUESTION, "질문방 | 오늘 라이브에서 꼭 물어보고 싶은 것", "질문이 많을 것 같아서 질문 전용 글을 먼저 열어둡니다."));
+                break;
+            case "challenge":
+                seeds.add(highlightedPost(room, PostType.NOTICE, "공지 | 오늘의 미션은 물 2리터 마시기", "오늘 밤 11시 59분까지 인증글 올리면 출석과 함께 참여로 집계합니다."));
+                seeds.add(highlightedPost(room, PostType.FREE, "출석체크 | 1일차 인증 스레드", "오늘부터 연속 참여 streak를 쌓아봅시다. 출석 완료한 팬은 한 줄 인증 남겨주세요."));
+                seeds.add(new CommunityPost(room, room.getOwner(), PostType.QUESTION, "질문 | 챌린지 보상으로 어떤 혜택이 좋을까?", "배지 / 굿즈 선오픈 / 닉네임 강조 중에서 원하는 보상을 적어주세요."));
+                break;
+            case "fan-creation":
+                seeds.add(highlightedPost(room, PostType.NOTICE, "공지 | 팬아트 / 짤 / 편집물 업로드 가이드", "매주 반응 좋은 작품은 인플루언서 PICK으로 고정하고, 팬방 메인에 다시 소개합니다."));
+                seeds.add(highlightedPost(room, PostType.FREE, "팬작업 모아보기", "팬아트, 짤, 밈, 편집물 링크를 자유롭게 올리는 메인 스레드입니다."));
+                seeds.add(new CommunityPost(room, room.getOwner(), PostType.QUESTION, "질문 | 이번 주 밈 소재 추천", "이번 영상에서 밈으로 쓰기 좋은 장면이나 대사를 추천해주세요."));
+                break;
+            case "archive":
+                seeds.add(highlightedPost(room, PostType.NOTICE, "입문 가이드 | 처음 온 팬을 위한 추천 영상 5개", "이 글 하나만 보면 채널 분위기와 밈 포인트를 빠르게 따라올 수 있게 정리합니다."));
+                seeds.add(new CommunityPost(room, room.getOwner(), PostType.FREE, "방송 요약 | 최근 여행편 3줄 요약", "처음 보는 팬도 흐름을 이해할 수 있게 핵심 장면만 짧게 정리합니다."));
+                seeds.add(new CommunityPost(room, room.getOwner(), PostType.QUESTION, "FAQ | 팬들이 자주 묻는 질문 모음", "세계관, 별명, 대표 밈, 추천 입문 순서를 이 스레드에 계속 업데이트합니다."));
+                break;
+            case "community-board":
+            default:
+                seeds.add(highlightedPost(room, PostType.NOTICE, "공지 | 오늘 라이브는 8시 30분 시작", "라이브 끝난 뒤 팬방에서 Q&A를 이어갑니다. 질문은 질문/상담 게시판에 먼저 남겨주세요."));
+                seeds.add(highlightedPost(room, PostType.FREE, "자유게시판 | 오늘 영상에서 제일 웃겼던 장면", "피자 먹방 들어가기 전에 표정 바뀌는 부분이 오늘의 레전드였다는 팬들이 많았습니다."));
+                seeds.add(new CommunityPost(room, room.getOwner(), PostType.QUESTION, "질문/상담 | 다음 편 업로드는 언제일까?", "브이로그 다음 편이나 라이브 일정 궁금한 팬은 이 글에 댓글로 모아주세요."));
+                break;
+        }
+
+        communityPostRepository.saveAll(seeds);
+    }
+
+    private CommunityPost highlightedPost(CreatorRoom room, PostType postType, String title, String content) {
+        CommunityPost post = new CommunityPost(room, room.getOwner(), postType, title, content);
+        post.updateHighlighted(true);
+        return post;
     }
 
     private CreatorRoomSettingsResponse toResponse(CreatorRoom room, List<RoomFeature> roomFeatures) {

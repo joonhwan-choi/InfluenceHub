@@ -592,268 +592,6 @@ const fanRoomTypeUi = {
   }
 >
 
-const fanRoomPreviewPosts: Record<FanRoomType, CommunityPostItem[]> = {
-  'community-board': [
-    {
-      post_id: -101,
-      post_type: 'NOTICE',
-      title: '공지 | 오늘 라이브는 8시 30분 시작',
-      content: '라이브 끝나고 팬방에서 바로 Q&A 이어갑니다. 질문은 질문/상담 게시판에 먼저 남겨주세요.',
-      author_name: '소금토스트 공식',
-      created_at: '',
-      like_count: 42,
-      comment_count: 18,
-      report_count: 0,
-      liked_by_viewer: false,
-      highlighted: true,
-    },
-    {
-      post_id: -102,
-      post_type: 'FREE',
-      title: '오늘 영상에서 제일 웃겼던 장면 뭐였어?',
-      content: '피자 먹방 들어가기 전에 표정 바뀌는 부분이 진짜 레전드였음.',
-      author_name: '토스트중독',
-      created_at: '',
-      like_count: 31,
-      comment_count: 26,
-      report_count: 0,
-      liked_by_viewer: false,
-      highlighted: true,
-    },
-    {
-      post_id: -103,
-      post_type: 'QUESTION',
-      title: '질문 | 오사카 영상 다음 편은 언제 올라와요?',
-      content: '브이로그 2일차 바로 보고 싶은데 업로드 일정 아는 사람?',
-      author_name: '설탕러버',
-      created_at: '',
-      like_count: 8,
-      comment_count: 9,
-      report_count: 0,
-      liked_by_viewer: false,
-      highlighted: false,
-    },
-    {
-      post_id: -104,
-      post_type: 'FREE',
-      title: '짤/밈 | 오늘 표정 짤로 바로 저장했다',
-      content: '썸네일만 봐도 밈 생성 완료라서 팬방 단톡방에 바로 퍼졌음.',
-      author_name: '짤수집가',
-      created_at: '',
-      like_count: 27,
-      comment_count: 11,
-      report_count: 0,
-      liked_by_viewer: false,
-      highlighted: false,
-    },
-  ],
-  feed: [
-    {
-      post_id: -201,
-      post_type: 'NOTICE',
-      title: '고정 포스트 | 오늘 룩 미리보기',
-      content: '저녁 업로드 전에 오늘 코디 디테일 먼저 공개합니다.',
-      author_name: '소금토스트 공식',
-      created_at: '',
-      like_count: 52,
-      comment_count: 14,
-      report_count: 0,
-      liked_by_viewer: false,
-      highlighted: true,
-    },
-    {
-      post_id: -202,
-      post_type: 'FREE',
-      title: '이 사진 톤 진짜 좋다',
-      content: '민트 팝 테마랑 오늘 올라온 사진 무드가 잘 맞는 듯.',
-      author_name: '필름러버',
-      created_at: '',
-      like_count: 18,
-      comment_count: 6,
-      report_count: 0,
-      liked_by_viewer: false,
-      highlighted: false,
-    },
-    {
-      post_id: -203,
-      post_type: 'QUESTION',
-      title: '다음에 보고 싶은 콘텐츠 투표',
-      content: '브이로그 / 먹방 / 라이브 클립 중에 뭐가 제일 좋음?',
-      author_name: '피드구독중',
-      created_at: '',
-      like_count: 12,
-      comment_count: 15,
-      report_count: 0,
-      liked_by_viewer: false,
-      highlighted: false,
-    },
-  ],
-  chat: [
-    {
-      post_id: -301,
-      post_type: 'NOTICE',
-      title: '공지 핀 | 라이브 채팅 규칙',
-      content: '도배 없이 빠르게 반응 남기고, 질문은 한 번씩만 써주세요.',
-      author_name: '소금토스트 공식',
-      created_at: '',
-      like_count: 14,
-      comment_count: 3,
-      report_count: 0,
-      liked_by_viewer: false,
-      highlighted: true,
-    },
-    {
-      post_id: -302,
-      post_type: 'FREE',
-      title: '방금 오프닝 멘트 들었냐 ㅋㅋ',
-      content: '오늘 텐션 좋다. 라이브 시작부터 채팅창 불타는 중.',
-      author_name: '실시간입장',
-      created_at: '',
-      like_count: 23,
-      comment_count: 19,
-      report_count: 0,
-      liked_by_viewer: false,
-      highlighted: false,
-    },
-    {
-      post_id: -303,
-      post_type: 'QUESTION',
-      title: '질문방 | 다음 합방 누구 예상함?',
-      content: '지난번 떡밥 기준으로 보면 이번 주 안에 한 번 더 뜰 듯.',
-      author_name: '채팅매니아',
-      created_at: '',
-      like_count: 9,
-      comment_count: 12,
-      report_count: 0,
-      liked_by_viewer: false,
-      highlighted: false,
-    },
-  ],
-  challenge: [
-    {
-      post_id: -401,
-      post_type: 'NOTICE',
-      title: '공지 | 오늘의 미션은 물 2리터 마시기',
-      content: '미션 완료 인증은 밤 11시 59분 전까지 올리면 됩니다.',
-      author_name: '소금토스트 공식',
-      created_at: '',
-      like_count: 17,
-      comment_count: 5,
-      report_count: 0,
-      liked_by_viewer: false,
-      highlighted: true,
-    },
-    {
-      post_id: -402,
-      post_type: 'FREE',
-      title: '출석 12일차 인증',
-      content: '오늘도 인증 완료. 생각보다 팬방 출석이 습관 되네.',
-      author_name: '루틴성공',
-      created_at: '',
-      like_count: 21,
-      comment_count: 10,
-      report_count: 0,
-      liked_by_viewer: false,
-      highlighted: true,
-    },
-    {
-      post_id: -403,
-      post_type: 'QUESTION',
-      title: '질문 | 내 streak 어디서 확인해?',
-      content: '랭킹 카드랑 출석 카드가 분리되어 있어서 헷갈림.',
-      author_name: '꾸준팬',
-      created_at: '',
-      like_count: 6,
-      comment_count: 7,
-      report_count: 0,
-      liked_by_viewer: false,
-      highlighted: false,
-    },
-  ],
-  'fan-creation': [
-    {
-      post_id: -501,
-      post_type: 'NOTICE',
-      title: '공지 | 팬아트 주간 PICK 선정 기준',
-      content: '매주 금요일에 팬아트, 짤, 편집물 중 반응 좋은 작품을 PICK 합니다.',
-      author_name: '소금토스트 공식',
-      created_at: '',
-      like_count: 11,
-      comment_count: 4,
-      report_count: 0,
-      liked_by_viewer: false,
-      highlighted: true,
-    },
-    {
-      post_id: -502,
-      post_type: 'FREE',
-      title: '팬아트 | 오사카 먹방 장면 그려봄',
-      content: '피자 들고 있는 장면을 캐릭터 버전으로 다시 그렸어요.',
-      author_name: '토스트그림러',
-      created_at: '',
-      like_count: 33,
-      comment_count: 17,
-      report_count: 0,
-      liked_by_viewer: false,
-      highlighted: true,
-    },
-    {
-      post_id: -503,
-      post_type: 'QUESTION',
-      title: '리액션 공유 | 편집 밈 소재 추천 받아요',
-      content: '이번 영상에서 어떤 장면이 제일 밈각인지 추천 좀.',
-      author_name: '짤편집중',
-      created_at: '',
-      like_count: 10,
-      comment_count: 8,
-      report_count: 0,
-      liked_by_viewer: false,
-      highlighted: false,
-    },
-  ],
-  archive: [
-    {
-      post_id: -601,
-      post_type: 'NOTICE',
-      title: '입문 가이드 | 처음 온 팬을 위한 5개 추천 영상',
-      content: '입문용 브이로그, 라이브, 밈 영상 순서로 정리했습니다.',
-      author_name: '소금토스트 공식',
-      created_at: '',
-      like_count: 28,
-      comment_count: 9,
-      report_count: 0,
-      liked_by_viewer: false,
-      highlighted: true,
-    },
-    {
-      post_id: -602,
-      post_type: 'FREE',
-      title: '방송 요약 | 보홀 여행편 3줄 요약',
-      content: '1. 이동 지옥 2. 바다 뷰 미쳤음 3. 마지막 먹방이 핵심',
-      author_name: '정리요정',
-      created_at: '',
-      like_count: 19,
-      comment_count: 6,
-      report_count: 0,
-      liked_by_viewer: false,
-      highlighted: false,
-    },
-    {
-      post_id: -603,
-      post_type: 'QUESTION',
-      title: 'FAQ | 설탕토스트 밈의 시작이 뭐야?',
-      content: '신규 팬이라 세계관 입문 중인데 처음 떡밥 정리글 있으면 좋겠음.',
-      author_name: '입문팬',
-      created_at: '',
-      like_count: 13,
-      comment_count: 12,
-      report_count: 0,
-      liked_by_viewer: false,
-      highlighted: false,
-    },
-  ],
-}
-
 const contentTimeline = [
   {
     time: 'READY',
@@ -1224,12 +962,8 @@ function App() {
   ).length
   const youtubeLongformCount = Math.max(youtubePublishHistory.length - youtubeShortsCount, 0)
   const visibleFanFeed = communityFeed.filter((post) => !isTestCommunityPost(post)).slice(0, 10)
-  const previewFanFeed =
-    visibleFanFeed.length === 0 ? fanRoomPreviewPosts[selectedFanRoomType] : []
-  const effectiveFanFeed = previewFanFeed.length > 0 ? previewFanFeed : visibleFanFeed
-  const isUsingPreviewFanFeed = previewFanFeed.length > 0
   const fanVideoHighlights = youtubeRecentVideos.slice(0, 5)
-  const filteredFanFeed = effectiveFanFeed.filter((post) => {
+  const filteredFanFeed = visibleFanFeed.filter((post) => {
     if (fanBoardFilter === 'ALL') {
       return true
     }
@@ -1309,11 +1043,11 @@ function App() {
     { label: 'BIG_SPENDER', value: `${fanTierCounts.BIG_SPENDER}명`, meta: '굿즈/이벤트 강한 팬' },
     { label: 'CORE_CREW', value: `${fanTierCounts.CORE_CREW}명`, meta: '코어 팬 그룹' },
   ]
-  const fanFeedLikeTotal = effectiveFanFeed.reduce((sum, post) => sum + post.like_count, 0)
-  const fanFeedCommentTotal = effectiveFanFeed.reduce((sum, post) => sum + post.comment_count, 0)
+  const fanFeedLikeTotal = visibleFanFeed.reduce((sum, post) => sum + post.like_count, 0)
+  const fanFeedCommentTotal = visibleFanFeed.reduce((sum, post) => sum + post.comment_count, 0)
   const hottestFanPost =
-    effectiveFanFeed.length > 0
-      ? [...effectiveFanFeed].sort((left, right) => (right.like_count + right.comment_count) - (left.like_count + left.comment_count))[0]
+    visibleFanFeed.length > 0
+      ? [...visibleFanFeed].sort((left, right) => (right.like_count + right.comment_count) - (left.like_count + left.comment_count))[0]
       : null
   const homeStatCards = [
     {
@@ -5987,8 +5721,8 @@ function App() {
             <span className="mini-label">이번 주 팬 룸 포인트</span>
             <strong>{activeFanRoom?.creator ?? '팬방 대기 중'}</strong>
             <p>
-              {effectiveFanFeed[0]?.title
-                ? `${effectiveFanFeed[0].title} 같은 최근 소식이 여기서 이어집니다.`
+              {visibleFanFeed[0]?.title
+                ? `${visibleFanFeed[0].title} 같은 최근 소식이 여기서 이어집니다.`
                 : '새 공지, 일정, 굿즈 드롭이 생기면 여기서 먼저 보입니다.'}
             </p>
           </div>
@@ -6162,7 +5896,7 @@ function App() {
           <div className="fan-community-stats">
             <article className="fan-community-card">
               <span className="mini-label">{activeFanRoomUi.boardLabel}</span>
-              <strong>{effectiveFanFeed.length}개</strong>
+              <strong>{visibleFanFeed.length}개</strong>
               <p>{activeFanRoomUi.feedTitle}에 쌓인 최근 글 수</p>
             </article>
             <article className="fan-community-card">
@@ -6235,16 +5969,16 @@ function App() {
               {activeFanRoomUi.boards.map((board) => {
                 const count =
                   board.key === 'ALL'
-                    ? effectiveFanFeed.length
+                    ? visibleFanFeed.length
                     : board.key === 'BEST'
-                      ? effectiveFanFeed.filter((post) => post.highlighted).length
+                      ? visibleFanFeed.filter((post) => post.highlighted).length
                       : board.key === 'NOTICE'
-                        ? effectiveFanFeed.filter((post) => post.post_type === 'NOTICE').length
+                        ? visibleFanFeed.filter((post) => post.post_type === 'NOTICE').length
                         : board.key === 'FREE' || board.key === 'MEME'
-                          ? effectiveFanFeed.filter((post) => post.post_type === 'FREE').length
+                          ? visibleFanFeed.filter((post) => post.post_type === 'FREE').length
                           : board.key === 'QUESTION'
-                            ? effectiveFanFeed.filter((post) => post.post_type === 'QUESTION').length
-                            : effectiveFanFeed.length
+                            ? visibleFanFeed.filter((post) => post.post_type === 'QUESTION').length
+                            : visibleFanFeed.length
 
                 return (
                 <button
@@ -6287,9 +6021,6 @@ function App() {
                     : '팬방 한정 굿즈'}
               </h3>
             </div>
-            {isUsingPreviewFanFeed ? (
-              <span className="status-badge">PREVIEW</span>
-            ) : null}
           </div>
 
           {fanTab === 'feed' && (
@@ -6329,9 +6060,6 @@ function App() {
                     <span className="helper-copy">초대 링크를 통해 팬방에 입장하면 이 자리에서 바로 글을 쓸 수 있습니다.</span>
                   </div>
                 )}
-                {isUsingPreviewFanFeed ? (
-                  <span className="helper-copy">실제 글이 아직 없어서 현재는 팬방 유형에 맞는 샘플 게시판을 보여주고 있습니다.</span>
-                ) : null}
               </article>
 
               {filteredFanFeed.length > 0 ? (
