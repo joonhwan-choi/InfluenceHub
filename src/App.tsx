@@ -979,6 +979,10 @@ function App() {
   })
   const selectedFanPost =
     filteredFanFeed.find((post) => post.post_id === selectedFanPostId) ?? filteredFanFeed[0] ?? null
+  const fanBoardColumns = [
+    filteredFanFeed.filter((_, index) => index % 2 === 0),
+    filteredFanFeed.filter((_, index) => index % 2 === 1),
+  ]
   const formatRelativeTime = (value: string) => {
     const target = new Date(value).getTime()
     if (Number.isNaN(target)) {
@@ -6049,46 +6053,6 @@ function App() {
             )}
           </section>
 
-          <section className="fan-menu-panel">
-            <div className="panel-head">
-              <div>
-                <span className="card-kicker">{activeFanRoomUi.boardLabel}</span>
-                <h3>{activeFanRoomUi.boardTitle}</h3>
-              </div>
-            </div>
-
-            <div className="fan-board-menu">
-              {activeFanRoomUi.boards.map((board) => {
-                const count =
-                  board.key === 'ALL'
-                    ? visibleFanFeed.length
-                    : board.key === 'BEST'
-                      ? visibleFanFeed.filter((post) => post.highlighted).length
-                      : board.key === 'NOTICE'
-                        ? visibleFanFeed.filter((post) => post.post_type === 'NOTICE').length
-                        : board.key === 'FREE' || board.key === 'MEME'
-                          ? visibleFanFeed.filter((post) => post.post_type === 'FREE').length
-                          : board.key === 'QUESTION'
-                            ? visibleFanFeed.filter((post) => post.post_type === 'QUESTION').length
-                            : visibleFanFeed.length
-
-                return (
-                <button
-                  className={fanBoardFilter === board.key ? 'fan-menu-button active' : 'fan-menu-button'}
-                  key={board.key}
-                  onClick={() => {
-                    setFanTab('feed')
-                    setFanBoardFilter(board.key as FanBoardFilter)
-                  }}
-                  type="button"
-                >
-                  <strong>{board.label}</strong>
-                  <p>{count}개 글</p>
-                </button>
-                )
-              })}
-            </div>
-          </section>
         </aside>
 
         <section className="fan-feed">
@@ -6156,35 +6120,50 @@ function App() {
 
               {filteredFanFeed.length > 0 ? (
                 <div className="fan-board-shell">
-                  <div className="fan-board-header">
-                    <span>말머리</span>
-                    <span>제목</span>
-                    <span>추천</span>
-                    <span>댓글</span>
-                    <span>작성자</span>
-                    <span>시간</span>
-                  </div>
-
-                  <div className="fan-board-list">
-                    {filteredFanFeed.map((post) => (
+                  <div className="fan-board-tabs">
+                    {activeFanRoomUi.boards.map((board) => (
                       <button
-                        className={selectedFanPost?.post_id === post.post_id ? 'fan-board-row active' : 'fan-board-row'}
-                        key={`${post.post_id}-${post.title}`}
+                        className={fanBoardFilter === board.key ? 'fan-board-tab active' : 'fan-board-tab'}
+                        key={board.key}
                         onClick={() => {
-                          setSelectedFanPostId(post.post_id)
-                          void loadFanComments(post.post_id)
+                          setFanTab('feed')
+                          setFanBoardFilter(board.key as FanBoardFilter)
                         }}
                         type="button"
                       >
-                        <span className="fan-board-type">
-                          {post.highlighted ? 'BEST' : postTypeToBadge[post.post_type] ?? 'POST'}
-                        </span>
-                        <strong className="fan-board-title">{post.title}</strong>
-                        <span className="fan-board-metric">👍 {post.like_count}</span>
-                        <span className="fan-board-metric">💬 {post.comment_count}</span>
-                        <span className="fan-board-author">{post.author_name}</span>
-                        <span className="fan-board-time">{formatRelativeTime(post.created_at)}</span>
+                        {board.label}
                       </button>
+                    ))}
+                  </div>
+
+                  <div className="fan-board-columns">
+                    {fanBoardColumns.map((column, columnIndex) => (
+                      <div className="fan-board-column" key={`column-${columnIndex}`}>
+                        {column.map((post) => (
+                          <button
+                            className={selectedFanPost?.post_id === post.post_id ? 'fan-board-row active' : 'fan-board-row'}
+                            key={`${post.post_id}-${post.title}`}
+                            onClick={() => {
+                              setSelectedFanPostId(post.post_id)
+                              void loadFanComments(post.post_id)
+                            }}
+                            type="button"
+                          >
+                            <div className="fan-board-row-main">
+                              <span className="fan-board-type">
+                                {post.highlighted ? 'BEST' : postTypeToBadge[post.post_type] ?? 'POST'}
+                              </span>
+                              <strong className="fan-board-title">{post.title}</strong>
+                            </div>
+                            <div className="fan-board-row-meta">
+                              <span className="fan-board-metric">💬 {post.comment_count}</span>
+                              <span className="fan-board-metric">👍 {post.like_count}</span>
+                              <span className="fan-board-author">{post.author_name}</span>
+                              <span className="fan-board-time">{formatRelativeTime(post.created_at)}</span>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
                     ))}
                   </div>
 
