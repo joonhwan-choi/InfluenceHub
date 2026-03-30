@@ -18,6 +18,7 @@ type View =
   | 'fan'
 
 type FanTab = 'feed' | 'calendar' | 'shop'
+type FanBoardFilter = 'ALL' | 'BEST' | 'NOTICE' | 'FREE' | 'QUESTION'
 type PrivacyStatus = 'private' | 'unlisted' | 'public'
 type PublishComposerMode = 'video' | 'post'
 type AuthMethod = 'social' | 'email'
@@ -591,6 +592,7 @@ function App() {
   const [fanPostBody, setFanPostBody] = useState('')
   const [fanPostStatus, setFanPostStatus] = useState('아직 팬 게시글 작성 전')
   const [fanFeedSort, setFanFeedSort] = useState<'latest' | 'popular'>('latest')
+  const [fanBoardFilter, setFanBoardFilter] = useState<FanBoardFilter>('ALL')
   const [fanCommentsByPostId, setFanCommentsByPostId] = useState<Record<number, CommunityCommentItem[]>>({})
   const [fanCommentDrafts, setFanCommentDrafts] = useState<Record<number, string>>({})
   const [isStartingFanGoogleLogin, setIsStartingFanGoogleLogin] = useState(false)
@@ -688,7 +690,16 @@ function App() {
   ).length
   const youtubeLongformCount = Math.max(youtubePublishHistory.length - youtubeShortsCount, 0)
   const visibleFanFeed = communityFeed.filter((post) => !isTestCommunityPost(post)).slice(0, 10)
-  const fanVideoHighlights = youtubeRecentVideos.slice(0, 3)
+  const fanVideoHighlights = youtubeRecentVideos.slice(0, 5)
+  const filteredFanFeed = visibleFanFeed.filter((post) => {
+    if (fanBoardFilter === 'ALL') {
+      return true
+    }
+    if (fanBoardFilter === 'BEST') {
+      return post.highlighted
+    }
+    return post.post_type === fanBoardFilter
+  })
   const youtubeCommunityDraft = `${postTitle.trim() || '유튜브 커뮤니티 제목'}\n\n${postBody.trim() || '유튜브 커뮤니티 본문'}`
   const visibleStoreBoard = storeBoard.filter((item) => item.visible)
   const visibleEventBoard = eventBoard.filter((item) => item.visible)
@@ -1166,7 +1177,7 @@ function App() {
 
   const loadYoutubeRecentVideos = async () => {
     try {
-      const response = await fetch(`${apiBaseUrl}/api/v1/youtube/latest-videos?limit=3`)
+      const response = await fetch(`${apiBaseUrl}/api/v1/youtube/latest-videos?limit=5`)
       if (!response.ok) {
         throw new Error('최신 유튜브 영상을 불러오지 못했습니다.')
       }
@@ -5454,37 +5465,6 @@ function App() {
         </section>
       ) : null}
 
-      <section className="fan-room-switcher">
-        <div className="panel-head">
-          <div>
-            <span className="card-kicker">팬방 선택</span>
-            <h3>가입한 팬방을 오가며 보기</h3>
-          </div>
-        </div>
-
-        {displayedFanRooms.length > 0 ? (
-          <div className="fan-room-grid">
-            {displayedFanRooms.map((room) => (
-              <button
-                className={room.id === selectedFanRoomId ? 'fan-room-card active' : 'fan-room-card'}
-                key={room.id}
-                onClick={() => setSelectedFanRoomId(room.id)}
-              >
-                <span className="mini-label">{room.joinedVia}</span>
-                <strong>{room.creator}</strong>
-                <p>{room.label}</p>
-              </button>
-            ))}
-          </div>
-        ) : (
-          <div className="notice-preview compact-highlight">
-            <span className="mini-label">팬방 없음</span>
-            <strong>아직 표시할 팬방이 없습니다.</strong>
-            <p>초대 링크를 통해 팬방에 가입하거나 인플루언서 채널을 먼저 연결해 주세요.</p>
-          </div>
-        )}
-      </section>
-
       <section className="fan-action-hub">
         <div className="panel-head">
           <div>
@@ -5599,14 +5579,88 @@ function App() {
         </section>
       ) : null}
 
-      <div className="fan-layout">
+      <div className="fan-layout fan-layout-wide">
+        <aside className="fan-left-menu">
+          <section className="fan-menu-panel">
+            <div className="panel-head">
+              <div>
+                <span className="card-kicker">팬방 선택</span>
+                <h3>가입한 팬방</h3>
+              </div>
+            </div>
+
+            {displayedFanRooms.length > 0 ? (
+              <div className="fan-room-menu">
+                {displayedFanRooms.map((room) => (
+                  <button
+                    className={room.id === selectedFanRoomId ? 'fan-menu-button active' : 'fan-menu-button'}
+                    key={room.id}
+                    onClick={() => setSelectedFanRoomId(room.id)}
+                    type="button"
+                  >
+                    <span className="mini-label">{room.joinedVia}</span>
+                    <strong>{room.creator}</strong>
+                    <p>{room.label}</p>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="mini-board">
+                <span className="mini-label">팬방 없음</span>
+                <strong>아직 입장한 팬방이 없습니다.</strong>
+                <p>초대 링크를 통해 팬방에 가입하면 이 메뉴에 바로 추가됩니다.</p>
+              </div>
+            )}
+          </section>
+
+          <section className="fan-menu-panel">
+            <div className="panel-head">
+              <div>
+                <span className="card-kicker">게시판</span>
+                <h3>커뮤니티 메뉴</h3>
+              </div>
+            </div>
+
+            <div className="fan-board-menu">
+              {[
+                { key: 'ALL', label: '전체 글', count: visibleFanFeed.length },
+                { key: 'BEST', label: '베스트', count: visibleFanFeed.filter((post) => post.highlighted).length },
+                { key: 'NOTICE', label: '공지', count: visibleFanFeed.filter((post) => post.post_type === 'NOTICE').length },
+                { key: 'FREE', label: '자유글', count: visibleFanFeed.filter((post) => post.post_type === 'FREE').length },
+                { key: 'QUESTION', label: '질문', count: visibleFanFeed.filter((post) => post.post_type === 'QUESTION').length },
+              ].map((board) => (
+                <button
+                  className={fanBoardFilter === board.key ? 'fan-menu-button active' : 'fan-menu-button'}
+                  key={board.key}
+                  onClick={() => {
+                    setFanTab('feed')
+                    setFanBoardFilter(board.key as FanBoardFilter)
+                  }}
+                  type="button"
+                >
+                  <strong>{board.label}</strong>
+                  <p>{board.count}개 글</p>
+                </button>
+              ))}
+            </div>
+          </section>
+        </aside>
+
         <section className="fan-feed">
           <div className="panel-head">
             <div>
               <span className="card-kicker">팬 홈</span>
               <h3>
                 {fanTab === 'feed'
-                  ? '지금 뜨는 소식'
+                  ? fanBoardFilter === 'ALL'
+                    ? '게시판'
+                    : fanBoardFilter === 'BEST'
+                      ? '베스트 게시판'
+                      : fanBoardFilter === 'NOTICE'
+                        ? '공지 게시판'
+                        : fanBoardFilter === 'FREE'
+                          ? '자유 게시판'
+                          : '질문 게시판'
                   : fanTab === 'calendar'
                     ? '다가오는 일정'
                     : '팬방 한정 굿즈'}
@@ -5653,9 +5707,9 @@ function App() {
                 )}
               </article>
 
-              {visibleFanFeed.length > 0 ? (
+              {filteredFanFeed.length > 0 ? (
                 <div className="fan-moment-list">
-                  {visibleFanFeed.map((moment) => (
+                  {filteredFanFeed.map((moment) => (
                     <article className="fan-moment-card" key={`${moment.post_id}-${moment.title}`}>
                       {isRenderableImageUrl(moment.image_url) ? (
                         <img
@@ -5712,9 +5766,9 @@ function App() {
                 </div>
               ) : (
                 <div className="mini-board">
-                  <span className="mini-label">게시글 준비 전</span>
-                  <strong>아직 올라온 글이 없습니다</strong>
-                  <p>팬이나 운영자가 글을 등록하면 여기에서 바로 같이 볼 수 있습니다.</p>
+                  <span className="mini-label">게시판 비어 있음</span>
+                  <strong>이 게시판에는 아직 글이 없습니다</strong>
+                  <p>다른 게시판을 보거나 첫 글을 올려서 팬방 대화를 시작해 보세요.</p>
                 </div>
               )}
             </>
