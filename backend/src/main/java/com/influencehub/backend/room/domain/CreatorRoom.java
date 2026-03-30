@@ -51,6 +51,9 @@ public class CreatorRoom extends BaseTimeEntity {
     @Column(nullable = false, length = 20)
     private String cardDensity;
 
+    @Column(nullable = false, length = 40)
+    private String roomLayoutType;
+
     @Column(length = 1000)
     private String discordWebhookUrl;
 
@@ -79,6 +82,7 @@ public class CreatorRoom extends BaseTimeEntity {
         this.bannerStyle = "focus";
         this.buttonStyle = "rounded";
         this.cardDensity = "comfortable";
+        this.roomLayoutType = "community-board";
         this.discordWebhookUrl = null;
         this.discordEnabled = false;
         this.instagramAccountId = null;
@@ -126,6 +130,10 @@ public class CreatorRoom extends BaseTimeEntity {
         return cardDensity;
     }
 
+    public String getRoomLayoutType() {
+        return roomLayoutType;
+    }
+
     public String getDiscordWebhookUrl() {
         return discordWebhookUrl;
     }
@@ -151,11 +159,12 @@ public class CreatorRoom extends BaseTimeEntity {
         this.description = description;
     }
 
-    public void updateAppearance(String roomThemeId, String bannerStyle, String buttonStyle, String cardDensity) {
+    public void updateAppearance(String roomThemeId, String bannerStyle, String buttonStyle, String cardDensity, String roomLayoutType) {
         this.roomThemeId = roomThemeId;
         this.bannerStyle = bannerStyle;
         this.buttonStyle = buttonStyle;
         this.cardDensity = cardDensity;
+        this.roomLayoutType = roomLayoutType;
     }
 
     public void updateDiscordSettings(String discordWebhookUrl, boolean discordEnabled) {
